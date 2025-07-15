@@ -52,7 +52,7 @@ if (isset($_COOKIE['userid'])) {
   <title>GLAMORA</title>
   <!-- تحميل خط كايرو من Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./style/style.css">
+  <link rel="stylesheet" href="../style/main.css">
 
 </head>
 

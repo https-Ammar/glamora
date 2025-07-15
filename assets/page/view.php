@@ -42,8 +42,8 @@ if (isset($_GET['id'])) {
     href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <link rel="stylesheet" href="../style/main.css">
-  <link rel="stylesheet" href="./style/viwe.css">
-  <link rel="stylesheet" type="text/css" href="./style/style.css">
+
+
 </head>
 
 <body>

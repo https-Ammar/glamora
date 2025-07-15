@@ -107,7 +107,7 @@ if (!isset($_COOKIE['userid'])) {
           $name = htmlspecialchars($fetchcat['name'] ?? '', ENT_QUOTES, 'UTF-8');
           $id = (int) $fetchcat['id'];
           echo '<div class="main_cat item">
-                        <a href="Categories.php?id=' . $id . '">
+                        <a href="./assets/page/categories.php?id=' . $id . '">
                             <div class="_Categories_img" style="background-image: url(\'./admin/' . $image . '\');"></div>
                             <h2>' . $name . '</h2>
                         </a>
@@ -172,7 +172,7 @@ if (!isset($_COOKIE['userid'])) {
             ?>
             <section class="container__">
               <div class="row">
-                <a href="Categories.php?id=<?php echo $i + 1 ?>" class="btn-link text-decoration-none">
+                <a href="./assets/page/categories.php?id=<?php echo $i + 1 ?>" class="btn-link text-decoration-none">
                   <h3 class="title"><?php echo $namecat; ?></h3>
                 </a>
 
@@ -758,58 +758,3 @@ if (!isset($_COOKIE['userid'])) {
   animate();
   nextTextTimeout = setTimeout(changeText, config.textChangeInterval);
 </script>
-
-<style>
-  canvas {
-    z-index: 999999999999;
-  }
-</style>
-
-<style>
-  .Categories_ads {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    margin-top: 10vh;
-  }
-
-  .main_cat {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    flex-direction: column;
-
-  }
-
-  ._Categories_img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background-position: center bottom;
-    background-size: cover;
-    background-repeat: no-repeat;
-    border: 5px solid #de4558;
-  }
-
-  .main_cat h2 {
-    font-size: 16px;
-  }
-
-  @media screen and (max-width: 992px) {
-    ._Categories_img {
-      width: 75px;
-      height: 75px;
-    }
-
-    .main_cat h2 {
-      font-size: smaller;
-    }
-
-    .Categories_ads {
-
-      gap: 10px;
-      margin-top: 5vh;
-    }
-  }
-</style>

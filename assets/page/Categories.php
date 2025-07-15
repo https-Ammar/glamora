@@ -22,7 +22,7 @@ $fetchassoc = mysqli_fetch_assoc($selectcat);
   <title>GLAMORA</title>
   <!-- link -->
 
-  <link rel="stylesheet" type="text/css" href="./style/style.css" />
+  <link rel="stylesheet" type="text/css" href="../style/main.css" />
 
   <!--  -->
   <link rel="preconnect" href="https://fonts.googleapis.com">

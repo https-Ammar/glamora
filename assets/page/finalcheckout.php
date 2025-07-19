@@ -16,14 +16,13 @@ if (!$userid) {
     exit();
 }
 
-// التحقق من عدد المنتجات في السلة
+// عدد المنتجات في السلة
 $stmt = $conn->prepare("SELECT COUNT(*) as product_count FROM cart WHERE userid = ?");
 $stmt->bind_param("s", $userid);
 $stmt->execute();
 $result = $stmt->get_result();
 if ($result) {
-    $row = $result->fetch_assoc();
-    $i = $row['product_count'];
+    $i = $result->fetch_assoc()['product_count'];
 }
 $stmt->close();
 
@@ -34,7 +33,7 @@ if ($i > 0) {
     $getallcartproducts = $stmt->get_result();
 
     while ($getcartproducts = $getallcartproducts->fetch_assoc()) {
-        $cartproduct = $getcartproducts['prouductid'];
+        $cartproduct = $getcartproducts['productid'];
 
         $productStmt = $conn->prepare("SELECT * FROM products WHERE id = ?");
         $productStmt->bind_param("i", $cartproduct);
@@ -42,19 +41,20 @@ if ($i > 0) {
         $selectproduct = $productStmt->get_result();
 
         if ($fetchproduct = $selectproduct->fetch_assoc()) {
-            $getfirstbyfirst = $fetchproduct['total_final_price'] * $getcartproducts['qty'];
+            $unitPrice = $fetchproduct['sale_price'] ?? $fetchproduct['price'];
+            $getfirstbyfirst = $unitPrice * $getcartproducts['qty'];
             $finalproducttotal += $getfirstbyfirst;
 
             $tage = '<tr>
                 <td scope="row" class="py-4">
                     <div class="cart-info d-flex flex-wrap align-items-center">
-                        <img src="../' . htmlspecialchars($fetchproduct['img']) . '" class="col-lg-3 viwe_img">
+                        <img src="../' . htmlspecialchars($fetchproduct['image'] ?? '') . '" class="col-lg-3 viwe_img">
                         <div class="col-lg-9"></div>
                     </div>
                 </td>
-                <td class="py-4"><p>' . htmlspecialchars($fetchproduct["name"]) . '</p></td>
+                <td class="py-4"><p>' . htmlspecialchars($fetchproduct["name"] ?? '') . '</p></td>
                 <td class="py-4"><p>count ( ' . htmlspecialchars($getcartproducts["qty"]) . ' )</p></td>
-                <td class="py-4"><p>' . htmlspecialchars($getfirstbyfirst) . '</p></td>
+                <td class="py-4"><p>' . number_format($getfirstbyfirst, 2) . '</p></td>
                 <td class="py-4"></td>
             </tr>';
 
@@ -65,7 +65,7 @@ if ($i > 0) {
     }
     $stmt->close();
 
-    // التحقق من الكوبون وتطبيق الخصم
+    // التحقق من الكوبون
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['coupon_code'])) {
         $couponCode = trim($_POST['coupon_code']);
 
@@ -107,7 +107,7 @@ if ($i > 0) {
     }
 
     // تنفيذ الطلب
-    if ($_SERVER['REQUEST_METHOD'] == "POST" && isset($_POST['cleintname'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cleintname'])) {
         $name = mysqli_real_escape_string($conn, $_POST['cleintname'] ?? '');
         $phoneone = mysqli_real_escape_string($conn, $_POST['phoneone'] ?? '');
         $phonetwo = mysqli_real_escape_string($conn, $_POST['phonetwo'] ?? '');
@@ -127,15 +127,13 @@ if ($i > 0) {
         }
         $checkUser->close();
 
-        // ✅ هنا تم تصحيح عدد أنواع البيانات إلى 11 نوعًا فقط:
         $orderstate = 'inprogress';
-        $stmt = $conn->prepare("INSERT INTO orders (user_id, name, phoneone, phonetwo, city, address, htmltage, orderstate, data, numberofproducts, finaltotalprice, coupon_id)
+        $stmt = $conn->prepare("INSERT INTO orders (user_id, name, phoneone, phonetwo, city, address, html_tag, orderstate, date, numberofproducts, finaltotalprice, coupon_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), ?, ?, ?)");
         $stmt->bind_param("isssssssidi", $userid, $name, $phoneone, $phonetwo, $city, $address, $getalltage, $orderstate, $i, $finalproducttotal, $couponIdUsed);
         $stmt->execute();
         $stmt->close();
 
-        // تفريغ السلة
         $deleteCart = $conn->prepare("DELETE FROM cart WHERE userid = ?");
         $deleteCart->bind_param("s", $userid);
         $deleteCart->execute();
@@ -150,8 +148,8 @@ if ($i > 0) {
     exit();
 }
 
-// عرض رسالة الكوبون (إن وُجد)
+// عرض رسالة الكوبون
 if (!empty($couponMessage)) {
-    echo '<div style="margin:10px; padding:10px; background:#f2f2f2; border:1px solid #ccc;">' . $couponMessage . '</div>';
+    echo '<div style="margin:10px; padding:10px; background:#f2f2f2; border:1px solid #ccc;">' . htmlspecialchars($couponMessage) . '</div>';
 }
 ?>

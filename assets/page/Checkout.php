@@ -4,7 +4,7 @@ session_start();
 
 $finalproducttotal = 0.0;
 $i = 0;
-$couponDiscount = 0.0; // 👈 مهم: تعريف المتغير لتفادي التحذير
+$couponDiscount = 0.0;
 $couponApplied = false;
 
 $userData = [
@@ -50,7 +50,7 @@ if (isset($_SESSION['userId'])) {
   $stmt->close();
 }
 
-// حساب عدد المنتجات في السلة
+// عدد المنتجات في السلة
 $stmt = $conn->prepare("SELECT COUNT(*) as product_count FROM cart WHERE userid = ?");
 $stmt->bind_param("s", $userid);
 $stmt->execute();
@@ -68,13 +68,14 @@ if ($i > 0) {
   $getallcartproducts = $stmt->get_result();
 
   while ($getcartproducts = $getallcartproducts->fetch_assoc()) {
-    $productId = $getcartproducts['prouductid'];
-    $productStmt = $conn->prepare("SELECT total_final_price FROM products WHERE id = ?");
+    $productId = $getcartproducts['productid'];
+    $productStmt = $conn->prepare("SELECT price, sale_price FROM products WHERE id = ?");
     $productStmt->bind_param("i", $productId);
     $productStmt->execute();
     $productResult = $productStmt->get_result();
     if ($fetchproduct = $productResult->fetch_assoc()) {
-      $total = $fetchproduct['total_final_price'] * $getcartproducts['qty'];
+      $unitPrice = $fetchproduct['sale_price'] ?? $fetchproduct['price'];
+      $total = $unitPrice * $getcartproducts['qty'];
       $finalproducttotal += $total;
     }
     $productStmt->close();
@@ -82,7 +83,7 @@ if ($i > 0) {
   $stmt->close();
 }
 
-// ✅ تطبيق الكوبون
+// تطبيق الكوبون
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['coupon_code'])) {
   $code = trim($_POST['coupon_code']);
 
@@ -113,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['coupon_code'])) {
   $stmt->close();
 }
 ?>
+
 
 <!-- ✅ نموذج الكوبون -->
 <form method="POST">

@@ -1,35 +1,43 @@
 <?php
 require('./db.php');
 
-if (isset($_POST['id'])) {
-    $id = intval($_POST['id']); // Sanitizing the id
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+    $id = intval($_POST['id']);
 
-    // Prepared statement to select the cart item
-    $stmt = $conn->prepare("SELECT qty FROM `cart` WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    // تحقق من وجود العنصر في السلة
+    $stmt = $conn->prepare("SELECT qty FROM cart WHERE id = ?");
+    if ($stmt) {
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
-    if ($result->num_rows > 0) {
-        $fetch = $result->fetch_assoc();
-        $newcount = $fetch['qty'] + 1;
+        if ($result && $result->num_rows > 0) {
+            $fetch = $result->fetch_assoc();
+            $newQty = $fetch['qty'] + 1;
 
-        // Prepared statement to update the quantity
-        $updateStmt = $conn->prepare("UPDATE `cart` SET qty = ? WHERE id = ?");
-        $updateStmt->bind_param("ii", $newcount, $id);
-        $updateStmt->execute();
+            // تحديث الكمية
+            $updateStmt = $conn->prepare("UPDATE cart SET qty = ? WHERE id = ?");
+            if ($updateStmt) {
+                $updateStmt->bind_param("ii", $newQty, $id);
+                $updateStmt->execute();
 
-        if ($updateStmt->affected_rows > 0) {
-            echo "Quantity updated successfully.";
+                if ($updateStmt->affected_rows > 0) {
+                    echo "✅ Quantity updated successfully.";
+                } else {
+                    echo "⚠️ Quantity not changed.";
+                }
+                $updateStmt->close();
+            } else {
+                echo "❌ Error in update statement.";
+            }
         } else {
-            echo "Failed to update quantity.";
+            echo "❌ Cart item not found.";
         }
-
-        $updateStmt->close();
+        $stmt->close();
     } else {
-        echo "Cart item not found.";
+        echo "❌ Error in select statement.";
     }
-
-    $stmt->close();
+} else {
+    echo "❌ Invalid request.";
 }
 ?>

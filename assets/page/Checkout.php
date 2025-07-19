@@ -1,79 +1,129 @@
 <?php
 require('./db.php');
+session_start();
 
-// تهيئة المتغيرات
-$i = 0;
 $finalproducttotal = 0.0;
+$i = 0;
+$couponDiscount = 0.0; // 👈 مهم: تعريف المتغير لتفادي التحذير
+$couponApplied = false;
 
-// التحقق إذا كان الكوكيز 'userid' موجود
-if (isset($_COOKIE['userid'])) {
-  // الحصول على قيمة 'userid' من الكوكيز
-  $userid = $_COOKIE['userid'];
+$userData = [
+  'name' => '',
+  'phone' => '',
+  'address' => '',
+  'city' => '',
+];
 
-  // جملة SQL لتحضير استعلام حساب عدد المنتجات في العربة
-  $stmt = $conn->prepare("SELECT COUNT(*) as product_count FROM cart WHERE userid = ?");
-  $stmt->bind_param("s", $userid);
+$userid = null;
+
+if (isset($_SESSION['userId'])) {
+  $userid = $_SESSION['userId'];
+
+  if (isset($_COOKIE['userid']) && $_COOKIE['userid'] != $userid) {
+    $cookieUserId = $_COOKIE['userid'];
+    $stmt = $conn->prepare("UPDATE cart SET userid = ? WHERE userid = ?");
+    $stmt->bind_param("ss", $userid, $cookieUserId);
+    $stmt->execute();
+    $stmt->close();
+    setcookie('userid', $userid, time() + (10 * 365 * 24 * 60 * 60), "/");
+  }
+
+  $stmt = $conn->prepare("SELECT name, phone, address, city FROM users WHERE id = ?");
+  $stmt->bind_param("i", $userid);
   $stmt->execute();
   $result = $stmt->get_result();
-
-  // إذا كانت الاستجابة صحيحة
-  if ($result) {
-    $row = $result->fetch_assoc();
-    $i = $row['product_count'];
+  if ($result && $result->num_rows > 0) {
+    $userData = $result->fetch_assoc();
   }
   $stmt->close();
+
+} elseif (isset($_COOKIE['userid'])) {
+  $userid = $_COOKIE['userid'];
 } else {
-  // إذا لم يكن الكوكيز موجود، قم بإدراج مستخدم جديد
-  $sql = "SELECT id FROM users ORDER BY id DESC LIMIT 1";
-  $result = $conn->query($sql);
-
-  if ($result->num_rows > 0) {
-    // الحصول على آخر ID مستخدم
-    $row = $result->fetch_assoc();
-    $last_id = $row['id'];
-    $newid = $last_id + 1;
-  } else {
-    // إذا لم توجد سجلات، ابدأ من ID 1
-    $newid = 1;
-  }
-
-  // تعيين كوكيز 'userid' بالـ ID الجديد
-  setcookie('userid', $newid, time() + (10 * 365 * 24 * 60 * 60), "/");
-
-  // إدراج المستخدم الجديد في قاعدة البيانات
-  $stmt = $conn->prepare("INSERT INTO users(id) VALUES(?)");
-  $stmt->bind_param("i", $newid);
+  $result = $conn->query("SELECT id FROM users ORDER BY id DESC LIMIT 1");
+  $newid = ($result && $result->num_rows > 0) ? $result->fetch_assoc()['id'] + 1 : 1;
+  $userid = $newid;
+  setcookie('userid', $userid, time() + (10 * 365 * 24 * 60 * 60), "/");
+  $stmt = $conn->prepare("INSERT INTO users(id, name, email, password) VALUES (?, '', '', '')");
+  $stmt->bind_param("i", $userid);
   $stmt->execute();
   $stmt->close();
 }
 
-// جلب المنتجات من العربة وعرض الكمية
+// حساب عدد المنتجات في السلة
+$stmt = $conn->prepare("SELECT COUNT(*) as product_count FROM cart WHERE userid = ?");
+$stmt->bind_param("s", $userid);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($result) {
+  $i = $result->fetch_assoc()['product_count'];
+}
+$stmt->close();
+
+// حساب المجموع النهائي
 if ($i > 0) {
-  // جملة SQL لجلب بيانات المنتجات في العربة
   $stmt = $conn->prepare("SELECT * FROM cart WHERE userid = ?");
   $stmt->bind_param("s", $userid);
   $stmt->execute();
   $getallcartproducts = $stmt->get_result();
 
   while ($getcartproducts = $getallcartproducts->fetch_assoc()) {
-    $cartproduct = $getcartproducts['prouductid'];
-
-    $productStmt = $conn->prepare("SELECT * FROM products WHERE id = ?");
-    $productStmt->bind_param("i", $cartproduct);
+    $productId = $getcartproducts['prouductid'];
+    $productStmt = $conn->prepare("SELECT total_final_price FROM products WHERE id = ?");
+    $productStmt->bind_param("i", $productId);
     $productStmt->execute();
-    $selectproduct = $productStmt->get_result();
-    $fetchproduct = $selectproduct->fetch_assoc();
-
-    $getfirstbyfirst = $fetchproduct['total_final_price'] * $getcartproducts['qty'];
-    $finalproducttotal += $getfirstbyfirst;
-
-    // عرض الصورة واسم المنتج والكمية
-    echo '
-   ';
+    $productResult = $productStmt->get_result();
+    if ($fetchproduct = $productResult->fetch_assoc()) {
+      $total = $fetchproduct['total_final_price'] * $getcartproducts['qty'];
+      $finalproducttotal += $total;
+    }
+    $productStmt->close();
   }
   $stmt->close();
 }
+
+// ✅ تطبيق الكوبون
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['coupon_code'])) {
+  $code = trim($_POST['coupon_code']);
+
+  $stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ? AND expires_at > NOW() AND max_uses > 0");
+  $stmt->bind_param("s", $code);
+  $stmt->execute();
+  $result = $stmt->get_result();
+
+  if ($result && $result->num_rows > 0) {
+    $coupon = $result->fetch_assoc();
+
+    if ($coupon['discount_type'] === 'percentage') {
+      $couponDiscount = $finalproducttotal * ($coupon['discount_value'] / 100);
+    } else {
+      $couponDiscount = $coupon['discount_value'];
+    }
+
+    if ($couponDiscount > $finalproducttotal) {
+      $couponDiscount = $finalproducttotal;
+    }
+
+    $finalproducttotal -= $couponDiscount;
+    $couponApplied = true;
+  } else {
+    echo "<p style='color:red;'>❌ الكوبون غير صالح أو منتهي.</p>";
+  }
+
+  $stmt->close();
+}
 ?>
+
+<!-- ✅ نموذج الكوبون -->
+<form method="POST">
+  <input type="text" name="coupon_code" placeholder="أدخل كود الخصم" required>
+  <button type="submit">تطبيق</button>
+</form>
+
+<!-- ✅ عرض الأسعار -->
+<p>السعر قبل الخصم: <?php echo number_format($finalproducttotal + $couponDiscount, 2); ?> ج.م</p>
+<p>الخصم: <?php echo number_format($couponDiscount, 2); ?> ج.م</p>
+<p>السعر بعد الخصم: <?php echo number_format($finalproducttotal, 2); ?> ج.م</p>
 
 
 
@@ -643,8 +693,8 @@ if ($i > 0) {
                               <div class="mg7oixl">
                                 <p
                                   class="_1x52f9s1 _1x52f9s0 _1fragemlj _1x52f9sv _1x52f9su _1fragemnw _1x52f9s9 _1x52f9s6 _1fragems4">
-                                  <span class="_19gi7yt0 _19gi7ytw _19gi7ytv _1fragemnw _19gi7ytj">OR</span></p><span
-                                  role="separator"></span>
+                                  <span class="_19gi7yt0 _19gi7ytw _19gi7ytv _1fragemnw _19gi7ytj">OR</span>
+                                </p><span role="separator"></span>
                               </div>
                             </div>
                           </div>
@@ -669,11 +719,13 @@ if ($i > 0) {
                                         <div class="_1fragem1y _1fragemlj _16s97g73r" style="--_16s97g73m: 5.65rem;">
                                           <img src="https://assets.getcatch.com/static_assets/logos/catch_dark.png"
                                             alt="Catch" loading="eager"
-                                            class="_1h3po424 _1h3po427 _1h3po425 _1fragem1y _1fragemkk"></div>
+                                            class="_1h3po424 _1h3po427 _1h3po425 _1fragem1y _1fragemkk">
+                                        </div>
                                         <div class="_1fragemeg _1fragemg9 _1fragemcn _1fragemi2 _1fragem1y _1fragemlj">
                                           <button type="button" aria-label="Open how Catch works modal"
                                             class="_1xqelvi1 _1xqelvi0 _1fragemnk _1fragemlj _1fragems6 _1fragemsh _1fragemsc _1fragemsr _1fragems0 _1fragem8m _1fragem82 _1fragem96 _1fragem7i _1fragem1y _1xqelvi4 _1xqelvi3 _1fragem28 _1fragemmg _1xqelvi8"
-                                            aria-haspopup="dialog"><span class="_1xqelvi2">ⓘ</span></button></div>
+                                            aria-haspopup="dialog"><span class="_1xqelvi2">ⓘ</span></button>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -726,10 +778,11 @@ if ($i > 0) {
                                                             </span></span></label>
                                                         <div
                                                           class="_7ozb2u6 _7ozb2u5 _1fragemlj _1fragem2s _1fragemnl _1fragemsh _1fragemsc _1fragemsr _1fragemsu _7ozb2uc _7ozb2ua _1fragemnb _1fragemt0 _7ozb2ul _7ozb2uh">
-                                                          <input id="TextField140" name='cleintname' type="text"
-                                                            placeholder="First Name" required aria-required="true"
-                                                            aria-labelledby="TextField140-label" value
-                                                            autocomplete="shipping given-name"
+                                                          <input id="TextField140" name='cleintname'
+                                                            value="<?= htmlspecialchars($userData['name']) ?>" required
+                                                            type="text" placeholder="First Name" required
+                                                            aria-required="true" aria-labelledby="TextField140-label"
+                                                            value autocomplete="shipping given-name"
                                                             class="_7ozb2uq _7ozb2up _1fragemlj _1fragemsv _1fragemof _1fragems1 _7ozb2ut _7ozb2us _1fragemsh _1fragemsc _1fragemsr _7ozb2u11 _7ozb2u1h _7ozb2ur" />
                                                         </div>
                                                       </div>
@@ -783,8 +836,10 @@ if ($i > 0) {
                                                                   class="rermvf1 rermvf0 _1fragemjv _1fragemk5 _1fragem1y">Address</span></span></label>
                                                             <div
                                                               class="_7ozb2u6 _7ozb2u5 _1fragemlj _1fragem2s _1fragemnl _1fragemsh _1fragemsc _1fragemsr _1fragemsu _7ozb2uc _7ozb2ua _1fragemnb _1fragemt0 _7ozb2ul _7ozb2uh">
-                                                              <input id="name" name='address' type="text"
-                                                                placeholder="Address" required aria-required="true"
+                                                              <input id="name" name='address'
+                                                                value="<?= htmlspecialchars($userData['address']) ?> "
+                                                                type="text" placeholder="Address" required
+                                                                aria-required="true"
                                                                 aria-labelledby="TextField142-label" value
                                                                 autocomplete="shipping address-line1"
                                                                 class="_7ozb2uq _7ozb2up _1fragemlj _1fragemsv _1fragemof _1fragems1 _7ozb2ut _7ozb2us _1fragemsh _1fragemsc _1fragemsr _7ozb2u11 _7ozb2u1h _7ozb2ur" />
@@ -823,10 +878,11 @@ if ($i > 0) {
                                                             </span></span></label>
                                                         <div
                                                           class="_7ozb2u6 _7ozb2u5 _1fragemlj _1fragem2s _1fragemnl _1fragemsh _1fragemsc _1fragemsr _1fragemsu _7ozb2uc _7ozb2ua _1fragemnb _1fragemt0 _7ozb2ul _7ozb2uh">
-                                                          <input id="cvc" type="text" name='city' placeholder="city"
-                                                            required aria-required="false"
-                                                            aria-labelledby="TextField143-label" value
-                                                            autocomplete="shipping address-line2"
+                                                          <input id="cvc"
+                                                            value="<?= htmlspecialchars($userData['city']) ?>" required
+                                                            type="text" name='city' placeholder="city" required
+                                                            aria-required="false" aria-labelledby="TextField143-label"
+                                                            value autocomplete="shipping address-line2"
                                                             class="_7ozb2uq _7ozb2up _1fragemlj _1fragemsv _1fragemof _1fragems1 _7ozb2ut _7ozb2us _1fragemsh _1fragemsc _1fragemsr _7ozb2u11 _7ozb2u1h _7ozb2ur" />
                                                         </div>
                                                       </div>
@@ -860,10 +916,12 @@ if ($i > 0) {
                                                               phone number</span></span></label>
                                                         <div
                                                           class="_7ozb2u6 _7ozb2u5 _1fragemlj _1fragem2s _1fragemnl _1fragemsh _1fragemsc _1fragemsr _1fragemsu _7ozb2uc _7ozb2ua _1fragemnb _1fragemt0 _7ozb2ul _7ozb2uh">
-                                                          <input name='phoneone' type="tel" min="1" autocomplete="tel"
-                                                            maxlength="13" type="tel" placeholder="+201070479599"
-                                                            aria-required="true" aria-labelledby="TextField144-label"
-                                                            value autocomplete="shipping address-level2"
+                                                          <input name='phoneone'
+                                                            value="<?= htmlspecialchars($userData['phone']) ?>" required
+                                                            type="tel" min="1" autocomplete="tel" maxlength="13"
+                                                            type="tel" placeholder="+201070479599" aria-required="true"
+                                                            aria-labelledby="TextField144-label" value
+                                                            autocomplete="shipping address-level2"
                                                             class="_7ozb2uq _7ozb2up _1fragemlj _1fragemsv _1fragemof _1fragems1 _7ozb2ut _7ozb2us _1fragemsh _1fragemsc _1fragemsr _7ozb2u11 _7ozb2u1h _7ozb2ur" />
                                                         </div>
                                                       </div>
@@ -990,6 +1048,105 @@ if ($i > 0) {
 
 
 
+
+  <style>
+    ._9F1Rf.GI5Fn._1fragemna._1fragemn5._1fragemt8 {
+      padding: 20px;
+    }
+
+    span._4ptW6 {
+      text-align: left;
+    }
+
+    button#checkout-customer-continue {
+      width: 100%;
+      background: black;
+      color: white;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+
+    ._1mmswk92._1mmswk91._1fragemlj._1fragem28 {
+      gap: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    ._1fragemow._1fragemp1._1fragempb._1fragemp6._1fragemt4._1fragem1y._1fragemf5._1fragemgy._1fragemdc._1fragemir._1fragemlj {
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    #TextField140-label {}
+
+    .cektnc3 {
+      padding: 0 10px;
+    }
+
+    ._6zbcq516._6zbcq515._1fragem28._1fragem1t._6zbcq519._6zbcq518 {
+      gap: 10px;
+    }
+
+
+    ._99ss3s7 {
+      border-radius: 50%;
+      margin-left: -10px;
+    }
+
+
+    .sdr03s1.sdr03s0._1fragempn._1fragempj._1fragempr._1fragempf._1fragemf5._1fragemgy._1fragemdc._1fragemir._1fragemlj._1fragem2s.sdr03s4.sdr03s2 {
+      gap: 10px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+
+    ._1h3po424._1h3po427._1h3po425._1fragem1y._1fragemkk._1fragem8r._1fragem87._1fragem9b._1fragem7n._1fragemb4._1fragemaf._1fragembt._1fragem9q._1fragemkz._1m6j2n3c._1fragemof._1fragem1t._1m6j2n35 {
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    ._6zbcq513._6zbcq512._1fragem28._1fragemnn._6zbcq5m._6zbcq5a._1fragem3w {
+      margin: 10px 0;
+    }
+
+
+    .i4DWM._1fragemna._1fragemn7._1fragemt0 {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    ._9F1Rf.GI5Fn._1fragemna._1fragemn5._1fragemt8 {
+      /*display: flex;*/
+      /*align-items: center;*/
+      /*justify-content: center;*/
+      height: auto;
+    }
+
+    .i4DWM._1fragemna._1fragemn7._1fragemt0 {
+      padding: 20px;
+      padding-top: 20px;
+      padding-right: 20px;
+      padding-bottom: 20px;
+      padding-left: 20px;
+    }
+
+    .gdtca {
+      height: 0;
+    }
+
+
+    ._9F1Rf .gdtca {
+
+      display: block;
+      height: auto;
+    }
+  </style>
 
 
   <!--cart-->
@@ -1140,7 +1297,7 @@ if ($i > 0) {
       if (quantity && quantity > 0) {
         $.ajax({
           type: "POST",
-          url: "addcartproduct.php",
+          url: "add_to_cart.php",
           data: { productid, qty: quantity },
           success: function () {
             loadCart();
@@ -1201,7 +1358,7 @@ if ($i > 0) {
       if (quantity) {
         $.ajax({
           type: "POST",
-          url: "addcartproduct.php",
+          url: "add_to_cart.php",
           data: { productid, qty: quantity },
           success: function () {
             loadCart();
@@ -1257,106 +1414,6 @@ if ($i > 0) {
       continueButton.disabled = !allFilled; // Enable if all fields are filled
     });
   </script>
-
-  <style>
-    ._9F1Rf.GI5Fn._1fragemna._1fragemn5._1fragemt8 {
-      padding: 20px;
-    }
-
-    span._4ptW6 {
-      text-align: left;
-    }
-
-    button#checkout-customer-continue {
-      width: 100%;
-      background: black;
-      color: white;
-      padding: 10px;
-      margin-bottom: 20px;
-      border-radius: 5px;
-    }
-
-    ._1mmswk92._1mmswk91._1fragemlj._1fragem28 {
-      gap: 10px;
-      display: flex;
-      align-items: center;
-    }
-
-    ._1fragemow._1fragemp1._1fragempb._1fragemp6._1fragemt4._1fragem1y._1fragemf5._1fragemgy._1fragemdc._1fragemir._1fragemlj {
-      padding: 10px;
-      border-radius: 5px;
-    }
-
-    #TextField140-label {}
-
-    .cektnc3 {
-      padding: 0 10px;
-    }
-
-    ._6zbcq516._6zbcq515._1fragem28._1fragem1t._6zbcq519._6zbcq518 {
-      gap: 10px;
-    }
-
-
-    ._99ss3s7 {
-      border-radius: 50%;
-      margin-left: -10px;
-    }
-
-
-    .sdr03s1.sdr03s0._1fragempn._1fragempj._1fragempr._1fragempf._1fragemf5._1fragemgy._1fragemdc._1fragemir._1fragemlj._1fragem2s.sdr03s4.sdr03s2 {
-      gap: 10px;
-      padding: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-
-    ._1h3po424._1h3po427._1h3po425._1fragem1y._1fragemkk._1fragem8r._1fragem87._1fragem9b._1fragem7n._1fragemb4._1fragemaf._1fragembt._1fragem9q._1fragemkz._1m6j2n3c._1fragemof._1fragem1t._1m6j2n35 {
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
-
-    ._6zbcq513._6zbcq512._1fragem28._1fragemnn._6zbcq5m._6zbcq5a._1fragem3w {
-      margin: 10px 0;
-    }
-
-
-    .i4DWM._1fragemna._1fragemn7._1fragemt0 {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    ._9F1Rf.GI5Fn._1fragemna._1fragemn5._1fragemt8 {
-      /*display: flex;*/
-      /*align-items: center;*/
-      /*justify-content: center;*/
-      height: auto;
-    }
-
-    .i4DWM._1fragemna._1fragemn7._1fragemt0 {
-      padding: 20px;
-      padding-top: 20px;
-      padding-right: 20px;
-      padding-bottom: 20px;
-      padding-left: 20px;
-    }
-
-    .gdtca {
-      height: 0;
-    }
-
-
-    ._9F1Rf .gdtca {
-
-      display: block;
-      height: auto;
-    }
-  </style>
-
 
   <style>
     /**/

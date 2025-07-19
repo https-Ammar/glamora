@@ -6,7 +6,7 @@ if (isset($_GET['id'])) {
 } else {
   header('location:./index.php');
 }
-$selectcat = mysqli_query($conn, "SELECT * FROM catageories WHERE id = $id");
+$selectcat = mysqli_query($conn, "SELECT * FROM categories WHERE id = $id");
 $fetchassoc = mysqli_fetch_assoc($selectcat);
 
 
@@ -121,7 +121,7 @@ $fetchassoc = mysqli_fetch_assoc($selectcat);
 
 
                   <?php
-                  $sqlcat = mysqli_query($conn, "SELECT * FROM catageories"); // Fixed the function
+                  $sqlcat = mysqli_query($conn, "SELECT * FROM categories"); // Fixed the function
                   
                   while ($fetchcat = mysqli_fetch_assoc($sqlcat)) {
                     echo '<li  class="link">
@@ -322,7 +322,7 @@ $fetchassoc = mysqli_fetch_assoc($selectcat);
 
       $.ajax({
         type: "POST",
-        url: "./addcartproduct.php",
+        url: "./add_to_cart.php",
         data: {
           productid: productid,
           qty: quantity // Pass the quantity value correctly
@@ -410,7 +410,7 @@ $fetchassoc = mysqli_fetch_assoc($selectcat);
 
       $.ajax({
         type: "POST",
-        url: "addcartproduct.php",
+        url: "add_to_cart.php",
         data: {
           productid: productid,
           qty: quantity // Pass the quantity value correctly

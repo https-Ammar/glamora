@@ -48,37 +48,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <section>
       <div class="container-fluid">
         <div class="row">
- 
- 
-         <div class="product-grid ">
 
-                    <?php
-                    require('db.php'); // Ensure this file sets up the $conn variable properly
 
-                    // Check if 'search' parameter is set and sanitize it
-                    $search = isset($_POST['search']) ? trim($_POST['search']) : '';
+          <div class="product-grid ">
 
-                    if (!empty($search)) {
-                      // Prepare the SQL query to search for products containing the search term
-                      $stmt = $conn->prepare("SELECT * FROM products WHERE name LIKE ?");
-                      $likeTerm = "%" . $search . "%"; // Add % for partial matching
-                      $stmt->bind_param("s", $likeTerm); // Bind the search term to prevent SQL injection
+            <?php
+            require('db.php'); // Ensure this file sets up the $conn variable properly
+            
+            // Check if 'search' parameter is set and sanitize it
+            $search = isset($_POST['search']) ? trim($_POST['search']) : '';
 
-                      // Execute the query
-                      $stmt->execute();
-                      $result = $stmt->get_result();
+            if (!empty($search)) {
+              // Prepare the SQL query to search for products containing the search term
+              $stmt = $conn->prepare("SELECT * FROM products WHERE name LIKE ?");
+              $likeTerm = "%" . $search . "%"; // Add % for partial matching
+              $stmt->bind_param("s", $likeTerm); // Bind the search term to prevent SQL injection
+            
+              // Execute the query
+              $stmt->execute();
+              $result = $stmt->get_result();
 
-                      // Check if any results are found
-                      if ($result->num_rows > 0) {
-                        // Output the results in a loop
-                        while ($fetchproducts = $result->fetch_assoc()) {
-                          $productName = htmlspecialchars($fetchproducts['name']);
-                          $productImage = './dashboard/dashboard_shop-main/' . htmlspecialchars($fetchproducts['img']); // Ensure the correct image path
-                          $productfinalprice = htmlspecialchars($fetchproducts['total_final_price']);
-                          $productDiscount = htmlspecialchars($fetchproducts['discount']);
-                          $productId = htmlspecialchars($fetchproducts['id']); // Fetch the product ID
-
-                          echo '
+              // Check if any results are found
+              if ($result->num_rows > 0) {
+                // Output the results in a loop
+                while ($fetchproducts = $result->fetch_assoc()) {
+                  $productName = htmlspecialchars($fetchproducts['name']);
+                  $productImage = './dashboard/dashboard_shop-main/' . htmlspecialchars($fetchproducts['img']); // Ensure the correct image path
+                  $productfinalprice = htmlspecialchars($fetchproducts['total_final_price']);
+                  $productDiscount = htmlspecialchars($fetchproducts['discount']);
+                  $productId = htmlspecialchars($fetchproducts['id']); // Fetch the product ID
+            
+                  echo '
                           
                           
                           
@@ -151,21 +151,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                   
                   
                   ';
-                        }
-                      } else {
-                        echo "<p>No results found.</p>";
-                      }
+                }
+              } else {
+                echo "<p>No results found.</p>";
+              }
 
-                      // Close the statement and connection
-                      $stmt->close();
-                    } else {
-                      echo "<p>Please enter a search term.</p>";
-                    }
+              // Close the statement and connection
+              $stmt->close();
+            } else {
+              echo "<p>Please enter a search term.</p>";
+            }
 
-                    $conn->close();
-                    ?>
-
-
+            $conn->close();
+            ?>
 
 
 
@@ -175,11 +173,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 
 
-                </div>
- <!---->
- 
+
+
+          </div>
+          <!---->
+
+        </div>
       </div>
-               </div>
     </section>
 
 
@@ -199,10 +199,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       $.ajax({
         type: "GET",
         url: "showcart.php",
-        success: function(response) {
+        success: function (response) {
           $('#offcanvasCart').html(response);
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }
       });
@@ -216,15 +216,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
       $.ajax({
         type: "POST",
-        url: "./addcartproduct.php",
+        url: "./add_to_cart.php",
         data: {
           productid: productid,
           qty: quantity // Pass the quantity value correctly
         },
-        success: function(response) {
+        success: function (response) {
           loadCart()
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }
       });
@@ -237,10 +237,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         data: {
           id: id,
         },
-        success: function(response) {
+        success: function (response) {
           loadCart()
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }
       });
@@ -253,10 +253,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         data: {
           id: id,
         },
-        success: function(response) {
+        success: function (response) {
           loadCart()
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }
       });
@@ -269,10 +269,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         data: {
           id: id,
         },
-        success: function(response) {
+        success: function (response) {
           loadCart()
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }
       });
@@ -288,10 +288,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       $.ajax({
         type: "GET",
         url: "showcart.php",
-        success: function(response) {
+        success: function (response) {
           $('#offcanvasCart').html(response);
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }
       });
@@ -305,15 +305,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
       $.ajax({
         type: "POST",
-        url: "addcartproduct.php",
+        url: "add_to_cart.php",
         data: {
           productid: productid,
           qty: quantity // Pass the quantity value correctly
         },
-        success: function(response) {
+        success: function (response) {
           loadCart();
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }
       });
@@ -326,10 +326,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         data: {
           id: id,
         },
-        success: function(response) {
+        success: function (response) {
           loadCart();
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }
       });
@@ -342,10 +342,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         data: {
           id: id,
         },
-        success: function(response) {
+        success: function (response) {
           loadCart();
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }
       });
@@ -358,10 +358,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         data: {
           id: id,
         },
-        success: function(response) {
+        success: function (response) {
           loadCart();
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }
       });

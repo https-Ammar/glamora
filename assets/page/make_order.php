@@ -36,8 +36,8 @@ if (count($cartItems) === 0) {
     exit();
 }
 
-// إدخال الطلب في orders1
-$stmtOrder = $conn->prepare("INSERT INTO orders1 (user_id, name, phoneone, address, city, orderstate, data, numberofproducts, finaltotalprice) VALUES (?, '', '', '', '', 'inprogress', ?, ?, ?)");
+// إدخال الطلب في orders
+$stmtOrder = $conn->prepare("INSERT INTO orders (user_id, name, phoneone, address, city, orderstate, data, numberofproducts, finaltotalprice) VALUES (?, '', '', '', '', 'inprogress', ?, ?, ?)");
 $stmtOrder->bind_param("isid", $userId, $today, $numberOfProducts, $totalPrice);
 $stmtOrder->execute();
 $orderId = $stmtOrder->insert_id;

@@ -1,56 +1,46 @@
 <?php
 require_once('./db.php');
-
 $imagePath = './dashboard/';
-
 $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-
-$check_stmt = $conn->prepare("
+if ($conn) {
+  $check_stmt = $conn->prepare("
     SELECT id 
     FROM site_visits 
     WHERE ip_address = ? AND DATE(visit_time) = CURDATE()
-");
+  ");
+  if ($check_stmt) {
+    $check_stmt->bind_param("s", $ip);
+    $check_stmt->execute();
+    $check_stmt->store_result();
 
-if ($check_stmt) {
-  $check_stmt->bind_param("s", $ip);
-  $check_stmt->execute();
-  $check_stmt->store_result();
+    if ($check_stmt->num_rows === 0) {
+      $country = "Unknown";
+      $context = stream_context_create(['http' => ['timeout' => 2]]);
+      $api_url = "http://ip-api.com/json/" . urlencode($ip);
+      $api_response = @file_get_contents($api_url, false, $context);
 
-  if ($check_stmt->num_rows === 0) {
-    $country = "Unknown";
-
-    $context = stream_context_create([
-      'http' => [
-        'timeout' => 2
-      ]
-    ]);
-
-    $api_url = "http://ip-api.com/json/" . urlencode($ip);
-    $api_response = @file_get_contents($api_url, false, $context);
-
-    if ($api_response !== false) {
-      $data = json_decode($api_response, true);
-      if (!empty($data['country'])) {
-        $country = (string) $data['country'];
+      if ($api_response !== false) {
+        $data = json_decode($api_response, true);
+        if (!empty($data['country'])) {
+          $country = (string) $data['country'];
+        }
+      }
+      $insert_stmt = $conn->prepare("
+        INSERT INTO site_visits (ip_address, country) 
+        VALUES (?, ?)
+      ");
+      if ($insert_stmt) {
+        $insert_stmt->bind_param("ss", $ip, $country);
+        $insert_stmt->execute();
+        $insert_stmt->close();
       }
     }
-
-    $insert_stmt = $conn->prepare("
-            INSERT INTO site_visits (ip_address, country) 
-            VALUES (?, ?)
-        ");
-
-    if ($insert_stmt) {
-      $insert_stmt->bind_param("ss", $ip, $country);
-      $insert_stmt->execute();
-    }
+    $check_stmt->close();
   }
-
-  $check_stmt->close();
+} else {
+  die("Database connection failed");
 }
 ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -65,15 +55,13 @@ if ($check_stmt) {
     href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" type="text/css"
-    href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css" />
-  <link rel="stylesheet" type="text/css"
-    href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" />
   <link rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <link rel="stylesheet" type="text/css" href="./assets/style/main.css" />
+  <link rel="stylesheet" href="./assets/style/main.css" />
 </head>
 
 <body>
@@ -83,7 +71,7 @@ if ($check_stmt) {
     <p>GLAMORA</p>
   </div>
   <section id="lod_file">
-    <?php require('./assets/page/header.php'); ?>
+    <?php require('./header.php'); ?>
     <div class="slider">
       <?php
       if (!$conn) {
@@ -116,16 +104,13 @@ if ($check_stmt) {
       ?>
     </div>
 
-    <?php
-    // Connect to DB before all this
-// Assuming $conn and $imagePath are already defined
-    ?>
 
-    <!-- ========== Categories Slider ========== -->
+
+
     <div class="slider-container">
       <div class="Categories_ads owl-carousel">
         <?php
-        $sqlcat = $conn->prepare("SELECT * FROM categories LIMIT 8");
+        $sqlcat = $conn->prepare("SELECT * FROM categories WHERE parent_id = 0 OR parent_id IS NULL LIMIT 8");
         $sqlcat->execute();
         $result = $sqlcat->get_result();
 
@@ -134,22 +119,23 @@ if ($check_stmt) {
           $name = htmlspecialchars($fetchcat['name'] ?? '', ENT_QUOTES, 'UTF-8');
           $id = (int) $fetchcat['id'];
           echo '<div class="main_cat item">
-              <a href="./assets/page/categories.php?id=' . $id . '">
-                  <div class="_Categories_img" style="background-image: url(\'' . $imagePath . $image . '\');"></div>
-                  <h2>' . $name . '</h2>
-              </a>
-          </div>';
+          <a href="./assets/page/categories.php?id=' . $id . '">
+              <div class="_Categories_img" style="background-image: url(\'' . $imagePath . $image . '\');"></div>
+              <h2>' . $name . '</h2>
+          </a>
+      </div>';
         }
         $sqlcat->close();
         ?>
       </div>
     </div>
-
     <main>
       <?php
       for ($i = 0; $i < 100; $i++) {
         $catidneed = $i + 1;
-        $stmt = $conn->prepare("SELECT * FROM categories WHERE id = ?");
+
+        // نحضر التصنيف الأساسي
+        $stmt = $conn->prepare("SELECT * FROM categories WHERE id = ? AND parent_id IS NULL");
         $stmt->bind_param("i", $catidneed);
         $stmt->execute();
         $selectcat = $stmt->get_result();
@@ -157,146 +143,158 @@ if ($check_stmt) {
 
         if ($fetchcat) {
           $namecat = htmlspecialchars($fetchcat['name'], ENT_QUOTES, 'UTF-8');
-          ?>
-          <div class="slider">
-            <?php
-            $stmtAds = $conn->prepare("SELECT * FROM ads WHERE categoryid = ?");
-            $stmtAds->bind_param("i", $catidneed);
-            $stmtAds->execute();
-            $selectad = $stmtAds->get_result();
 
-            $counter = 0;
-            while ($fetchad = $selectad->fetch_assoc()) {
-              $counter++;
-              $firstAdClass = ($counter == 1) ? 'first-ad' : '';
-              $photo = ltrim($fetchad['photo'] ?? '', './');
-              $photoPath = htmlspecialchars($imagePath . $photo, ENT_QUOTES, 'UTF-8');
-              $link = htmlspecialchars($fetchad['linkaddress'] ?? '#', ENT_QUOTES, 'UTF-8');
-              echo '<a class="slider ' . $firstAdClass . '" href="' . $link . '">
-              <div class="banner-content p-5 add_link" style="background-image: url(\'' . $photoPath . '\');"></div>
-            </a>';
-            }
+          // نحضر التصنيفات الفرعية لهذا التصنيف الأساسي
+          $stmtSub = $conn->prepare("SELECT id FROM categories WHERE parent_id = ?");
+          $stmtSub->bind_param("i", $catidneed);
+          $stmtSub->execute();
+          $resSub = $stmtSub->get_result();
+
+          $subcatIds = [];
+          while ($row = $resSub->fetch_assoc()) {
+            $subcatIds[] = $row['id'];
+          }
+
+          if (!empty($subcatIds)) {
+            // إعلانات التصنيف الأساسي
             ?>
-          </div>
-          <script>
-            document.addEventListener("DOMContentLoaded", function () {
-              var firstAd = document.querySelector('.first-ad');
-              if (firstAd) {
-                firstAd.style.display = 'none';
+            <div class="slider">
+              <?php
+              $stmtAds = $conn->prepare("SELECT * FROM ads WHERE categoryid = ?");
+              $stmtAds->bind_param("i", $catidneed);
+              $stmtAds->execute();
+              $selectad = $stmtAds->get_result();
+
+              $counter = 0;
+              while ($fetchad = $selectad->fetch_assoc()) {
+                $counter++;
+                $firstAdClass = ($counter == 1) ? 'first-ad' : '';
+                $photo = ltrim($fetchad['photo'] ?? '', './');
+                $photoPath = htmlspecialchars($imagePath . $photo, ENT_QUOTES, 'UTF-8');
+                $link = htmlspecialchars($fetchad['linkaddress'] ?? '#', ENT_QUOTES, 'UTF-8');
+                echo '<a class="slider ' . $firstAdClass . '" href="' . $link . '">
+            <div class="banner-content p-5 add_link" style="background-image: url(\'' . $photoPath . '\');"></div>
+          </a>';
               }
-            });
-          </script>
-          <?php
-          $stmtProducts = $conn->prepare("SELECT COUNT(*) as count FROM products WHERE category_id = ?");
-          $stmtProducts->bind_param("i", $catidneed);
-          $stmtProducts->execute();
-          $resultCount = $stmtProducts->get_result();
-          $countData = $resultCount->fetch_assoc();
+              ?>
+            </div>
+            <script>
+              document.addEventListener("DOMContentLoaded", function () {
+                var firstAd = document.querySelector('.first-ad');
+                if (firstAd) {
+                  firstAd.style.display = 'none';
+                }
+              });
+            </script>
 
-          if ($countData['count'] > 0) {
-            ?>
-            <section class="container__">
-              <div class="row">
-                <a href="./assets/page/categories.php?id=<?php echo $catidneed; ?>" class="btn-link text-decoration-none">
-                  <h3 class="title"><?php echo $namecat; ?></h3>
-                </a>
-                <div class="slider-container">
-                  <div class="owl-carousel js-home-products">
-                    <?php
-                    $stmtProducts = $conn->prepare("SELECT * FROM products WHERE category_id = ?");
-                    $stmtProducts->bind_param("i", $catidneed);
-                    $stmtProducts->execute();
-                    $selectproduct = $stmtProducts->get_result();
+            <?php
+            // حضّر Placeholder لعرض المنتجات المرتبطة بالتصنيفات الفرعية
+            $placeholders = implode(',', array_fill(0, count($subcatIds), '?'));
+            $types = str_repeat('i', count($subcatIds));
 
-                    while ($fetchproducts = $selectproduct->fetch_assoc()) {
-                      $productId = (int) $fetchproducts['id'];
-                      $productName = htmlspecialchars($fetchproducts['name'] ?? '', ENT_QUOTES, 'UTF-8');
-                      $productImage = htmlspecialchars($imagePath . ltrim($fetchproducts['image'] ?? 'default.jpg', './'), ENT_QUOTES, 'UTF-8');
-                      $price = (float) ($fetchproducts['price'] ?? 0);
-                      $salePrice = isset($fetchproducts['sale_price']) ? (float) $fetchproducts['sale_price'] : null;
-                      $discountPercent = (int) ($fetchproducts['discount_percent'] ?? 0);
-                      $finalPrice = $salePrice ?? ($price - ($price * $discountPercent / 100));
-                      ?>
-                      <div class="item">
-                        <a href="./assets/page/view.php?id=<?php echo $productId; ?>" title="<?php echo $productName; ?>">
-                          <figure class="bg_img" style="background-image: url('<?php echo $productImage; ?>');">
-                            <?php if ($discountPercent > 0): ?>
-                              <span class="badge bg-success text"><?php echo $discountPercent; ?> %</span>
-                            <?php endif; ?>
-                            <?php if ($fetchproducts['is_featured']): ?>
-                              <span class="badge bg-warning text">Featured</span>
-                            <?php endif; ?>
-                            <?php if ($fetchproducts['is_new']): ?>
-                              <span class="badge bg-info text">New</span>
-                            <?php endif; ?>
-                          </figure>
-                        </a>
+            // نحسب عدد المنتجات
+            $countQuery = "SELECT COUNT(*) as count FROM products WHERE category_id IN ($placeholders)";
+            $stmtCount = $conn->prepare($countQuery);
+            $stmtCount->bind_param($types, ...$subcatIds);
+            $stmtCount->execute();
+            $countRes = $stmtCount->get_result();
+            $countData = $countRes->fetch_assoc();
 
-                        <div class="product-info">
-                          <span
-                            class="text-muted small"><?php echo htmlspecialchars($fetchproducts['brand'] ?? ''); ?></span><br>
-                          <span class="snize-title" style="max-height: 2.8em; -webkit-line-clamp: 2;">
-                            <?php echo $productName; ?>
-                          </span>
-                          <div class="rating">⭐ <?php echo number_format($fetchproducts['rating'], 1); ?> / 5</div>
-                          <div class="views">👁 <?php echo (int) $fetchproducts['views']; ?> views</div>
-                          <div class="barcode small text-muted">Barcode:
-                            <?php echo htmlspecialchars($fetchproducts['barcode'] ?? 'N/A'); ?>
-                          </div>
-                          <div class="stock-status small">Stock: <?php echo htmlspecialchars($fetchproducts['stock_status']); ?>
-                          </div>
-                          <?php if (!empty($fetchproducts['expiry_date'])): ?>
-                            <div class="expiry-date small text-danger">
-                              Expires on: <?php echo htmlspecialchars($fetchproducts['expiry_date']); ?>
-                            </div>
-                          <?php endif; ?>
-                        </div>
-
-                        <div class="flex_pric playSound" onclick="addcart(<?php echo $productId; ?>)">
-                          <button class="d-flex align-items-center nav-link click">Add to Cart</button>
-                          <div class="block_P">
-                            <span class="price text"><?php echo number_format($finalPrice, 2); ?></span><span>EGP</span>
-                          </div>
-                        </div>
-
-                        <div class="ptn_" style="display: none;">
-                          <div class="input-group product-qty">
-                            <span class="input-group-btn">
-                              <button type="button" class="quantity-left-minus btn btn-danger btn-number" data-type="minus">
-                                <svg width="16" height="16" fill="currentColor" class="bi bi-dash">
-                                  <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8" />
-                                </svg>
-                              </button>
-                            </span>
-                            <input type="text" name="quantity"
-                              class="form-control input-number quantity<?php echo $productId; ?>" value="1">
-                            <span class="input-group-btn">
-                              <button type="button" class="quantity-right-plus btn btn-success btn-number" data-type="plus">
-                                <svg width="16" height="16" fill="currentColor" class="bi bi-plus">
-                                  <path
-                                    d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
-                                </svg>
-                              </button>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+            if ($countData['count'] > 0) {
+              ?>
+              <section class="container__">
+                <div class="row">
+                  <a href="./assets/page/categories.php?id=<?php echo $catidneed; ?>" class="btn-link text-decoration-none">
+                    <h3 class="title"><?php echo $namecat; ?></h3>
+                  </a>
+                  <div class="slider-container">
+                    <div class="owl-carousel js-home-products">
                       <?php
-                    }
-                    ?>
+                      $productQuery = "SELECT * FROM products WHERE category_id IN ($placeholders)";
+                      $stmtProducts = $conn->prepare($productQuery);
+                      $stmtProducts->bind_param($types, ...$subcatIds);
+                      $stmtProducts->execute();
+                      $selectproduct = $stmtProducts->get_result();
+
+                      while ($fetchproducts = $selectproduct->fetch_assoc()) {
+                        $productId = (int) $fetchproducts['id'];
+                        $productName = htmlspecialchars($fetchproducts['name'] ?? '', ENT_QUOTES, 'UTF-8');
+                        $productImage = htmlspecialchars($imagePath . ltrim($fetchproducts['image'] ?? 'default.jpg', './'), ENT_QUOTES, 'UTF-8');
+                        $price = (float) ($fetchproducts['price'] ?? 0);
+                        $salePrice = isset($fetchproducts['sale_price']) ? (float) $fetchproducts['sale_price'] : null;
+                        $discountPercent = (int) ($fetchproducts['discount_percent'] ?? 0);
+                        $finalPrice = $salePrice ?? ($price - ($price * $discountPercent / 100));
+                        ?>
+                        <div class="item">
+                          <a href="./assets/page/view.php?id=<?php echo $productId; ?>" title="<?php echo $productName; ?>">
+                            <figure class="bg_img" style="background-image: url('<?php echo $productImage; ?>');">
+                              <?php if ($discountPercent > 0): ?>
+                                <span class="badge bg-success text"><?php echo $discountPercent; ?> %</span>
+                              <?php endif; ?>
+                              <?php if (!empty($fetchproducts['is_featured'])): ?>
+                                <span class="badge bg-success text">Featured</span>
+                              <?php endif; ?>
+                              <?php if (!empty($fetchproducts['is_new'])): ?>
+                                <span class="badge bg-success text">New</span>
+                              <?php endif; ?>
+                            </figure>
+                          </a>
+
+                          <div class="product-info">
+                            <span
+                              class="text-muted small"><?php echo htmlspecialchars($fetchproducts['brand'] ?? ''); ?></span><br>
+                            <span class="snize-title" style="max-height: 2.8em; -webkit-line-clamp: 2;">
+                              <?php echo $productName; ?>
+                            </span>
+                          </div>
+
+                          <div class="flex_pric playSound" onclick="addcart(<?php echo $productId; ?>)">
+                            <button class="d-flex align-items-center nav-link click">Add to Cart</button>
+                            <div class="block_P">
+                              <span class="price text"><?php echo number_format($finalPrice, 2); ?></span><span>EGP</span>
+                            </div>
+                          </div>
+
+                          <div class="ptn_" style="display: none;">
+                            <div class="input-group product-qty">
+                              <span class="input-group-btn">
+                                <button type="button" class="quantity-left-minus btn btn-danger btn-number" data-type="minus">
+                                  <svg width="16" height="16" fill="currentColor" class="bi bi-dash">
+                                    <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8" />
+                                  </svg>
+                                </button>
+                              </span>
+                              <input type="text" name="quantity"
+                                class="form-control input-number quantity<?php echo $productId; ?>" value="1">
+                              <span class="input-group-btn">
+                                <button type="button" class="quantity-right-plus btn btn-success btn-number" data-type="plus">
+                                  <svg width="16" height="16" fill="currentColor" class="bi bi-plus">
+                                    <path
+                                      d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+                                  </svg>
+                                </button>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <?php
+                      }
+                      ?>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
-            <?php
+              </section>
+              <?php
+            }
           }
         }
       }
       ?>
     </main>
-
     <?php require('./assets/page/footer.php'); ?>
   </section>
+
+  <!-- Scripts -->
   <script>
     window.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll('.text').forEach(el => {

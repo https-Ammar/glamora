@@ -2,13 +2,16 @@
 session_start();
 require('./db.php');
 
-// Check if admin is logged in
+// تفعيل عرض أخطاء MySQLi (مفيد للتطوير)
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+// التأكد من تسجيل الدخول
 if (!isset($_SESSION['userId'])) {
     header('Location: ./login.php');
     exit();
 }
 
-// Get admin data
+// جلب بيانات المستخدم
 $userid = $_SESSION['userId'];
 $select = $conn->prepare("SELECT * FROM usersadmin WHERE id = ?");
 $select->bind_param("i", $userid);
@@ -16,7 +19,7 @@ $select->execute();
 $fetchname = $select->get_result()->fetch_assoc();
 $select->close();
 
-// Delete product
+// حذف منتج
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     $id = intval($_GET['id']);
     if ($id > 0) {
@@ -35,10 +38,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     }
 }
 
-// Update order status
+// تحديث حالة الطلب
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'], $_POST['status'])) {
     $orderId = intval($_POST['order_id']);
     $status = $_POST['status'];
+
     $stmt = $conn->prepare("UPDATE orders SET orderstate = ? WHERE id = ?");
     $stmt->bind_param("si", $status, $orderId);
     $stmt->execute();
@@ -53,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'], $_POST['s
     exit();
 }
 
-// Delete category
+// حذف تصنيف وكل ما يتعلق به
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id']) && !isset($_POST['add_coupon'])) {
     $categoryId = intval($_POST['id']);
 
@@ -76,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id']) && !isset($_POS
     exit();
 }
 
-// Upload ads
+// إضافة إعلان
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['category'], $_POST['linkaddress'], $_FILES['photo'])) {
     $filepath = 'uploads/';
     if (!file_exists($filepath)) {
@@ -105,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['category'], $_POST['l
     exit();
 }
 
-// Add category (with parent)
+// إضافة تصنيف
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_FILES['image']) && !isset($_POST['add_coupon']) && !isset($_POST['add_product'])) {
     $name = trim($_POST['name']);
     $parent_id = isset($_POST['parent_id']) && $_POST['parent_id'] !== '' ? intval($_POST['parent_id']) : null;
@@ -142,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_FILES['imag
     }
 }
 
-// Add coupon
+// إضافة كوبون خصم
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_coupon'])) {
     $code = trim($_POST['coupon_code']);
     $discountType = $_POST['discount_type'];
@@ -162,22 +166,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_coupon'])) {
     }
 }
 
-// Add product
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
     $name = trim($_POST['name']);
-    $slug = trim($_POST['slug']);
     $brand = trim($_POST['brand']);
     $description = trim($_POST['description']);
     $tags = trim($_POST['tags']);
     $price = floatval($_POST['price']);
-    $salePrice = isset($_POST['sale_price']) ? floatval($_POST['sale_price']) : null;
-    $discountPercent = isset($_POST['discount_percent']) ? intval($_POST['discount_percent']) : 0;
+    $discountPercent = isset($_POST['discount_percent']) ? floatval($_POST['discount_percent']) : 0;
+
+    // ✅ حساب سعر الخصم إن وُجد
+    $salePrice = ($discountPercent > 0 && $discountPercent <= 100)
+        ? $price - ($price * ($discountPercent / 100))
+        : null;
+
     $quantity = intval($_POST['quantity']);
-    $stockStatus = $_POST['stock_status'];
+    $stockStatus = in_array($_POST['stock_status'], ['in_stock', 'pre_order', 'out_of_stock']) ? $_POST['stock_status'] : 'in_stock';
     $isNew = isset($_POST['is_new']) ? 1 : 0;
     $onSale = isset($_POST['on_sale']) ? 1 : 0;
     $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
-    $barcode = trim($_POST['barcode']);
+    $barcode = !empty($_POST['barcode']) ? $_POST['barcode'] : uniqid('PRD-');
     $expiryDate = !empty($_POST['expiry_date']) ? $_POST['expiry_date'] : null;
     $categoryId = intval($_POST['category_id']);
 
@@ -197,15 +204,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
         }
     }
 
-    $stmt = $conn->prepare("INSERT INTO products (name, slug, brand, description, tags, price, sale_price, discount_percent, quantity, stock_status, is_new, on_sale, is_featured, barcode, expiry_date, category_id, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssssdddisssissss", $name, $slug, $brand, $description, $tags, $price, $salePrice, $discountPercent, $quantity, $stockStatus, $isNew, $onSale, $isFeatured, $barcode, $expiryDate, $categoryId, $imagePath);
+    // ✅ حفظ البيانات بما في ذلك الخصم والسعر بعد الخصم
+    $stmt = $conn->prepare("INSERT INTO products (
+        name, brand, description, tags, price, sale_price, discount_percent,
+        quantity, stock_status, is_new, on_sale, is_featured, barcode,
+        expiry_date, category_id, image
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+    $stmt->bind_param(
+        "ssssddddsiiissss",
+        $name,
+        $brand,
+        $description,
+        $tags,
+        $price,
+        $salePrice,
+        $discountPercent,
+        $quantity,
+        $stockStatus,
+        $isNew,
+        $onSale,
+        $isFeatured,
+        $barcode,
+        $expiryDate,
+        $categoryId,
+        $imagePath
+    );
     $stmt->execute();
     $stmt->close();
 
     header("Location: index.php?success=product");
     exit();
 }
+
 ?>
+
 
 
 
@@ -503,12 +536,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">إدارة المنتجات</h5>
+
                             <div class="mb-3">
                                 <input type="text" id="productSearch" class="form-control"
                                     placeholder="البحث عن منتج...">
                             </div>
+
                             <div class="table-responsive">
-                                <table class="table table-striped">
+                                <table class="table table-striped" id="productsTable">
                                     <thead>
                                         <tr>
                                             <th>#</th>
@@ -529,23 +564,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                             <tr>
                                                 <td><?= $product['id'] ?></td>
                                                 <td>
-                                                    <img src="<?= $product['image'] ?>" alt="<?= $product['name'] ?>"
+                                                    <img src="<?= htmlspecialchars($product['image']) ?>"
+                                                        alt="<?= htmlspecialchars($product['name']) ?>"
                                                         style="width: 50px; height: 50px; object-fit: cover;">
                                                 </td>
                                                 <td><?= htmlspecialchars($product['name']) ?></td>
                                                 <td><?= number_format($product['price'], 2) ?> ج.م</td>
-                                                <td><?= $product['sale_price'] ? number_format($product['sale_price'], 2) . ' ج.م' : '-' ?>
-                                                </td>
-                                                <td><?= $product['quantity'] ?></td>
                                                 <td>
-                                                    <span class="badge bg-<?=
-                                                        $product['stock_status'] == 'in_stock' ? 'success' :
-                                                        ($product['stock_status'] == 'pre_order' ? 'warning' : 'danger')
-                                                        ?>">
+                                                    <?= ($product['sale_price'] !== null && $product['sale_price'] !== '') ? number_format($product['sale_price'], 2) . ' ج.م' : '-' ?>
+                                                </td>
+                                                <td><?= (int) $product['quantity'] ?></td>
+                                                <td>
+                                                    <span
+                                                        class="badge bg-<?=
+                                                            $product['stock_status'] === 'in_stock' ? 'success' :
+                                                            ($product['stock_status'] === 'pre_order' ? 'warning' : 'danger') ?>">
                                                         <?=
-                                                            $product['stock_status'] == 'in_stock' ? 'متوفر' :
-                                                            ($product['stock_status'] == 'pre_order' ? 'طلب مسبق' : 'غير متوفر')
-                                                            ?>
+                                                            $product['stock_status'] === 'in_stock' ? 'متوفر' :
+                                                            ($product['stock_status'] === 'pre_order' ? 'طلب مسبق' : 'غير متوفر') ?>
                                                     </span>
                                                 </td>
                                                 <td>
@@ -568,6 +604,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                     </div>
                 </div>
 
+                <!-- JavaScript للبحث -->
+                <script>
+                    document.getElementById('productSearch').addEventListener('input', function () {
+                        const filter = this.value.toLowerCase();
+                        const rows = document.querySelectorAll('#productTableBody tr');
+
+                        rows.forEach(row => {
+                            const productName = row.children[2].textContent.toLowerCase();
+                            row.style.display = productName.includes(filter) ? '' : 'none';
+                        });
+                    });
+                </script>
+
                 <!-- Add Product Section -->
                 <div id="add-product" class="content-section">
                     <div class="card">
@@ -582,24 +631,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                             <input type="text" class="form-control" id="name" name="name" required>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="slug" class="form-label">الرابط (Slug)*</label>
-                                            <input type="text" class="form-control" id="slug" name="slug" required>
-                                        </div>
-                                    </div>
+
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="brand" class="form-label">العلامة التجارية</label>
                                             <input type="text" class="form-control" id="brand" name="brand">
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="barcode" class="form-label">باركود</label>
-                                            <input type="text" class="form-control" id="barcode" name="barcode">
-                                        </div>
-                                    </div>
+
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="price" class="form-label">السعر*</label>
@@ -607,13 +646,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                                 name="price" required>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="sale_price" class="form-label">سعر الخصم</label>
-                                            <input type="number" step="0.01" class="form-control" id="sale_price"
-                                                name="sale_price">
-                                        </div>
-                                    </div>
+
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="discount_percent" class="form-label">نسبة الخصم %</label>
@@ -621,6 +654,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                                 name="discount_percent" min="0" max="100">
                                         </div>
                                     </div>
+
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="quantity" class="form-label">الكمية*</label>
@@ -628,6 +662,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                                 required>
                                         </div>
                                     </div>
+
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="stock_status" class="form-label">حالة المخزون*</label>
@@ -638,28 +673,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                             </select>
                                         </div>
                                     </div>
+
+                                    <!-- التصنيفات الفرعية فقط -->
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="category_id" class="form-label">التصنيف*</label>
                                             <select class="form-select" id="category_id" name="category_id" required>
                                                 <option value="">اختر التصنيف</option>
                                                 <?php
-                                                $categories = $conn->query("SELECT * FROM categories");
+                                                $categories = $conn->query("SELECT c1.id, c1.name AS child_name, c2.name AS parent_name 
+                                                            FROM categories c1
+                                                            LEFT JOIN categories c2 ON c1.parent_id = c2.id
+                                                            WHERE c1.parent_id IS NOT NULL");
                                                 while ($category = $categories->fetch_assoc()):
                                                     ?>
                                                     <option value="<?= $category['id'] ?>">
-                                                        <?= htmlspecialchars($category['name']) ?>
+                                                        <?= htmlspecialchars($category['parent_name'] . ' > ' . $category['child_name']) ?>
                                                     </option>
                                                 <?php endwhile; ?>
                                             </select>
                                         </div>
                                     </div>
+
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="expiry_date" class="form-label">تاريخ الانتهاء</label>
                                             <input type="date" class="form-control" id="expiry_date" name="expiry_date">
                                         </div>
                                     </div>
+
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">خيارات</label>
@@ -680,6 +722,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                             </div>
                                         </div>
                                     </div>
+
                                     <div class="col-md-12">
                                         <div class="mb-3">
                                             <label for="description" class="form-label">الوصف*</label>
@@ -687,6 +730,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                                 required></textarea>
                                         </div>
                                     </div>
+
                                     <div class="col-md-12">
                                         <div class="mb-3">
                                             <label for="tags" class="form-label">الكلمات الدلالية (افصلها
@@ -694,6 +738,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                             <input type="text" class="form-control" id="tags" name="tags">
                                         </div>
                                     </div>
+
                                     <div class="col-md-12">
                                         <div class="mb-3">
                                             <label for="image" class="form-label">صورة المنتج*</label>
@@ -711,6 +756,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                 <!-- Categories Section -->
                 <div id="categories" class="content-section">
                     <div class="row">
+                        <!-- Form لإضافة تصنيف جديد -->
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-body">
@@ -730,11 +776,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                             <select class="form-select" name="parent_id">
                                                 <option value="">بدون تصنيف أب</option>
                                                 <?php
-                                                $categories = $conn->query("SELECT * FROM categories WHERE parent_id IS NULL");
-                                                while ($category = $categories->fetch_assoc()):
+                                                $parents = $conn->query("SELECT * FROM categories WHERE parent_id IS NULL ORDER BY name ASC");
+                                                while ($parent = $parents->fetch_assoc()):
                                                     ?>
-                                                    <option value="<?= $category['id'] ?>">
-                                                        <?= htmlspecialchars($category['name']) ?>
+                                                    <option value="<?= $parent['id'] ?>">
+                                                        <?= htmlspecialchars($parent['name']) ?>
                                                     </option>
                                                 <?php endwhile; ?>
                                             </select>
@@ -745,12 +791,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                             </div>
                         </div>
 
+                        <!-- جدول عرض التصنيفات -->
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-body">
                                     <h5 class="card-title">التصنيفات الحالية</h5>
                                     <div class="table-responsive">
-                                        <table class="table table-striped">
+                                        <table class="table table-striped align-middle">
                                             <thead>
                                                 <tr>
                                                     <th>#</th>
@@ -763,7 +810,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                             <tbody>
                                                 <?php
                                                 $categories = $conn->query("
-                                    SELECT c1.*, c2.name as parent_name 
+                                    SELECT c1.*, c2.name AS parent_name 
                                     FROM categories c1 
                                     LEFT JOIN categories c2 ON c1.parent_id = c2.id 
                                     ORDER BY c1.id DESC
@@ -774,11 +821,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                                         <td><?= $category['id'] ?></td>
                                                         <td><?= htmlspecialchars($category['name']) ?></td>
                                                         <td>
-                                                            <img src="<?= $category['image'] ?>"
-                                                                alt="<?= $category['name'] ?>"
-                                                                style="width: 50px; height: 50px; object-fit: cover;">
+                                                            <img src="<?= htmlspecialchars($category['image']) ?>"
+                                                                alt="<?= htmlspecialchars($category['name']) ?>"
+                                                                style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
                                                         </td>
-                                                        <td><?= $category['parent_name'] ? htmlspecialchars($category['parent_name']) : '-' ?>
+                                                        <td>
+                                                            <?= $category['parent_name'] ? htmlspecialchars($category['parent_name']) : '<span class="text-muted">رئيسي</span>' ?>
                                                         </td>
                                                         <td>
                                                             <form action="" method="POST" class="d-inline">
@@ -804,10 +852,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                 <!-- Ads Section -->
                 <div id="ads" class="content-section">
                     <div class="row">
+                        <!-- إضافة إعلان جديد -->
                         <div class="col-md-12">
                             <div class="card">
                                 <div class="card-body">
-                                    <h5 class="card-title">إدارة الإعلانات</h5>
+                                    <h5 class="card-title">إضافة إعلانات جديدة</h5>
                                     <form method="POST" enctype="multipart/form-data">
                                         <div id="ads-container">
                                             <div class="row ad-row">
@@ -817,7 +866,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                                         <select name="category[]" class="form-select" required>
                                                             <option value="">اختر التصنيف</option>
                                                             <?php
-                                                            $categories = $conn->query("SELECT * FROM categories");
+                                                            $categories = $conn->query("SELECT id, name FROM categories ORDER BY name ASC");
                                                             while ($category = $categories->fetch_assoc()):
                                                                 ?>
                                                                 <option value="<?= $category['id'] ?>">
@@ -838,12 +887,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                                     <div class="mb-3">
                                                         <label class="form-label">رابط الإعلان*</label>
                                                         <input type="url" name="linkaddress[]" class="form-control"
-                                                            required>
+                                                            placeholder="https://example.com" required>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-1">
                                                     <div class="mb-3">
-                                                        <label class="form-label">&nbsp;</label>
+                                                        <label class="form-label d-block">&nbsp;</label>
                                                         <button type="button" class="btn btn-danger form-control"
                                                             onclick="removeAdRow(this)">
                                                             <i class="fas fa-trash"></i>
@@ -852,22 +901,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <button type="button" class="btn btn-secondary" onclick="addAdRow()">إضافة
-                                                إعلان آخر</button>
+                                        <div class="mb-3 d-flex justify-content-between">
+                                            <button type="button" class="btn btn-secondary" onclick="addAdRow()">+ إعلان
+                                                آخر</button>
                                             <button type="submit" class="btn btn-primary">حفظ الإعلانات</button>
                                         </div>
                                     </form>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- عرض الإعلانات الحالية -->
                         <div class="col-md-12 mt-3">
                             <div class="card">
                                 <div class="card-body">
                                     <h5 class="card-title">الإعلانات الحالية</h5>
                                     <div class="table-responsive">
-                                        <table class="table table-striped">
-                                            <thead>
+                                        <table class="table table-bordered table-hover align-middle text-center">
+                                            <thead class="table-light">
                                                 <tr>
                                                     <th>#</th>
                                                     <th>التصنيف</th>
@@ -879,34 +930,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                             <tbody>
                                                 <?php
                                                 $ads = $conn->query("
-                                                    SELECT ads.*, categories.name as category_name 
-                                                    FROM ads 
-                                                    JOIN categories ON ads.categoryid = categories.id
-                                                    ORDER BY ads.id DESC
-                                                ");
+                                    SELECT ads.id, ads.photo, ads.linkaddress, categories.name AS category_name 
+                                    FROM ads 
+                                    JOIN categories ON ads.categoryid = categories.id 
+                                    ORDER BY ads.id DESC
+                                ");
                                                 while ($ad = $ads->fetch_assoc()):
                                                     ?>
                                                     <tr>
                                                         <td><?= $ad['id'] ?></td>
                                                         <td><?= htmlspecialchars($ad['category_name']) ?></td>
                                                         <td>
-                                                            <img src="<?= $ad['photo'] ?>" alt="إعلان"
+                                                            <img src="<?= htmlspecialchars($ad['photo']) ?>"
+                                                                alt="صورة الإعلان"
                                                                 style="width: 100px; height: 60px; object-fit: cover;">
                                                         </td>
                                                         <td>
-                                                            <a href="<?= $ad['linkaddress'] ?>" target="_blank">
-                                                                <?= strlen($ad['linkaddress']) > 30 ? substr($ad['linkaddress'], 0, 30) . '...' : $ad['linkaddress'] ?>
+                                                            <a href="<?= htmlspecialchars($ad['linkaddress']) ?>"
+                                                                target="_blank">
+                                                                <?= mb_strlen($ad['linkaddress']) > 30 ? mb_substr($ad['linkaddress'], 0, 30) . '...' : $ad['linkaddress'] ?>
                                                             </a>
                                                         </td>
                                                         <td>
                                                             <a href="delete_ad.php?id=<?= $ad['id'] ?>"
                                                                 class="btn btn-sm btn-outline-danger"
                                                                 onclick="return confirm('هل أنت متأكد من حذف هذا الإعلان؟')">
-                                                                <i class="fas fa-trash"></i>
+                                                                <i class="fas fa-trash-alt"></i>
                                                             </a>
                                                         </td>
                                                     </tr>
                                                 <?php endwhile; ?>
+                                                <?php if ($ads->num_rows === 0): ?>
+                                                    <tr>
+                                                        <td colspan="5">لا توجد إعلانات حالياً.</td>
+                                                    </tr>
+                                                <?php endif; ?>
                                             </tbody>
                                         </table>
                                     </div>
@@ -915,6 +973,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                         </div>
                     </div>
                 </div>
+
+                <!-- JavaScript لإضافة وحذف صفوف الإعلانات ديناميكياً -->
+                <script>
+                    function addAdRow() {
+                        const adRow = document.querySelector('.ad-row');
+                        const clone = adRow.cloneNode(true);
+
+                        // Reset fields
+                        clone.querySelectorAll('input, select').forEach(input => {
+                            if (input.type === 'file' || input.type === 'url') {
+                                input.value = '';
+                            } else {
+                                input.selectedIndex = 0;
+                            }
+                        });
+
+                        document.getElementById('ads-container').appendChild(clone);
+                    }
+
+                    function removeAdRow(button) {
+                        const rows = document.querySelectorAll('.ad-row');
+                        if (rows.length > 1) {
+                            button.closest('.ad-row').remove();
+                        } else {
+                            alert("لا يمكن حذف الصف الأخير.");
+                        }
+                    }
+                </script>
 
                 <!-- Coupons Section -->
                 <div id="coupons" class="content-section">

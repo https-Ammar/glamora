@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS `users` (
     `city` VARCHAR(100),
     `country` VARCHAR(100),
     `profile_image` VARCHAR(255) DEFAULT NULL,
+    `reset_token` VARCHAR(255) DEFAULT NULL,
+    `reset_token_expiry` DATETIME DEFAULT NULL,
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
@@ -70,7 +72,6 @@ CREATE TABLE IF NOT EXISTS `products` (
     FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- ✅ تم حذف FOREIGN KEY من `userid`
 CREATE TABLE IF NOT EXISTS `cart` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `userid` INT(11) NOT NULL,
@@ -90,6 +91,18 @@ CREATE TABLE IF NOT EXISTS `coupons` (
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
+-- ✅ الجدول الجديد لخصومات الكوبونات
+CREATE TABLE IF NOT EXISTS `discount_logs` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `user_id` INT(11) NOT NULL,
+    `coupon_code` VARCHAR(50) NOT NULL,
+    `discount_amount` DECIMAL(10, 2) NOT NULL,
+    `final_price` DECIMAL(10, 2) NOT NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `orders` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `user_id` INT(11) NOT NULL,
@@ -104,6 +117,9 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `numberofproducts` INT(11),
     `finaltotalprice` DECIMAL(10, 2),
     `coupon_id` INT(11) DEFAULT NULL,
+    `coupon_code` VARCHAR(50) DEFAULT NULL,
+    `discount_type` ENUM('percentage', 'fixed') DEFAULT NULL,
+    `discount_value` DECIMAL(10, 2) DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
@@ -142,7 +158,9 @@ VALUES (
         'Ammar',
         'ammar132004@gmail.com',
         '$2y$10$dJ.XyZXD9pJZCKKsmYBC..udbBAmp/9NHM1NNUDBM1vQZkoovTp1K'
-    );
+    )
+ON DUPLICATE KEY UPDATE
+    name = VALUES(name);
 
 CREATE TABLE IF NOT EXISTS `site_visits` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,

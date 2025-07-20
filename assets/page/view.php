@@ -1,7 +1,6 @@
 <?php
 require('./db.php');
 
-// التحقق من وجود ID صحيح
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
   header('Location: ./index.php');
   exit();
@@ -9,7 +8,7 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 
 $id = (int) $_GET['id'];
 
-// جلب بيانات المنتج
+// Get product info
 $stmt = $conn->prepare("SELECT * FROM products WHERE id = ?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
@@ -21,14 +20,16 @@ if (!$product) {
   exit();
 }
 
-// تنظيف البيانات
-$name = htmlspecialchars($product['name']);
-$description = htmlspecialchars($product['description']);
-$brand = htmlspecialchars($product['brand']);
-$tags = htmlspecialchars($product['tags']);
-$slug = htmlspecialchars($product['slug']);
-$barcode = htmlspecialchars($product['barcode']);
-$expiry = $product['expiry_date'] ?? '-';
+function safe($value)
+{
+  return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
+}
+
+$name = safe($product['name']);
+$description = safe($product['description']);
+$brand = safe($product['brand']);
+$tags = safe($product['tags']);
+$barcode = safe($product['barcode']);
 $category_id = (int) $product['category_id'];
 $price = (float) $product['price'];
 $sale_price = isset($product['sale_price']) ? (float) $product['sale_price'] : null;
@@ -36,15 +37,16 @@ $on_sale = $product['on_sale'] && $sale_price;
 $final_price = $on_sale ? $sale_price : $price;
 $discount = $on_sale ? round((($price - $sale_price) / $price) * 100) : 0;
 
-$image_path = !empty($product['image']) ? '/admin/' . ltrim($product['image'], './') : '/images/default.jpg';
-$stock_status = htmlspecialchars($product['stock_status']);
+// Get image name and path
+$image_name = !empty($product['image']) ? basename(path: $product['image']) : '';
+$image_path = $image_name ? '/glamora/dashboard/uploads/products/' . $image_name : 'http://localhost:8888/glamora/assets/images/default.jpg';
+
+$stock_status = safe($product['stock_status']);
 $is_new = $product['is_new'] ? 'Yes' : 'No';
 $is_featured = $product['is_featured'] ? 'Yes' : 'No';
-$rating = (float) $product['rating'];
-$views = (int) $product['views'];
-$created_at = $product['created_at'];
-$updated_at = $product['updated_at'];
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -54,8 +56,8 @@ $updated_at = $product['updated_at'];
   <title><?= $name ?> | GLAMORA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
   <link rel="stylesheet" href="../style/main.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
 </head>
 
 <body>
@@ -104,21 +106,16 @@ $updated_at = $product['updated_at'];
         <div class="product-details">
           <p><strong>Brand:</strong> <?= $brand ?></p>
           <p><strong>Tags:</strong> <?= $tags ?></p>
-          <p><strong>Slug:</strong> <?= $slug ?></p>
           <p><strong>Barcode:</strong> <?= $barcode ?></p>
-          <p><strong>Expiry Date:</strong> <?= $expiry ?></p>
           <p><strong>Stock Status:</strong> <?= $stock_status ?></p>
           <p><strong>New Product:</strong> <?= $is_new ?></p>
           <p><strong>On Sale:</strong> <?= $on_sale ? 'Yes' : 'No' ?></p>
           <p><strong>Featured:</strong> <?= $is_featured ?></p>
-          <p><strong>Rating:</strong> <?= $rating ?>/5</p>
-          <p><strong>Views:</strong> <?= $views ?></p>
-          <p><strong>Created At:</strong> <?= $created_at ?></p>
-          <p><strong>Last Updated:</strong> <?= $updated_at ?></p>
         </div>
       </div>
     </section>
 
+    <!-- Related Products -->
     <section class="py-5">
       <div class="_con">
         <div class="row">
@@ -128,14 +125,33 @@ $updated_at = $product['updated_at'];
         </div>
         <div class="owl-carousel js-home-products">
           <?php
-          $stmtSimilar = $conn->prepare("SELECT * FROM products WHERE category_id = ? AND id != ? ORDER BY RAND() LIMIT 10");
-          $stmtSimilar->bind_param("ii", $category_id, $id);
+          // Get parent category of current product
+          $stmtParent = $conn->prepare("
+          SELECT parent_id FROM categories 
+          WHERE id = (SELECT category_id FROM products WHERE id = ?)
+        ");
+          $stmtParent->bind_param("i", $id);
+          $stmtParent->execute();
+          $resParent = $stmtParent->get_result();
+          $parentData = $resParent->fetch_assoc();
+          $parentCategory = $parentData['parent_id'] ?? 0;
+
+          // Get related products from sub-categories of the same parent category
+          $stmtSimilar = $conn->prepare("
+          SELECT * FROM products 
+          WHERE category_id IN (
+            SELECT id FROM categories WHERE parent_id = ?
+          ) AND id != ?
+          ORDER BY RAND()
+          LIMIT 10
+        ");
+          $stmtSimilar->bind_param("ii", $parentCategory, $id);
           $stmtSimilar->execute();
           $similarProducts = $stmtSimilar->get_result();
 
           while ($sim = $similarProducts->fetch_assoc()):
-            $simName = htmlspecialchars($sim['name']);
-            $simImage = !empty($sim['image']) ? '/admin/' . ltrim($sim['image'], './') : '/images/default.jpg';
+            $simName = safe($sim['name']);
+            $simImage = !empty($sim['image']) ? './dashboard/dashboard_shop-main/' . ltrim($sim['image'], './') : './images/default.jpg';
             $simPrice = (float) $sim['price'];
             $simSale = isset($sim['sale_price']) ? (float) $sim['sale_price'] : null;
             $simOnSale = $sim['on_sale'] && $simSale;
@@ -185,15 +201,14 @@ $updated_at = $product['updated_at'];
     });
 
     function addToCart(id) {
-      const quantity = parseInt(document.getElementById('quantity').value) || 1;
+      const qty = parseInt(document.getElementById('quantity').value) || 1;
       fetch('add_to_cart.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `productid=${id}&qty=${quantity}`
-      })
-        .then(res => res.text())
-        .then(data => alert(data))
-        .catch(console.error);
+        body: `productid=${id}&qty=${qty}`
+      }).then(res => res.json()).then(data => {
+        alert(data.message || 'Added to cart');
+      }).catch(console.error);
     }
 
     function addQuickToCart(id) {
@@ -201,10 +216,9 @@ $updated_at = $product['updated_at'];
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `productid=${id}&qty=1`
-      })
-        .then(res => res.text())
-        .then(data => alert(data))
-        .catch(console.error);
+      }).then(res => res.json()).then(data => {
+        alert(data.message || 'Added to cart');
+      }).catch(console.error);
     }
   </script>
 

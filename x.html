@@ -2,151 +2,495 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Page</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
+        body {
+            font-family: sans-serif;
+            background-color: #fdf8f3;
+        }
+
         .thumbnail-img {
-            width: 60px;
-            height: 80px;
+            width: 70px;
+            height: 90px;
             object-fit: cover;
             border: 2px solid transparent;
             cursor: pointer;
+            border-radius: 5px;
         }
 
         .thumbnail-img.active {
-            border-color: #000;
+            border-color: black;
+        }
+
+        .price del {
+            color: #999;
+            margin-left: 10px;
+        }
+
+        .btn-dark {
+            background-color: black;
+            border: none;
+        }
+
+        .btn-dark:hover {
+            background-color: #333;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            font-weight: 600;
+            background-color: black;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            min-width: 22px;
+            min-height: 22px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        h4.mb-2 {
+            font-size: 35px;
+            color: black;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        li.list-inline-item {
+            margin: 0;
+        }
+
+        i.bi.bi-star-fill {
+            color: #ff8a00;
+        }
+
+        span.text-secondary.me-2 {
+            color: black !important;
+        }
+
+        a {
+            text-decoration: none;
+            color: black;
+        }
+
+        h5 {
+            font-size: 15px;
+            margin-top: 2vh !important;
+        }
+
+        .form-label {
+            font-size: 16px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .price {
+            margin-bottom: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .price del {
+            font-size: 18px;
+            opacity: .6;
+            color: #5E626F;
+        }
+
+        .product-num {
+            display: flex;
+            align-items: center;
+
+            gap: 3vh !important;
+        }
+
+        .product-btn {
+            margin: 5px;
+            border-radius: 10px;
+            padding: 12px 20px;
+        }
+
+        .size-btn {
+
+            border: 2px solid black;
+
+            height: 34px;
+            width: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 1px solid;
+            border-radius: 50%;
+            margin-right: 10px;
         }
 
         .color-circle {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
             display: inline-block;
+            width: 1.125em;
+            height: 1.125em;
+            border-radius: 50%;
+            margin-right: 10px;
             cursor: pointer;
-            border: 1px solid #ccc;
+            border: 2px solid transparent;
+
+        }
+
+        .color-circle.active {
+            border-color: black;
+        }
+
+        .form-check {
+            display: inline-block;
+            padding: 0;
+            margin: 0;
+        }
+
+        .form-check-input {
+            display: none;
+        }
+
+        .form-check-input:checked+.color-circle {
+            border-color: black;
+        }
+
+        .product-image {
+            background-size: cover;
+            background-position: top center;
+            background-repeat: no-repeat;
+            border-radius: 20px;
+            height: 82vh;
+            padding: 25px;
+            position: sticky;
+            top: 0;
+        }
+
+        .thumbnail-item {
+            height: 70px;
+            width: 70px !important;
+            min-width: 70px !important;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid black;
+            cursor: pointer;
+        }
+
+        .product-details {
+            padding-top: 50px;
+            max-width: 660px;
+            padding-left: 40px;
+        }
+
+        .social-media {
+            position: absolute;
+            top: 250px;
+            right: 25px;
+            z-index: 1;
+        }
+
+        .social-media ul {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            list-style: none;
+        }
+
+        .social-media ul li {
+            padding: 20px 0;
+            writing-mode: tb-rl;
+        }
+
+        .social-media ul li a {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: black;
+        }
+
+        .quantity-btn {
+            padding: 0;
+            height: 34px;
+            width: 34px;
+            line-height: 36px;
+            font-size: 15px;
+            font-weight: 400;
+            background-color: transparent !important;
+            justify-content: center;
+            border: 1px solid;
+            color: black;
+            margin-right: 10px !important;
+            border-radius: 50% !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quantity-display {
+            height: 34px;
+            width: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 1px solid;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .dark-btn {
+            background: black !important;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .thumbnails {
+                flex-direction: row !important;
+                justify-content: center;
+                margin-bottom: 1rem;
+            }
+
+            .thumbnail-img {
+                width: 60px;
+                height: 80px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="container py-5">
-        <div class="row">
-            <!-- Sidebar Thumbnails -->
-            <div class="col-md-1 d-flex flex-column align-items-center gap-2">
-                <img src="img1.jpg" class="thumbnail-img active" alt="thumb" />
-                <img src="img2.jpg" class="thumbnail-img" alt="thumb" />
-                <img src="img3.jpg" class="thumbnail-img" alt="thumb" />
-                <img src="img4.jpg" class="thumbnail-img" alt="thumb" />
+        <div class="d-sm-flex justify-content-between container-fluid py-3">
+            <nav aria-label="breadcrumb" class="breadcrumb-row">
+                <ul class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/"> Home</a></li>
+                    <li class="breadcrumb-item">Product Thumbnail</li>
+                </ul>
+            </nav>
+        </div>
+        <div class="row gy-4">
+            <div class="col-lg-6 product-image" style="background-image: url(./lady-1.webp);">
+                <div class="d-flex thumbnails flex-column gap-3 mb-3">
+                    <div class="thumbnail-item"></div>
+                    <div class="thumbnail-item"></div>
+                    <div class="thumbnail-item"></div>
+                </div>
             </div>
 
-            <!-- Main Product Image -->
-            <div class="col-md-5 text-center">
-                <img src="img1.jpg" class="img-fluid" alt="Main Product" />
-                <span class="badge bg-danger mt-2">Save EGP 11.00</span>
-            </div>
+            <div class="col-lg-6 product-details">
+                <div class="social-media">
+                    <ul>
+                        <li><a href="https://www.instagram.com/dexignzone/">Instagram</a></li>
+                        <li><a href="https://www.facebook.com/dexignzone">Facebook</a></li>
+                        <li><a href="https://twitter.com/dexignzones">twitter</a></li>
+                    </ul>
+                </div>
+                <span class="badge bg-black mb-2">SALE 20% Off</span>
+                <h4 class="mb-2">Women Red & White Striped Crepe Top</h4>
 
-            <!-- Product Info -->
-            <div class="col-md-6">
-                <h5 class="text-muted">Amanda Milano</h5>
-                <h3>Last & Shine Nail Polish (Expiring October 2025)</h3>
-                <p>
-                    <del>EGP 80.00</del>
-                    <span class="text-success fw-bold">EGP 69.00</span>
-                </p>
+                <div class="d-flex align-items-center mb-2">
+                    <ul class="list-inline mb-0 me-2">
+                        <li class="list-inline-item text-warning"><i class="bi bi-star-fill"></i></li>
+                        <li class="list-inline-item text-warning"><i class="bi bi-star-fill"></i></li>
+                        <li class="list-inline-item text-warning"><i class="bi bi-star-fill"></i></li>
+                        <li class="list-inline-item text-secondary"><i class="bi bi-star"></i></li>
+                        <li class="list-inline-item text-secondary"><i class="bi bi-star"></i></li>
+                    </ul>
+                    <span class="text-secondary me-2">4.7 Rating</span>
+                    <a href="#">(5 customer reviews)</a>
+                </div>
 
-                <div class="mb-3">
-                    <label class="fw-bold">Select color:</label>
-                    <div class="d-flex gap-2 mt-2">
-                        <span class="color-circle" style="background-color:#3bbf95;"></span>
-                        <span class="color-circle" style="background-color:#c6f72c;"></span>
-                        <span class="color-circle" style="background-color:#ff7d00;"></span>
-                        <span class="color-circle" style="background-color:#00cfff;"></span>
-                        <span class="color-circle" style="background-color:#df60b3;"></span>
-                        <span class="color-circle" style="background-color:#b21f1f;"></span>
+                <h5>This comfortable cotton crop-top features the Divi Engine logo on the front expressing how easy
+                    "data Divi Engine life" is.</h5>
+                <p class="mb-4">It is the perfect tee for any occasion.</p>
+                <div class="meta-content m-b20">
+                    <span class="form-label">Price</span>
+                    <span class="price">$125.75 <del>$132.17</del></span>
+                </div>
+
+                <div class="product-num gap-md-2 gap-xl-0 mt-3 mb-3">
+                    <div class="btn-quantity light">
+                        <label class="form-label">Quantity</label>
+                        <div class="d-flex justify-content-center align-items-center">
+                            <button class="quantity-btn dark-btn" onclick="changeQty(-1)">−</button>
+                            <div class="quantity-display" id="qtyDisplay">1</div>
+                            <button class="quantity-btn dark-btn" onclick="changeQty(1)">+</button>
+                        </div>
+                    </div>
+                    <style>
+                        .size-btn {
+                            border: 1px solid #ccc;
+                            padding: 8px 16px;
+                            cursor: pointer;
+                            background-color: transparent;
+                            color: #000;
+                        }
+
+                        .btn-check:checked+.size-btn {
+                            background-color: #000;
+                            color: #fff;
+                            border-color: #000;
+                        }
+
+                        .product-size {
+                            display: flex;
+                            gap: 10px;
+                        }
+                    </style>
+
+                    <div class="d-block">
+                        <label class="form-label">Size</label>
+                        <div class="btn-group product-size grid-media m-0">
+                            <input type="radio" class="btn-check" id="btnradio101" name="btnradio1" autocomplete="off"
+                                checked>
+                            <label class="size-btn" for="btnradio101">S</label>
+
+                            <input type="radio" class="btn-check" id="btnradiol02" name="btnradio1" autocomplete="off">
+                            <label class="size-btn" for="btnradiol02">M</label>
+
+                            <input type="radio" class="btn-check" id="btnradiol03" name="btnradio1" autocomplete="off">
+                            <label class="size-btn" for="btnradiol03">L</label>
+                        </div>
+                    </div>
+
+                    <div class="meta-content">
+                        <label class="form-label">Color</label>
+                        <div class="d-flex align-items-center color-filter">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" id="radioNoLabel21" name="radioNoLabel"
+                                    checked value="#24262B">
+                                <span class="color-circle" style="background-color:#24262B"></span>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" id="radioNoLabel22" name="radioNoLabel"
+                                    value="#8CB2D1">
+                                <span class="color-circle" style="background-color:#8CB2D1"></span>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" id="radioNoLabel23" name="radioNoLabel"
+                                    value="#0D775E">
+                                <span class="color-circle" style="background-color:#0D775E"></span>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" id="radioNoLabel24" name="radioNoLabel"
+                                    value="#FEC4C4">
+                                <span class="color-circle" style="background-color:#FEC4C4"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Quantity and Button -->
-                <div class="d-flex align-items-center mb-4">
-                    <button class="btn btn-outline-secondary">-</button>
-                    <input type="text" class="form-control mx-2 text-center" style="width: 60px;" value="1" />
-                    <button class="btn btn-outline-secondary">+</button>
+                <div class="d-flex gap-2 mb-4">
+                    <button class="btn btn-dark product-btn w-50">Add to Cart</button>
+                    <button class="btn btn-outline-dark product-btn w-50">Add to Wishlist</button>
                 </div>
 
-                <button class="btn btn-dark w-100">Add to bag</button>
+                <hr>
 
-                <!-- Installment Info -->
-                <div class="border rounded p-3 mt-4 bg-light">
-                    <small>
-                        Pay over 3 payments of <strong class="text-danger">17.25 EGP</strong> with your bank card.<br>
-                        <strong>0 interest. 0 registration.</strong> <a href="#">learn more.</a>
-                    </small>
+                <p><strong>SKU:</strong> PRT584E63A</p>
+                <p><strong>Category:</strong> Dresses, Jeans, Swimwear, Summer, Clothing</p>
+                <p><strong>Tags:</strong> Casual, Athletic, Workwear, Accessories</p>
+
+                <div class="d-flex flex-wrap gap-3 fs-5 mt-4">
+                    <a href="#"><i class="bi bi-facebook"></i> Facebook</a>
+                    <a href="#"><i class="bi bi-instagram"></i> Instagram</a>
+                </div>
+
+                <div class="mt-4 d-flex flex-wrap gap-4">
+                    <div class="d-flex align-items-center">
+                        <img src="https://img.icons8.com/ios/50/shipped.png" width="24">
+                        <span class="ms-2">Free Shipping</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <img src="https://img.icons8.com/ios/50/return.png" width="24">
+                        <span class="ms-2">30 Days Easy Return</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <!DOCTYPE html>
-    <html lang="en">
-
-    <head>
-        <meta charset="UTF-8">
-        <title>Discount Badge</title>
-        <style>
-            .discount-badge {
-                position: relative;
-                width: 70px;
-                height: 70px;
-                background: #ff3e5f;
-                color: white;
-                font-weight: bold;
-                font-size: 16px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                text-align: center;
-                clip-path: polygon(50% 0%,
-                        63% 10%,
-                        78% 5%,
-                        85% 18%,
-                        100% 25%,
-                        95% 38%,
-                        100% 50%,
-                        95% 63%,
-                        100% 75%,
-                        85% 82%,
-                        78% 95%,
-                        63% 90%,
-                        50% 100%,
-                        37% 90%,
-                        22% 95%,
-                        15% 82%,
-                        0% 75%,
-                        5% 63%,
-                        0% 50%,
-                        5% 38%,
-                        0% 25%,
-                        15% 18%,
-                        22% 5%,
-                        37% 10%);
-            }
-
-            .discount-badge span {
-                line-height: 1.2;
-            }
-        </style>
-    </head>
-
-    <body>
-        <div class="discount-badge">
-            <span>+20%<br>off</span>
-        </div>
-    </body>
-
-    </html>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const thumbnails = document.querySelectorAll('.thumbnail-img');
+            const mainImage = document.querySelector('.product-image');
+            const colorOptions = document.querySelectorAll('.form-check-input');
+
+            thumbnails.forEach(thumbnail => {
+                thumbnail.addEventListener('click', function () {
+                    thumbnails.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    mainImage.src = this.src;
+                });
+            });
+
+            colorOptions.forEach(option => {
+                option.addEventListener('change', function () {
+                    const colorSpan = this.nextElementSibling;
+                    document.querySelectorAll('.color-circle').forEach(span => {
+                        span.style.borderColor = 'transparent';
+                    });
+                    colorSpan.style.borderColor = 'black';
+                });
+            });
+        });
+
+        let qty = 1;
+        const qtyDisplay = document.getElementById('qtyDisplay');
+
+        function changeQty(delta) {
+            qty = Math.max(1, qty + delta);
+            qtyDisplay.textContent = qty;
+        }
+    </script>
+
+
+    <style>
+        @media screen and (max-width: 768px) {
+            .col-lg-6.product-image {
+                position: unset;
+            }
+
+            .product-num.gap-md-2.gap-xl-0.mt-3.mb-3 {
+                flex-direction: column;
+                justify-content: inherit;
+                align-items: baseline;
+            }
+
+            .col-lg-6.product-details {
+                max-width: 100%;
+                padding: 25px;
+            }
+
+            .d-flex.thumbnails.flex-column.gap-3.mb-3 {
+                flex-direction: column !important;
+            }
+
+            .col-lg-6.product-image {
+                margin: 20px;
+                width: -webkit-fill-available;
+                height: 65vh;
+            }
+
+            .social-media {
+                display: none;
+            }
+
+            .thumbnail-item {
+                height: 55px !important;
+                width: 55px !important;
+                min-width: 55px !important;
+            }
+
+            .d-flex.align-items-center.mb-2 {
+                display: block !important;
+            }
+        }
+    </style>
 </body>
 
 </html>

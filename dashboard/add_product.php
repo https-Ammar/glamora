@@ -4,19 +4,7 @@ require('./db.php');
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// التحقق من تسجيل الدخول
-if (!isset($_SESSION['userId'])) {
-    header('Location: ./login.php');
-    exit();
-}
 
-// جلب معلومات المستخدم
-$userId = $_SESSION['userId'];
-$select = $conn->prepare("SELECT * FROM usersadmin WHERE id = ?");
-$select->bind_param("i", $userId);
-$select->execute();
-$userData = $select->get_result()->fetch_assoc();
-$select->close();
 
 // معالجة إضافة المنتج
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {

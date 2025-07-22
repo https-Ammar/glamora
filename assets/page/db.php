@@ -1,15 +1,16 @@
 <?php
-$servername = "localhost";  // Database server (usually localhost)
-$username = "root";         // Database username
-$password = "root";             // Database password
-$dbname = "shop";    // Name of the database
+$servername = "localhost";
+$username = "root";
+$password = "root";
+$dbname = "shop";
 
-// Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+if ($conn->connect_errno) {
+    http_response_code(500);
+    exit('Database connection failed.');
 }
 
+$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http")
+    . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
 ?>

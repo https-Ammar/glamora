@@ -1,14 +1,32 @@
 <?php
 session_start();
 require('./db.php');
-
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
+function uploadColorImage($file, $index) {
+    $targetDir = 'uploads/colors/';
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+    $maxFileSize = 2 * 1024 * 1024;
 
+    if (!file_exists($targetDir)) {
+        mkdir($targetDir, 0777, true);
+    }
 
-// معالجة إضافة المنتج
+    if ($file['error'][$index] === UPLOAD_ERR_OK) {
+        $fileInfo = pathinfo($file['name'][$index]);
+        $ext = strtolower($fileInfo['extension']);
+        if (in_array($ext, $allowedExtensions) && $file['size'][$index] <= $maxFileSize) {
+            $fileName = uniqid('color_', true) . '.' . $ext;
+            $targetPath = $targetDir . $fileName;
+            if (move_uploaded_file($file['tmp_name'][$index], $targetPath)) {
+                return $targetPath;
+            }
+        }
+    }
+    return null;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
-    // تنظيف المدخلات
     $name = trim($_POST['name']);
     $brand = trim($_POST['brand']);
     $description = trim($_POST['description']);
@@ -24,8 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
     $barcode = !empty($_POST['barcode']) ? $_POST['barcode'] : uniqid('PRD-');
     $expiryDate = !empty($_POST['expiry_date']) ? $_POST['expiry_date'] : null;
     $categoryId = intval($_POST['category_id']);
-    
-    // معالجة الأحجام
+    $userId = $_SESSION['user_id'] ?? 1;
+    $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name)) . '-' . uniqid());
+
     $sizes = [];
     if (!empty($_POST['size_name']) && is_array($_POST['size_name'])) {
         foreach ($_POST['size_name'] as $index => $sizeName) {
@@ -38,66 +57,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
         }
     }
     $sizesJson = !empty($sizes) ? json_encode($sizes, JSON_UNESCAPED_UNICODE) : null;
-    
-    // معالجة الألوان
+
     $colors = [];
     if (!empty($_POST['color_name']) && is_array($_POST['color_name'])) {
         foreach ($_POST['color_name'] as $index => $colorName) {
             if (!empty($colorName)) {
-                $colors[] = [
+                $colorData = [
                     'name' => $colorName,
                     'hex' => isset($_POST['color_hex'][$index]) ? $_POST['color_hex'][$index] : '#000000'
                 ];
+                if (!empty($_FILES['color_image']['name'][$index])) {
+                    $colorImage = uploadColorImage($_FILES['color_image'], $index);
+                    if ($colorImage) {
+                        $colorData['image'] = $colorImage;
+                    }
+                }
+                $colors[] = $colorData;
             }
         }
     }
     $colorsJson = !empty($colors) ? json_encode($colors, JSON_UNESCAPED_UNICODE) : null;
 
-    // معالجة تحميل الصور
     $imagePath = null;
     $galleryPaths = [];
     $targetDir = 'uploads/products/';
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-    $maxFileSize = 2 * 1024 * 1024; // 2MB
+    $maxFileSize = 2 * 1024 * 1024;
 
-    // إنشاء مجلد التحميل إذا لم يكن موجوداً
     if (!file_exists($targetDir)) {
         mkdir($targetDir, 0777, true);
     }
 
-    // معالجة الصورة الرئيسية
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileInfo = pathinfo($_FILES['image']['name']);
         $ext = strtolower($fileInfo['extension']);
-        
-        // التحقق من صحة الملف
         if (in_array($ext, $allowedExtensions) && $_FILES['image']['size'] <= $maxFileSize) {
             $imageName = uniqid('img_', true) . '.' . $ext;
             $targetPath = $targetDir . $imageName;
-            
             if (move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
                 $imagePath = $targetPath;
-            } else {
-                $error = "حدث خطأ أثناء تحميل الصورة الرئيسية";
             }
-        } else {
-            $error = "صيغة الملف غير مدعومة أو حجم الملف كبير جداً";
         }
-    } else {
-        $error = "يجب تحميل صورة رئيسية للمنتج";
     }
 
-    // معالجة صور المعرض
-    if (empty($error) && !empty($_FILES['gallery']['name'][0])) {
+    if (!empty($_FILES['gallery']['name'][0])) {
         foreach ($_FILES['gallery']['tmp_name'] as $index => $tmpName) {
             if ($_FILES['gallery']['error'][$index] === UPLOAD_ERR_OK) {
                 $fileInfo = pathinfo($_FILES['gallery']['name'][$index]);
                 $ext = strtolower($fileInfo['extension']);
-                
                 if (in_array($ext, $allowedExtensions) && $_FILES['gallery']['size'][$index] <= $maxFileSize) {
                     $imgName = uniqid('gallery_', true) . '.' . $ext;
                     $imgPath = $targetDir . $imgName;
-                    
                     if (move_uploaded_file($tmpName, $imgPath)) {
                         $galleryPaths[] = $imgPath;
                     }
@@ -108,17 +118,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
 
     $galleryJson = !empty($galleryPaths) ? json_encode($galleryPaths) : null;
 
-    // إدخال المنتج في قاعدة البيانات
-    if (empty($error)) {
+    if ($imagePath) {
         $stmt = $conn->prepare("INSERT INTO products (
-            name, brand, description, tags, price, sale_price, discount_percent,
+            name, slug, brand, description, tags, price, sale_price, discount_percent,
             quantity, stock_status, is_new, on_sale, is_featured, barcode,
-            expiry_date, category_id, image, sizes, colors, gallery, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            expiry_date, category_id, image, gallery, sizes, colors, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         $stmt->bind_param(
-            "ssssddddsiiisssssssi",
+            "sssssddddsiiisssssssi",
             $name,
+            $slug,
             $brand,
             $description,
             $tags,
@@ -134,19 +144,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
             $expiryDate,
             $categoryId,
             $imagePath,
+            $galleryJson,
             $sizesJson,
             $colorsJson,
-            $galleryJson,
             $userId
         );
 
         if ($stmt->execute()) {
-            $success = "تمت إضافة المنتج بنجاح!";
-            // إعادة تعيين الحقول بعد الإضافة الناجحة
-            $_POST = array();
+            $_SESSION['success'] = "تمت إضافة المنتج بنجاح!";
+            header("Location: add_product.php");
+            exit();
         } else {
-            $error = "حدث خطأ أثناء إضافة المنتج: " . $conn->error;
-            // حذف الصور التي تم تحميلها في حالة فشل الإدراج
             if ($imagePath && file_exists($imagePath)) {
                 unlink($imagePath);
             }
@@ -155,19 +163,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                     unlink($path);
                 }
             }
+            $_SESSION['error'] = "حدث خطأ أثناء إضافة المنتج: " . $conn->error;
         }
 
         $stmt->close();
+    } else {
+        $_SESSION['error'] = "يجب تحميل صورة رئيسية للمنتج";
     }
 }
 
-// جلب التصنيفات لعرضها في القائمة المنسدلة
 $categories = $conn->query("SELECT c1.id, c1.name AS child_name, c2.name AS parent_name 
                           FROM categories c1
                           LEFT JOIN categories c2 ON c1.parent_id = c2.id
                           WHERE c1.parent_id IS NOT NULL
                           ORDER BY c2.name, c1.name");
 ?>
+
 
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -467,48 +478,108 @@ $categories = $conn->query("SELECT c1.id, c1.name AS child_name, c2.name AS pare
                                 </div>
                             </div>
                             
-                            <!-- ألوان المنتج -->
-                            <div class="row mb-4">
-                                <div class="col-md-12">
-                                    <div class="card">
-                                        <div class="card-header bg-light">
-                                            <h5 class="mb-0">الألوان المتاحة</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <div id="colorsContainer">
-                                                <!-- سيتم إضافة الألوان هنا ديناميكياً -->
-                                                <?php if (isset($_POST['color_name']) && is_array($_POST['color_name'])): ?>
-                                                    <?php foreach ($_POST['color_name'] as $index => $colorName): ?>
-                                                        <?php if (!empty($colorName)): ?>
-                                                            <div class="color-item mb-2">
-                                                                <div class="row">
-                                                                    <div class="col-md-5">
-                                                                        <input type="text" class="form-control" name="color_name[]" placeholder="اسم اللون" value="<?= htmlspecialchars($colorName) ?>" required>
-                                                                    </div>
-                                                                    <div class="col-md-5">
-                                                                        <div class="input-group">
-                                                                            <span class="input-group-text color-preview" style="background-color: <?= isset($_POST['color_hex'][$index]) ? htmlspecialchars($_POST['color_hex'][$index]) : '#000000' ?>"></span>
-                                                                            <input type="color" class="form-control form-control-color" name="color_hex[]" value="<?= isset($_POST['color_hex'][$index]) ? htmlspecialchars($_POST['color_hex'][$index]) : '#000000' ?>">
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-md-2">
-                                                                        <button type="button" class="btn btn-danger btn-sm w-100 remove-color">
-                                                                            <i class="fas fa-trash"></i> حذف
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        <?php endif; ?>
-                                                    <?php endforeach; ?>
-                                                <?php endif; ?>
-                                            </div>
-                                            <button type="button" class="btn btn-primary mt-2" id="addColor">
-                                                <i class="fas fa-plus"></i> إضافة لون جديد
-                                            </button>
-                                        </div>
+<!-- ألوان المنتج -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">الألوان المتاحة</h5>
+            </div>
+            <div class="card-body">
+                <div id="colorsContainer">
+                    <?php
+                    // استرجاع البيانات المحفوظة من الجلسة أو قاعدة البيانات
+                    $saved_colors = $_SESSION['product_colors'] ?? [];
+                    
+                    foreach ($saved_colors as $index => $color): ?>
+                        <div class="color-item mb-3 p-3 border rounded">
+                            <div class="row align-items-center">
+                                <div class="col-md-3 mb-2 mb-md-0">
+                                    <label class="form-label">اسم اللون</label>
+                                    <input type="text" class="form-control" name="color_name[]" 
+                                           value="<?= htmlspecialchars($color['name']) ?>" required>
+                                </div>
+                                <div class="col-md-2 mb-2 mb-md-0">
+                                    <label class="form-label">كود اللون</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text color-preview" 
+                                              style="background-color: <?= $color['hex'] ?>"></span>
+                                        <input type="color" class="form-control form-control-color p-1" 
+                                               name="color_hex[]" value="<?= $color['hex'] ?>">
                                     </div>
                                 </div>
+                                <div class="col-md-4 mb-2 mb-md-0">
+                                    <label class="form-label">صورة اللون</label>
+                                    <div class="d-flex align-items-center">
+                                        <input type="file" class="form-control" name="color_image[]" accept="image/*">
+                                        <?php if (!empty($color['image'])): ?>
+                                            <img src="<?= $color['image'] ?>" width="40" height="40" 
+                                                 class="rounded ms-2 border">
+                                            <input type="hidden" name="existing_image[]" value="<?= $color['image'] ?>">
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 mb-2 mb-md-0">
+                                    <button type="button" class="btn btn-danger btn-sm w-100 remove-color">
+                                        <i class="fas fa-trash"></i> حذف
+                                    </button>
+                                </div>
                             </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button" class="btn btn-primary mt-3" id="addColor">
+                    <i class="fas fa-plus"></i> إضافة لون جديد
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+document.getElementById('addColor').addEventListener('click', function() {
+    const container = document.getElementById('colorsContainer');
+    const newItem = document.createElement('div');
+    newItem.className = 'color-item mb-3 p-3 border rounded';
+    newItem.innerHTML = `
+        <div class="row align-items-center">
+            <div class="col-md-3 mb-2 mb-md-0">
+                <label class="form-label">اسم اللون</label>
+                <input type="text" class="form-control" name="color_name[]" required>
+            </div>
+            <div class="col-md-2 mb-2 mb-md-0">
+                <label class="form-label">كود اللون</label>
+                <div class="input-group">
+                    <span class="input-group-text color-preview" style="background-color: #000000"></span>
+                    <input type="color" class="form-control form-control-color p-1" 
+                           name="color_hex[]" value="#000000">
+                </div>
+            </div>
+            <div class="col-md-4 mb-2 mb-md-0">
+                <label class="form-label">صورة اللون</label>
+                <input type="file" class="form-control" name="color_image[]" accept="image/*">
+            </div>
+            <div class="col-md-2 mb-2 mb-md-0">
+                <button type="button" class="btn btn-danger btn-sm w-100 remove-color">
+                    <i class="fas fa-trash"></i> حذف
+                </button>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(newItem);
+    
+    // إضافة الأحداث
+    newItem.querySelector('input[type="color"]').addEventListener('input', function() {
+        this.previousElementSibling.style.backgroundColor = this.value;
+    });
+    
+    newItem.querySelector('.remove-color').addEventListener('click', function() {
+        newItem.remove();
+    });
+});
+</script>
 
                             <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                                 <button type="submit" class="btn btn-primary btn-lg me-md-2">

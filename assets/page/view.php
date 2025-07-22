@@ -84,6 +84,23 @@ if (!empty($product['gallery'])) {
 $sizes = !empty($product['sizes']) ? json_decode($product['sizes'], true) : [];
 $colors = !empty($product['colors']) ? json_decode($product['colors'], true) : [];
 
+$color_images = [];
+foreach ($colors as $color) {
+  $color_code = strtolower(str_replace('#', '', $color['hex']));
+  $color_images[$color_code] = [];
+  foreach ($gallery as $img) {
+    if (strpos($img, $color_code) !== false) {
+      $color_images[$color_code][] = $img;
+    }
+  }
+  if (empty($color_images[$color_code])) {
+    $color_images[$color_code] = $gallery;
+  }
+}
+
+$current_color = !empty($colors) ? strtolower(str_replace('#', '', $colors[0]['hex'])) : '';
+$current_images = !empty($current_color) ? $color_images[$current_color] : $gallery;
+
 $stock_status = safe($product['stock_status']);
 $is_new = $product['is_new'] ? 'Yes' : 'No';
 $is_featured = $product['is_featured'] ? 'Yes' : 'No';
@@ -107,7 +124,6 @@ $quantity = (int) $product['quantity'];
 
 <body>
   <?php require('./header.php'); ?>
-
   <div class="container py-5">
     <div class="d-sm-flex justify-content-between container-fluid py-3">
       <nav aria-label="breadcrumb" class="breadcrumb-row">
@@ -118,16 +134,49 @@ $quantity = (int) $product['quantity'];
       </nav>
     </div>
     <div class="row gy-4">
-      <div class="col-lg-6 product-image" id="mainImageContainer" style="background-image: url('<?= $image_path ?>');">
-        <div class="d-flex thumbnails flex-column gap-3 mb-3">
-          <?php if (!empty($gallery)): ?>
-            <?php foreach ($gallery as $img): ?>
-              <div class="thumbnail-item"
-                style="background-image: url('<?= $img ?>'); background-size: cover; background-position: top center; cursor: pointer;"
+      <div class="col-lg-6 product-image position-relative" id="mainImageContainer"
+        style="background-image: url('<?= !empty($current_images[0]) ? $current_images[0] : $image_path ?>'); background-size: cover; background-position: center; ">
+
+        <button type="button" class="btn btn-light position-absolute top-0 end-0 m-3 rounded-circle shadow"
+          data-bs-toggle="modal" data-bs-target="#imageModal">
+          <i class="bi bi-arrows-fullscreen fs-4"></i>
+        </button>
+
+        <div class="d-flex thumbnails flex-column gap-3 mb-3" id="thumbnailsContainer">
+          <?php if (!empty($current_images)): ?>
+            <?php foreach ($current_images as $index => $img): ?>
+              <div class="thumbnail-item <?= $index === 0 ? 'active' : '' ?>"
+                style="background-image: url('<?= $img ?>'); background-size: cover; background-position: center; cursor: pointer; width: 70px; height: 70px;"
                 onclick="changeMainImage(this, '<?= $img ?>')">
               </div>
             <?php endforeach; ?>
           <?php endif; ?>
+        </div>
+      </div>
+
+      <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content bg-transparent border-0">
+            <div class="modal-body p-0">
+              <div id="carouselImages" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                  <?php foreach ($current_images as $index => $img): ?>
+                    <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
+                      <img src="<?= $img ?>" class="d-block w-100" alt="Product Image">
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselImages"
+                  data-bs-slide="prev">
+                  <span class="carousel-control-prev-icon"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselImages"
+                  data-bs-slide="next">
+                  <span class="carousel-control-next-icon"></span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -139,7 +188,9 @@ $quantity = (int) $product['quantity'];
             <li><a href="https://twitter.com/dexignzones">twitter</a></li>
           </ul>
         </div>
-        <span class="badge bg-black mb-2">SALE <?= $discount ?>% Off</span>
+        <?php if ($on_sale): ?>
+          <span class="badge bg-black mb-2">SALE <?= $discount ?>% Off</span>
+        <?php endif; ?>
         <h4 class="mb-2"><?= $name ?></h4>
 
         <div class="d-flex align-items-center mb-2">
@@ -191,21 +242,45 @@ $quantity = (int) $product['quantity'];
               </div>
             </div>
           <?php endif; ?>
-
           <div class="meta-content">
             <label class="form-label">Color</label>
             <?php if (!empty($colors)): ?>
-              <div class="d-flex align-items-center color-filter">
-                <?php foreach ($colors as $index => $color): ?>
-                  <label class="form-check d-flex align-items-center" style="cursor: pointer; margin-right: 10px;">
-                    <input class="form-check-input d-none" type="radio" id="radioNoLabel<?= $index ?>" name="radioNoLabel"
-                      value="<?= safe($color['hex']) ?>" <?= $index === 0 ? 'checked' : '' ?>>
-                    <span class="color-circle" style="background-color:<?= safe($color['hex']) ?>;"></span>
+              <div class="d-flex align-items-center color-filter flex-wrap gap-2" id="colorOptions">
+                <?php
+                $base_color_path = 'http://localhost:8888/glamora/dashboard/';
+                foreach ($colors as $index => $color):
+                  $color_code = strtolower(str_replace('#', '', $color['hex'] ?? ''));
+                  $color_name = htmlspecialchars($color['name'] ?? '');
+                  $color_image = '';
+                  if (!empty($color['image'])) {
+                    $color_image = (strpos($color['image'], 'http') === 0)
+                      ? $color['image']
+                      : $base_color_path . ltrim($color['image'], '/');
+                  }
+                  ?>
+                  <label class="form-check color-option" style="cursor: pointer;" title="<?= $color_name ?>">
+                    <input class="form-check-input d-none color-radio" type="radio" name="product_color"
+                      value="<?= $color_code ?>" data-image="<?= $color_image ?>" <?= $index === 0 ? 'checked' : '' ?>>
+                    <div class="color-wrapper  p-1  " style="transition: 0.3s;">
+                      <span class="color-circle"
+                        style="background-color:<?= htmlspecialchars($color['hex'] ?? '#ccc') ?>;"></span>
+                    </div>
                   </label>
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>
+          </div>
 
+          <div class="modal fade" id="colorModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content bg-dark text-white position-relative">
+                <button type="button" class="btn-close position-absolute end-0 m-2" data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+                <div class="modal-body text-center">
+                  <img id="modalColorImage" src="" alt="Color Preview" class="img-fluid rounded">
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="d-flex gap-2 mb-4">
@@ -329,31 +404,57 @@ $quantity = (int) $product['quantity'];
       </section>
     </div>
   </div>
-
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const thumbnails = document.querySelectorAll('.thumbnail-img');
-      const mainImage = document.querySelector('.product-image');
-      const colorOptions = document.querySelectorAll('.form-check-input');
 
-      thumbnails.forEach(thumbnail => {
-        thumbnail.addEventListener('click', function () {
-          thumbnails.forEach(t => t.classList.remove('active'));
-          this.classList.add('active');
-          mainImage.src = this.src;
-        });
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const owl = $('.js-home-products');
+      if (owl.hasClass('owl-loaded')) {
+        owl.trigger('destroy.owl.carousel');
+        owl.html(owl.find('.owl-stage-outer').html()).removeClass('owl-loaded');
+      }
+      owl.owlCarousel({
+        loop: false,
+        margin: 10,
+        nav: true,
+        dots: false,
+        responsive: {
+          0: { items: 2 },
+          600: { items: 2 },
+          1000: { items: 4 }
+        }
       });
 
-      colorOptions.forEach(option => {
-        option.addEventListener('change', function () {
-          const colorSpan = this.nextElementSibling;
-          document.querySelectorAll('.color-circle').forEach(span => {
-            span.style.borderColor = 'transparent';
+      const colorRadios = document.querySelectorAll('.color-radio');
+      const colorImagesData = <?= json_encode($color_images) ?>;
+
+      colorRadios.forEach(radio => {
+        radio.addEventListener('change', function () {
+          const colorCode = this.value;
+          const images = colorImagesData[colorCode] || [];
+          const thumbnailsContainer = document.getElementById('thumbnailsContainer');
+          const mainImageContainer = document.getElementById('mainImageContainer');
+
+          thumbnailsContainer.innerHTML = '';
+
+          images.forEach((img, index) => {
+            const thumbnail = document.createElement('div');
+            thumbnail.className = 'thumbnail-item' + (index === 0 ? ' active' : '');
+            thumbnail.style.backgroundImage = `url('${img}')`;
+            thumbnail.style.backgroundSize = 'cover';
+            thumbnail.style.backgroundPosition = 'top center';
+            thumbnail.style.cursor = 'pointer';
+            thumbnail.onclick = function () {
+              changeMainImage(this, img);
+            };
+            thumbnailsContainer.appendChild(thumbnail);
           });
-          colorSpan.style.borderColor = 'black';
+
+          if (images.length > 0) {
+            mainImageContainer.style.backgroundImage = `url('${images[0]}')`;
+          }
         });
       });
     });
@@ -364,13 +465,6 @@ $quantity = (int) $product['quantity'];
       allThumbnails.forEach(thumbnail => thumbnail.classList.remove('active'));
       el.classList.add('active');
     }
-
-    document.addEventListener('DOMContentLoaded', function () {
-      const thumbnails = document.querySelectorAll('.thumbnail-item');
-      if (thumbnails.length > 0) {
-        thumbnails[0].classList.add('active');
-      }
-    });
 
     $(document).ready(function () {
       $(".js-home-products").owlCarousel({
@@ -391,7 +485,6 @@ $quantity = (int) $product['quantity'];
         let value = parseInt(input.val()) || 1;
         const max = parseInt(input.attr('max')) || 100;
         const min = parseInt(input.attr('min')) || 1;
-
         if ($(this).data('type') === 'minus') {
           value = Math.max(min, value - 1);
         } else {
@@ -399,29 +492,17 @@ $quantity = (int) $product['quantity'];
         }
         input.val(value);
       });
-
-      $('.size-option').click(function () {
-        $('.size-option').removeClass('selected');
-        $(this).addClass('selected');
-      });
-
-      $('.color-option').click(function () {
-        $('.color-option').removeClass('selected');
-        $(this).addClass('selected');
-      });
     });
 
     function addToCart(id) {
       const qty = parseInt(document.getElementById('quantity').value) || 1;
-      const size = $('.size-option.selected').text().trim();
-      const color = $('.color-option.selected').attr('title');
-
+      const size = $('.btn-check:checked').next().text().trim();
+      const color = $('.color-radio:checked').val();
       const formData = new FormData();
       formData.append('productid', id);
       formData.append('qty', qty);
       if (size) formData.append('size', size);
       if (color) formData.append('color', color);
-
       fetch('add_to_cart.php', {
         method: 'POST',
         body: formData
@@ -439,7 +520,38 @@ $quantity = (int) $product['quantity'];
         alert(data.message || 'Added to cart');
       }).catch(console.error);
     }
+
+    const radios = document.querySelectorAll('.color-radio');
+    const labels = document.querySelectorAll('.color-option .color-wrapper');
+
+    radios.forEach((radio, index) => {
+      const circle = labels[index].querySelector('.color-circle');
+
+      if (radio.checked) {
+        labels[index].classList.add('border-primary');
+        if (circle) circle.classList.add('active');
+      }
+
+      radio.addEventListener('change', function () {
+        labels.forEach((l, i) => {
+          l.classList.remove('border-primary');
+          const c = l.querySelector('.color-circle');
+          if (c) c.classList.remove('active');
+        });
+
+        labels[index].classList.add('border-primary');
+        if (circle) circle.classList.add('active');
+
+        const imageUrl = this.getAttribute('data-image');
+        if (imageUrl) {
+          document.getElementById('modalColorImage').src = imageUrl;
+          const modal = new bootstrap.Modal(document.getElementById('colorModal'));
+          modal.show();
+        }
+      });
+    });
   </script>
+
   <?php require('./footer.php'); ?>
 </body>
 

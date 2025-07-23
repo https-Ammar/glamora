@@ -104,9 +104,6 @@ if ($conn) {
       ?>
     </div>
 
-
-
-
     <div class="slider-container">
       <div class="Categories_ads owl-carousel">
         <?php
@@ -134,7 +131,6 @@ if ($conn) {
       for ($i = 0; $i < 100; $i++) {
         $catidneed = $i + 1;
 
-        // نحضر التصنيف الأساسي
         $stmt = $conn->prepare("SELECT * FROM categories WHERE id = ? AND parent_id IS NULL");
         $stmt->bind_param("i", $catidneed);
         $stmt->execute();
@@ -144,7 +140,6 @@ if ($conn) {
         if ($fetchcat) {
           $namecat = htmlspecialchars($fetchcat['name'], ENT_QUOTES, 'UTF-8');
 
-          // نحضر التصنيفات الفرعية لهذا التصنيف الأساسي
           $stmtSub = $conn->prepare("SELECT id FROM categories WHERE parent_id = ?");
           $stmtSub->bind_param("i", $catidneed);
           $stmtSub->execute();
@@ -156,7 +151,6 @@ if ($conn) {
           }
 
           if (!empty($subcatIds)) {
-            // إعلانات التصنيف الأساسي
             ?>
             <div class="slider">
               <?php
@@ -188,11 +182,9 @@ if ($conn) {
             </script>
 
             <?php
-            // حضّر Placeholder لعرض المنتجات المرتبطة بالتصنيفات الفرعية
             $placeholders = implode(',', array_fill(0, count($subcatIds), '?'));
             $types = str_repeat('i', count($subcatIds));
 
-            // نحسب عدد المنتجات
             $countQuery = "SELECT COUNT(*) as count FROM products WHERE category_id IN ($placeholders)";
             $stmtCount = $conn->prepare($countQuery);
             $stmtCount->bind_param($types, ...$subcatIds);
@@ -294,7 +286,6 @@ if ($conn) {
     <?php require('./assets/page/footer.php'); ?>
   </section>
 
-  <!-- Scripts -->
   <script>
     window.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll('.text').forEach(el => {

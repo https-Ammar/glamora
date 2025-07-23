@@ -107,6 +107,7 @@ $is_featured = $product['is_featured'] ? 'Yes' : 'No';
 $quantity = (int) $product['quantity'];
 ?>
 
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -135,7 +136,7 @@ $quantity = (int) $product['quantity'];
     </div>
     <div class="row gy-4">
       <div class="col-lg-6 product-image position-relative" id="mainImageContainer"
-        style="background-image: url('<?= !empty($current_images[0]) ? $current_images[0] : $image_path ?>'); background-size: cover; background-position: center; ">
+        style="background-image: url('<?php echo $image_path; ?>'); background-size: cover; background-position: center;">
 
         <button type="button" class="btn btn-light position-absolute top-0 end-0 m-3 rounded-circle shadow"
           data-bs-toggle="modal" data-bs-target="#imageModal">
@@ -143,17 +144,15 @@ $quantity = (int) $product['quantity'];
         </button>
 
         <div class="d-flex thumbnails flex-column gap-3 mb-3" id="thumbnailsContainer">
-          <?php if (!empty($current_images)): ?>
-            <?php foreach ($current_images as $index => $img): ?>
-              <div class="thumbnail-item <?= $index === 0 ? 'active' : '' ?>"
-                style="background-image: url('<?= $img ?>'); background-size: cover; background-position: center; cursor: pointer; width: 70px; height: 70px;"
-                onclick="changeMainImage(this, '<?= $img ?>')">
-              </div>
-            <?php endforeach; ?>
-          <?php endif; ?>
+          <?php $all_images = array_unique(array_merge([$image_path], $current_images ?? [])); ?>
+          <?php foreach ($all_images as $index => $img): ?>
+            <div class="thumbnail-item <?php echo $index === 0 ? 'active' : ''; ?>"
+              style="background-image: url('<?php echo htmlspecialchars($img); ?>'); background-size: cover; background-position: center; cursor: pointer; width: 70px; height: 70px;"
+              onclick="changeMainImage(this, '<?php echo htmlspecialchars($img); ?>')">
+            </div>
+          <?php endforeach; ?>
         </div>
       </div>
-
       <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
           <div class="modal-content bg-transparent border-0">
@@ -161,8 +160,8 @@ $quantity = (int) $product['quantity'];
               <div id="carouselImages" class="carousel slide" data-bs-ride="carousel">
                 <div class="carousel-inner">
                   <?php foreach ($current_images as $index => $img): ?>
-                    <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
-                      <img src="<?= $img ?>" class="d-block w-100" alt="Product Image">
+                    <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
+                      <img src="<?php echo htmlspecialchars($img); ?>" class="d-block w-100" alt="Product Image">
                     </div>
                   <?php endforeach; ?>
                 </div>
@@ -185,13 +184,13 @@ $quantity = (int) $product['quantity'];
           <ul>
             <li><a href="https://www.instagram.com/dexignzone/">Instagram</a></li>
             <li><a href="https://www.facebook.com/dexignzone">Facebook</a></li>
-            <li><a href="https://twitter.com/dexignzones">twitter</a></li>
+            <li><a href="https://twitter.com/dexignzones">Twitter</a></li>
           </ul>
         </div>
         <?php if ($on_sale): ?>
-          <span class="badge bg-black mb-2">SALE <?= $discount ?>% Off</span>
+          <span class="badge bg-black mb-2">SALE <?php echo htmlspecialchars($discount); ?>% Off</span>
         <?php endif; ?>
-        <h4 class="mb-2"><?= $name ?></h4>
+        <h4 class="mb-2"><?php echo htmlspecialchars($name); ?></h4>
 
         <div class="d-flex align-items-center mb-2">
           <ul class="list-inline mb-0 me-2">
@@ -205,14 +204,14 @@ $quantity = (int) $product['quantity'];
           <a href="#">(5 customer reviews)</a>
         </div>
 
-        <h5><?= $description ?></h5>
+        <h5><?php echo htmlspecialchars($description); ?></h5>
         <p class="mb-4">It is the perfect tee for any occasion.</p>
 
         <div class="meta-content m-b20">
           <span class="form-label">Price</span>
-          <span class="price">$<?= formatPrice($final_price) ?>
+          <span class="price">$<?php echo formatPrice($final_price); ?>
             <?php if ($on_sale): ?>
-              <del>$<?= formatPrice($price) ?></del>
+              <del>$<?php echo formatPrice($price); ?></del>
             <?php endif; ?>
           </span>
         </div>
@@ -223,7 +222,7 @@ $quantity = (int) $product['quantity'];
             <div class="d-flex justify-content-center align-items-center">
               <button class="btn btn-danger btn-number quantity-btn dark-btn" data-type="minus">-</button>
               <input class="quantity-display" type="text" id="quantity" name="quantity" value="1" min="1"
-                max="<?= $quantity ?>" readonly>
+                max="<?php echo htmlspecialchars($quantity); ?>" readonly>
               <button class="btn btn-success btn-number quantity-btn dark-btn" data-type="plus">+</button>
             </div>
           </div>
@@ -233,44 +232,51 @@ $quantity = (int) $product['quantity'];
               <label class="form-label">Size</label>
               <div class="btn-group product-size grid-media m-0">
                 <?php foreach ($sizes as $index => $size): ?>
-                  <input type="radio" class="btn-check" id="btnradio<?= 100 + $index ?>" name="btnradio1" autocomplete="off"
-                    data-price="<?= formatPrice($size['price']) ?>" <?= $index === 0 ? 'checked' : '' ?>>
-                  <label class="size-btn" for="btnradio<?= 100 + $index ?>">
-                    <?= safe($size['name']) ?>
+                  <input type="radio" class="btn-check" id="btnradio<?php echo (100 + $index); ?>" name="product_size"
+                    autocomplete="off" data-price="<?php echo formatPrice($size['price'] ?? 0); ?>"
+                    data-size-id="<?php echo htmlspecialchars($size['id'] ?? ''); ?>"
+                    data-size-name="<?php echo htmlspecialchars($size['name'] ?? ''); ?>" <?php echo ($index === 0) ? 'checked' : ''; ?>>
+                  <label class="size-btn" for="btnradio<?php echo (100 + $index); ?>">
+                    <?php echo htmlspecialchars($size['name'] ?? ''); ?>
+                    <?php if (isset($size['price']) && $size['price'] > 0): ?>
+                      <span class="size-price">+$<?php echo formatPrice($size['price']); ?></span>
+                    <?php endif; ?>
                   </label>
                 <?php endforeach; ?>
               </div>
             </div>
           <?php endif; ?>
+
           <div class="meta-content">
             <label class="form-label">Color</label>
             <?php if (!empty($colors)): ?>
               <div class="d-flex align-items-center color-filter flex-wrap gap-2" id="colorOptions">
-                <?php
-                $base_color_path = 'http://localhost:8888/glamora/dashboard/';
-                foreach ($colors as $index => $color):
-                  $color_code = strtolower(str_replace('#', '', $color['hex'] ?? ''));
-                  $color_name = htmlspecialchars($color['name'] ?? '');
+                <?php foreach ($colors as $index => $color):
+                  $color_code = isset($color['hex']) ? strtolower(str_replace('#', '', $color['hex'])) : '';
+                  $color_name = isset($color['name']) ? htmlspecialchars($color['name']) : '';
                   $color_image = '';
+
                   if (!empty($color['image'])) {
                     $color_image = (strpos($color['image'], 'http') === 0)
                       ? $color['image']
-                      : $base_color_path . ltrim($color['image'], '/');
+                      : $base_url . 'dashboard/' . ltrim($color['image'], '/');
                   }
                   ?>
-                  <label class="form-check color-option" style="cursor: pointer;" title="<?= $color_name ?>">
+                  <label class="form-check color-option" style="cursor: pointer;" title="<?php echo $color_name; ?>">
                     <input class="form-check-input d-none color-radio" type="radio" name="product_color"
-                      value="<?= $color_code ?>" data-image="<?= $color_image ?>" <?= $index === 0 ? 'checked' : '' ?>>
-                    <div class="color-wrapper  p-1  " style="transition: 0.3s;">
+                      value="<?php echo $color_code; ?>" data-color-id="<?php echo htmlspecialchars($color['id'] ?? ''); ?>"
+                      data-color-name="<?php echo $color_name; ?>"
+                      data-image="<?php echo htmlspecialchars($color_image); ?>" <?php echo ($index === 0) ? 'checked' : ''; ?>>
+                    <div class="color-wrapper p-1" style="transition: 0.3s;">
                       <span class="color-circle"
-                        style="background-color:<?= htmlspecialchars($color['hex'] ?? '#ccc') ?>;"></span>
+                        style="background-color:<?php echo htmlspecialchars($color['hex'] ?? '#ccc'); ?>;"></span>
+                      <span class="color-name-tooltip"><?php echo $color_name; ?></span>
                     </div>
                   </label>
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>
           </div>
-
           <div class="modal fade" id="colorModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content bg-dark text-white position-relative">
@@ -284,15 +290,18 @@ $quantity = (int) $product['quantity'];
           </div>
         </div>
         <div class="d-flex gap-2 mb-4">
-          <button class="btn btn-dark product-btn w-50" onclick='addToCart(<?= $product["id"] ?>)'>Add to Cart</button>
+          <button class="btn btn-dark product-btn w-50" onclick='addToCart(<?php echo $product["id"]; ?>)'>Add to
+            Cart</button>
           <button class="btn btn-outline-dark product-btn w-50">Add to Wishlist</button>
         </div>
 
         <hr>
 
         <p><strong>SKU:</strong> PRT584E63A</p>
-        <p><strong>Category : </strong> <?= $parent_category ?> / <?= $category_name ?></p>
-        <p><strong>Tags : </strong> <?= $tags ?></p>
+        <p><strong>Category : </strong> <?php echo htmlspecialchars($parent_category); ?> /
+          <?php echo htmlspecialchars($category_name); ?>
+        </p>
+        <p><strong>Tags : </strong> <?php echo htmlspecialchars($tags); ?></p>
 
         <div class="d-flex flex-wrap gap-3 fs-5 mt-4">
           <a href="#"><i class="bi bi-facebook"></i> Facebook</a>
@@ -301,17 +310,79 @@ $quantity = (int) $product['quantity'];
 
         <div class="mt-4 d-flex flex-wrap gap-4">
           <div class="d-flex align-items-center">
-            <img src="https://img.icons8.com/ios/50/shipped.png" width="24">
+            <img src="https://img.icons8.com/ios/50/shipped.png" width="24" alt="Shipping icon">
             <span class="ms-2">Free Shipping</span>
           </div>
           <div class="d-flex align-items-center">
-            <img src="https://img.icons8.com/ios/50/return.png" width="24">
+            <img src="https://img.icons8.com/ios/50/return.png" width="24" alt="Return icon">
             <span class="ms-2">30 Days Easy Return</span>
           </div>
         </div>
       </div>
     </div>
 
+    <script>
+      function changeMainImage(element, newImageUrl) {
+        // Update main image
+        document.getElementById('mainImageContainer').style.backgroundImage = `url('${newImageUrl}')`;
+
+        // Update active thumbnail
+        document.querySelectorAll('.thumbnail-item').forEach(thumb => {
+          thumb.classList.remove('active');
+        });
+        element.classList.add('active');
+
+        // Update modal carousel active item
+        const carouselItems = document.querySelectorAll('#carouselImages .carousel-item');
+        const thumbIndex = Array.from(document.querySelectorAll('.thumbnail-item')).indexOf(element);
+        if (thumbIndex >= 0 && thumbIndex < carouselItems.length) {
+          carouselItems.forEach(item => item.classList.remove('active'));
+          carouselItems[thumbIndex].classList.add('active');
+        }
+      }
+
+      // Initialize color modal functionality
+      document.addEventListener('DOMContentLoaded', function () {
+        const colorRadios = document.querySelectorAll('.color-radio');
+        const modalColorImage = document.getElementById('modalColorImage');
+
+        colorRadios.forEach(radio => {
+          radio.addEventListener('change', function () {
+            const imageUrl = this.getAttribute('data-image');
+            if (imageUrl) {
+              modalColorImage.src = imageUrl;
+            }
+          });
+
+          // Click handler to show color image in modal
+          const parentLabel = radio.closest('.color-option');
+          parentLabel.addEventListener('click', function (e) {
+            if (e.target.tagName !== 'INPUT') {
+              const imageUrl = radio.getAttribute('data-image');
+              if (imageUrl) {
+                modalColorImage.src = imageUrl;
+                const modal = new bootstrap.Modal(document.getElementById('colorModal'));
+                modal.show();
+              }
+            }
+          });
+        });
+
+        // Quantity buttons functionality
+        document.querySelectorAll('.quantity-btn').forEach(button => {
+          button.addEventListener('click', function () {
+            const input = this.parentNode.querySelector('.quantity-display');
+            let value = parseInt(input.value);
+
+            if (this.getAttribute('data-type') === 'minus' && value > 1) {
+              input.value = value - 1;
+            } else if (this.getAttribute('data-type') === 'plus' && value < parseInt(input.max)) {
+              input.value = value + 1;
+            }
+          });
+        });
+      });
+    </script>
     <div class="row">
       <div class="bg-white  mt-5">
         <div class="row info-row">
@@ -370,8 +441,8 @@ $quantity = (int) $product['quantity'];
               $simName = safe($sim['name']);
               $simImage = !empty($sim['image']) ?
                 (str_starts_with($sim['image'], 'http') ?
-                  $sim['image'] :
-                  $base_url . 'dashboard/' . ltrim($sim['image'], './')) :
+                  $sim['image']
+                  : $base_url . 'dashboard/' . ltrim($sim['image'], './')) :
                 $base_url . 'assets/images/default.jpg';
 
               $simPrice = (float) $sim['price'];
@@ -444,8 +515,10 @@ $quantity = (int) $product['quantity'];
             thumbnail.className = 'thumbnail-item' + (index === 0 ? ' active' : '');
             thumbnail.style.backgroundImage = `url('${img}')`;
             thumbnail.style.backgroundSize = 'cover';
-            thumbnail.style.backgroundPosition = 'top center';
+            thumbnail.style.backgroundPosition = 'center';
             thumbnail.style.cursor = 'pointer';
+            thumbnail.style.width = '70px';
+            thumbnail.style.height = '70px';
             thumbnail.onclick = function () {
               changeMainImage(this, img);
             };
@@ -457,29 +530,8 @@ $quantity = (int) $product['quantity'];
           }
         });
       });
-    });
 
-    function changeMainImage(el, imgUrl) {
-      document.getElementById('mainImageContainer').style.backgroundImage = `url('${imgUrl}')`;
-      const allThumbnails = document.querySelectorAll('.thumbnail-item');
-      allThumbnails.forEach(thumbnail => thumbnail.classList.remove('active'));
-      el.classList.add('active');
-    }
-
-    $(document).ready(function () {
-      $(".js-home-products").owlCarousel({
-        items: 4,
-        margin: 15,
-        nav: true,
-        loop: true,
-        responsive: {
-          0: { items: 2 },
-          600: { items: 2 },
-          900: { items: 3 },
-          1200: { items: 4 }
-        }
-      });
-
+      // عدد المنتج
       $('.btn-number').click(function () {
         const input = $('#quantity');
         let value = parseInt(input.val()) || 1;
@@ -494,33 +546,109 @@ $quantity = (int) $product['quantity'];
       });
     });
 
+    function changeMainImage(el, imgUrl) {
+      document.getElementById('mainImageContainer').style.backgroundImage = `url('${imgUrl}')`;
+      const allThumbnails = document.querySelectorAll('.thumbnail-item');
+      allThumbnails.forEach(thumbnail => thumbnail.classList.remove('active'));
+      el.classList.add('active');
+    }
+
     function addToCart(id) {
       const qty = parseInt(document.getElementById('quantity').value) || 1;
-      const size = $('.btn-check:checked').next().text().trim();
-      const color = $('.color-radio:checked').val();
+      const size = $('.btn-check:checked').data('size-id');
+      const sizeName = $('.btn-check:checked').data('size-name');
+      const color = $('.color-radio:checked').data('color-id');
+      const colorName = $('.color-radio:checked').data('color-name');
+      const colorImage = $('.color-radio:checked').data('image');
+
       const formData = new FormData();
-      formData.append('productid', id);
-      formData.append('qty', qty);
-      if (size) formData.append('size', size);
-      if (color) formData.append('color', color);
+      formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>'); // مهم جداً
+      formData.append('product_id', id);
+      formData.append('quantity', qty);
+      if (size) {
+        formData.append('size_id', size);
+        formData.append('size_name', sizeName);
+      }
+      if (color) {
+        formData.append('color_id', color);
+        formData.append('color_name', colorName);
+        formData.append('color_image', colorImage);
+      }
+
       fetch('add_to_cart.php', {
         method: 'POST',
         body: formData
-      }).then(res => res.json()).then(data => {
-        alert(data.message || 'Added to cart');
-      }).catch(console.error);
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            updateCartCount(data.cart_count);
+            showSuccessMessage(data.message || 'Item added to cart');
+          } else {
+            showErrorMessage(data.message || 'Failed to add item');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showErrorMessage('Network error occurred');
+        });
     }
 
     function addQuickToCart(id) {
+      const formData = new URLSearchParams();
+      formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>'); // مهم جداً
+      formData.append('product_id', id);
+      formData.append('quantity', 1);
+
       fetch('add_to_cart.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `productid=${id}&qty=1`
-      }).then(res => res.json()).then(data => {
-        alert(data.message || 'Added to cart');
-      }).catch(console.error);
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData.toString()
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            updateCartCount(data.cart_count);
+            showSuccessMessage(data.message || 'Item added to cart');
+          } else {
+            showErrorMessage(data.message || 'Failed to add item');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showErrorMessage('Network error occurred');
+        });
     }
 
+    function updateCartCount(count) {
+      const cartCounter = document.querySelector('.cart-count');
+      if (cartCounter) {
+        cartCounter.textContent = count;
+        cartCounter.style.display = count > 0 ? 'inline-block' : 'none';
+      }
+    }
+
+    function showSuccessMessage(message) {
+      const toast = document.createElement('div');
+      toast.className = 'alert alert-success position-fixed top-0 end-0 m-3';
+      toast.style.zIndex = '9999';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function showErrorMessage(message) {
+      const toast = document.createElement('div');
+      toast.className = 'alert alert-danger position-fixed top-0 end-0 m-3';
+      toast.style.zIndex = '9999';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // تأثير الألوان
     const radios = document.querySelectorAll('.color-radio');
     const labels = document.querySelectorAll('.color-option .color-wrapper');
 
@@ -551,6 +679,7 @@ $quantity = (int) $product['quantity'];
       });
     });
   </script>
+
 
   <?php require('./footer.php'); ?>
 </body>

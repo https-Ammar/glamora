@@ -7,7 +7,6 @@ $finalproducttotal = 0.0;
 if (isset($_COOKIE['userid'])) {
   $userid = $_COOKIE['userid'];
 
-  // احصل على عدد المنتجات في السلة
   $stmt = $conn->prepare("SELECT COUNT(*) as product_count FROM cart WHERE userid = ?");
   $stmt->bind_param("s", $userid);
   $stmt->execute();
@@ -18,7 +17,6 @@ if (isset($_COOKIE['userid'])) {
   }
   $stmt->close();
 } else {
-  // لو مفيش كويكي، اعمل يوزر جديد
   $result = $conn->query("SELECT id FROM users ORDER BY id DESC LIMIT 1");
   $newid = ($result && $result->num_rows > 0) ? ($result->fetch_assoc()['id'] + 1) : 1;
   $userid = $newid;
@@ -64,6 +62,119 @@ if (isset($_COOKIE['userid'])) {
       margin-right: 5px;
       border: 1px solid #ddd;
     }
+
+    .cart-item {
+      display: flex;
+      padding: 20px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .product-figure {
+      width: 120px;
+      height: 120px;
+      margin-right: 20px;
+    }
+
+    .viwe_img {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .cart-item-content {
+      flex: 1;
+    }
+
+    ._flex {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .item-quantity {
+      margin: 15px 0;
+    }
+
+    ._flex_int {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 10px;
+    }
+
+    ._flex_int button {
+      width: 30px;
+      height: 30px;
+      border: 1px solid #ddd;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    ._flex_int input {
+      width: 40px;
+      height: 30px;
+      text-align: center;
+      border: 1px solid #ddd;
+      margin: 0 5px;
+    }
+
+    .cart-item_remove-btn__yNwhA {
+      display: flex;
+      align-items: center;
+      color: #666;
+      cursor: pointer;
+    }
+
+    .cart-item_remove-btn__yNwhA svg {
+      margin-right: 5px;
+    }
+
+    ._main_grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .Summary {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      height: fit-content;
+    }
+
+    .cart-priceItem {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .btn-danger {
+      width: 100%;
+      padding: 12px;
+      background: #000;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    .empty-cart {
+      padding: 50px 0;
+      text-align: center;
+    }
+
+    .empty-cart h3 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .empty-cart p {
+      color: #666;
+    }
   </style>
 </head>
 
@@ -78,13 +189,12 @@ if (isset($_COOKIE['userid'])) {
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="..." fill="black" fill-opacity="0.6"></path>
           </svg>
-          <a href="#">Back To Bag</a>
+          <a href="index.php">Back To Home</a>
         </div>
         <h1>Cart</h1>
       </div>
 
       <div class="_main_grid">
-        <!-- CART SECTION -->
         <section class="data_">
           <div class="Customer">
             <div class="Customer_titel">
@@ -97,154 +207,142 @@ if (isset($_COOKIE['userid'])) {
                   <div class="empty-cart">
                     <h3>Your cart is empty</h3>
                     <p>There are special products in GLAMORA that you can buy.</p>
+                    <a href="index.php" class="btn btn-danger"
+                      style="width: auto; display: inline-block; margin-top: 20px;">Continue Shopping</a>
                   </div>
                 </div>
               </div>
             <?php else: ?>
               <div class="loading-skeleton checkout-address">
-                <tbody>
-                  <?php
-                  $stmt = $conn->prepare("SELECT * FROM cart WHERE userid = ?");
-                  $stmt->bind_param("s", $userid);
-                  $stmt->execute();
-                  $getallcartproducts = $stmt->get_result();
+                <?php
+                $stmt = $conn->prepare("SELECT c.*, p.name, p.price, p.image, p.colors FROM cart c JOIN products p ON c.productid = p.id WHERE c.userid = ?");
+                $stmt->bind_param("s", $userid);
+                $stmt->execute();
+                $getallcartproducts = $stmt->get_result();
 
-                  while ($getcartproducts = $getallcartproducts->fetch_assoc()):
-                    $cartproduct = $getcartproducts['productid'] ?? null;
-                    if ($cartproduct !== null):
-                      $productStmt = $conn->prepare("SELECT * FROM products WHERE id = ?");
-                      $productStmt->bind_param("i", $cartproduct);
-                      $productStmt->execute();
-                      $selectproduct = $productStmt->get_result();
-                      $fetchproduct = $selectproduct->fetch_assoc();
+                while ($getcartproducts = $getallcartproducts->fetch_assoc()):
+                  $price = $getcartproducts['price'] ?? 0;
+                  $qty = intval($getcartproducts['qty']);
+                  $subtotal = floatval($price) * $qty;
+                  $finalproducttotal += $subtotal;
+                  $image_path = !empty($getcartproducts['image']) ?
+                    (strpos($getcartproducts['image'], 'http') === 0 ?
+                      $getcartproducts['image'] :
+                      'http://localhost:8888/glamora/dashboard/' . ltrim($getcartproducts['image'], './')) :
+                    'http://localhost:8888/glamora/assets/images/default.jpg';
 
-                      if ($fetchproduct):
-                        $price = $fetchproduct['total_final_price'] ?? $fetchproduct['price'] ?? 0;
-                        $qty = intval($getcartproducts['qty']);
-                        $subtotal = floatval($price) * $qty;
-                        $finalproducttotal += $subtotal;
-                        $image_path = 'http://localhost:8888/glamora/dashboard/uploads/products/' . basename($fetchproduct['img'] ?? 'default.jpg');
+                  $size = $getcartproducts['size'] ?? null;
+                  $color = $getcartproducts['color'] ?? null;
+                  $colorHex = null;
 
-                        // استخراج خيارات الألوان والمقاسات من قاعدة البيانات
-                        $size = $getcartproducts['size'] ?? null;
-                        $color = $getcartproducts['color'] ?? null;
-                        $colorHex = null;
-
-                        // إذا كان المنتج يحتوي على ألوان مخزنة كـ JSON
-                        if (!empty($fetchproduct['colors'])) {
-                          $colors = json_decode($fetchproduct['colors'], true);
-                          foreach ($colors as $c) {
-                            if ($c['name'] === $color) {
-                              $colorHex = $c['hex'];
-                              break;
-                            }
-                          }
-                        }
-                        ?>
-
-                        <div class="product cart-item">
-                          <figure class="product-column product-figure">
-                            <div class="card-image viwe_img" style="background-image: url('<?php echo $image_path; ?>');"></div>
-                          </figure>
-                          <div class="cart-item-content">
-                            <div class="_flex">
-                              <div class="product-column product-body title-div">
-                                <h4 class="product-title"><?php echo htmlspecialchars($fetchproduct['name'] ?? ''); ?></h4>
-                              </div>
-                              <div class="product-column product-actions price-div">
-                                <div class="product-price">EGP <?php echo number_format($subtotal, 2); ?></div>
-                              </div>
-                            </div>
-
-                            <!-- عرض خيارات الألوان والمقاسات المختارة -->
-                            <div class="product-options-display">
-                              <?php if ($size): ?>
-                                <div class="option-badge">
-                                  Size: <?php echo htmlspecialchars($size); ?>
-                                </div>
-                              <?php endif; ?>
-
-                              <?php if ($color): ?>
-                                <div class="option-badge">
-                                  <?php if ($colorHex): ?>
-                                    <div class="color-badge" style="background-color: <?php echo $colorHex; ?>"></div>
-                                  <?php endif; ?>
-                                  Color: <?php echo htmlspecialchars($color); ?>
-                                </div>
-                              <?php endif; ?>
-                            </div>
-
-                            <div class="item-quantity">
-                              <span class="item-quantity_span">Quantity
-                                <div class="_flex_int">
-                                  <button onclick="removemoreone(<?php echo $getcartproducts['id']; ?>)">-</button>
-                                  <input type="text" name="quantity" value="<?php echo $qty; ?>"
-                                    class="input-number text-center">
-                                  <button onclick="addmoreone(<?php echo $getcartproducts['id']; ?>)">+</button>
-                                </div>
-                              </span>
-                            </div>
-                            <a href="#" onclick="removecart(<?php echo $getcartproducts['id']; ?>)">
-                              <div class="cart-item_remove-btn__yNwhA">
-                                <svg width="12" height="12" viewBox="0 0 10 11" fill="#000">
-                                  <path d="M0.757359 1.24264L9.24264 9.72792M9.24264 1.24264L0.757359 9.72792" stroke="black"
-                                    stroke-width="1.5"></path>
-                                </svg>
-                                <button class="item_remove" role="removeBtn">Remove</button>
-                              </div>
-                            </a>
-                          </div>
-                        </div>
-
-                        <?php
-                      endif;
-                      $productStmt->close();
-                    endif;
-                  endwhile;
-                  $stmt->close();
+                  if (!empty($getcartproducts['colors'])) {
+                    $colors = json_decode($getcartproducts['colors'], true);
+                    foreach ($colors as $c) {
+                      if (isset($c['name']) && $c['name'] === $color && isset($c['hex'])) {
+                        $colorHex = $c['hex'];
+                        break;
+                      }
+                    }
+                  }
                   ?>
-                </tbody>
+
+                  <div class="product cart-item">
+                    <figure class="product-column product-figure">
+                      <div class="card-image viwe_img" style="background-image: url('<?php echo $image_path; ?>');"></div>
+                    </figure>
+                    <div class="cart-item-content">
+                      <div class="_flex">
+                        <div class="product-column product-body title-div">
+                          <h4 class="product-title"><?php echo htmlspecialchars($getcartproducts['name'] ?? ''); ?></h4>
+                          <div class="product-price">EGP <?php echo number_format($price, 2); ?></div>
+                        </div>
+                        <div class="product-column product-actions price-div">
+                          <div class="product-price">EGP <?php echo number_format($subtotal, 2); ?></div>
+                        </div>
+                      </div>
+
+                      <div class="product-options-display">
+                        <?php if ($size): ?>
+                          <div class="option-badge">
+                            Size: <?php echo htmlspecialchars($size); ?>
+                          </div>
+                        <?php endif; ?>
+
+                        <?php if ($color): ?>
+                          <div class="option-badge">
+                            <?php if ($colorHex): ?>
+                              <div class="color-badge" style="background-color: <?php echo $colorHex; ?>"></div>
+                            <?php endif; ?>
+                            Color: <?php echo htmlspecialchars($color); ?>
+                          </div>
+                        <?php endif; ?>
+                      </div>
+
+                      <div class="item-quantity">
+                        <span class="item-quantity_span">Quantity
+                          <div class="_flex_int">
+                            <button onclick="removemoreone(<?php echo $getcartproducts['id']; ?>)">-</button>
+                            <input type="text" name="quantity" value="<?php echo $qty; ?>" class="input-number text-center"
+                              readonly>
+                            <button onclick="addmoreone(<?php echo $getcartproducts['id']; ?>)">+</button>
+                          </div>
+                        </span>
+                      </div>
+                      <a href="#" onclick="removecart(<?php echo $getcartproducts['id']; ?>)">
+                        <div class="cart-item_remove-btn__yNwhA">
+                          <svg width="12" height="12" viewBox="0 0 10 11" fill="#000">
+                            <path d="M0.757359 1.24264L9.24264 9.72792M9.24264 1.24264L0.757359 9.72792" stroke="black"
+                              stroke-width="1.5"></path>
+                          </svg>
+                          <button class="item_remove" role="removeBtn">Remove</button>
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+                <?php endwhile;
+                $stmt->close();
+                ?>
               </div>
             <?php endif; ?>
           </div>
         </section>
 
-        <!-- SUMMARY SECTION -->
-        <section class="Summary">
-          <div class="Customer">
-            <div class="Customer_titel">
-              <h2 class="stepHeader-title optimizedCheckout-headingPrimary">Summary</h2>
-            </div>
-            <div class="loading-skeleton">
-              <section class="cart-section optimizedCheckout-orderSummary-cartSection">
-                <div data-test="cart-subtotal">
-                  <div class="cart-priceItem">
-                    <span class="cart-priceItem-label">Subtotal</span>
-                    <span class="cart-priceItem-value">EGP <?php echo number_format($finalproducttotal, 2); ?></span>
-                  </div>
-                </div>
-                <div class="cart-shipping">
-                  <div class="cart-priceItem">
-                    <span class="cart-priceItem-label">Count</span>
-                    <span class="cart-priceItem-value">(<?php echo $i; ?>)</span>
-                  </div>
-                </div>
-              </section>
-              <div class="cart-priceItem">
-                <span class="cart-priceItem-label">Total to Pay</span>
-                <span class="cart-priceItem-value">EGP <?php echo number_format($finalproducttotal, 2); ?></span>
+        <?php if ($i > 0): ?>
+          <section class="Summary">
+            <div class="Customer">
+              <div class="Customer_titel">
+                <h2 class="stepHeader-title optimizedCheckout-headingPrimary">Summary</h2>
               </div>
-              <button onclick="window.location.href='Checkout.php';" class="btn btn-danger">Proceed to Checkout</button>
+              <div class="loading-skeleton">
+                <section class="cart-section optimizedCheckout-orderSummary-cartSection">
+                  <div data-test="cart-subtotal">
+                    <div class="cart-priceItem">
+                      <span class="cart-priceItem-label">Subtotal</span>
+                      <span class="cart-priceItem-value">EGP <?php echo number_format($finalproducttotal, 2); ?></span>
+                    </div>
+                  </div>
+                  <div class="cart-shipping">
+                    <div class="cart-priceItem">
+                      <span class="cart-priceItem-label">Count</span>
+                      <span class="cart-priceItem-value">(<?php echo $i; ?>)</span>
+                    </div>
+                  </div>
+                </section>
+                <div class="cart-priceItem">
+                  <span class="cart-priceItem-label">Total to Pay</span>
+                  <span class="cart-priceItem-value">EGP <?php echo number_format($finalproducttotal, 2); ?></span>
+                </div>
+                <button onclick="window.location.href='Checkout.php';" class="btn btn-danger">Proceed to Checkout</button>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        <?php endif; ?>
       </div>
     </main>
 
     <?php require('footer.php'); ?>
   </section>
 
-  <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
     function addmoreone(id) {
@@ -260,9 +358,11 @@ if (isset($_COOKIE['userid'])) {
     }
 
     function removecart(id) {
-      $.post("removecart.php", { id: id }, function () {
-        location.reload();
-      });
+      if (confirm('Are you sure you want to remove this item from your cart?')) {
+        $.post("removecart.php", { id: id }, function () {
+          location.reload();
+        });
+      }
     }
 
     window.onload = function () {

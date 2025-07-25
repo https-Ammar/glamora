@@ -4,493 +4,320 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Page</title>
+    <title>Comments Interface</title>
+
+    <!-- External Resources -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
     <style>
+        /* Base Styles */
+        :root {
+            --primary-bg-color: #fdf8f3;
+            --secondary-bg-color: #f8f5f1;
+            --card-bg-color: #fff;
+            --border-color: #ddd;
+            --primary-text-color: #212529;
+            --secondary-text-color: #6c757d;
+            --primary-btn-color: #212529;
+            --danger-color: #dc3545;
+        }
+
         body {
-            font-family: sans-serif;
-            background-color: #fdf8f3;
+            background-color: var(--primary-bg-color);
+            color: var(--primary-text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
         }
 
-        .thumbnail-img {
-            width: 70px;
-            height: 90px;
-            object-fit: cover;
-            border: 2px solid transparent;
-            cursor: pointer;
-            border-radius: 5px;
+        /* Comment Components */
+        .comment-box {
+            background-color: var(--card-bg-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s ease;
         }
 
-        .thumbnail-img.active {
-            border-color: black;
+        .comment-box:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .price del {
-            color: #999;
-            margin-left: 10px;
+        .comment-header {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .comment-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .comment-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .comment-text {
+            margin-top: 0.5rem;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--secondary-text-color);
+            font-weight: bold;
+        }
+
+        .comment-content h6 {
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+
+        .comment-content p {
+            color: var(--secondary-text-color);
+            margin-bottom: 0;
+        }
+
+        .comment-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-top: 0.5rem;
+            justify-content: end;
+        }
+
+        .comment-actions .btn {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            white-space: nowrap;
+        }
+
+        .reply-box {
+            margin-top: 1rem;
+            margin-left: 60px;
+            border-left: 3px solid var(--border-color);
+            padding-left: 1rem;
+            background-color: var(--secondary-bg-color);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        /* Form Styles */
+        .comment-form {
+            margin-top: 3rem;
+        }
+
+        .comment-form h5 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .comment-form p.lead {
+            color: var(--secondary-text-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
         }
 
         .btn-dark {
-            background-color: black;
+            background-color: var(--primary-btn-color);
             border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
         }
 
-        .btn-dark:hover {
-            background-color: #333;
+        /* Utility Classes */
+        .text-muted {
+            color: var(--secondary-text-color) !important;
         }
 
-        .badge {
-            padding: 5px 10px;
-            font-weight: 600;
-            background-color: black;
-            color: white;
-            border-radius: 4px;
-            font-size: 12px;
-            min-width: 22px;
-            min-height: 22px;
-            text-transform: uppercase;
-            text-align: center;
+        .btn-outline-danger {
+            color: var(--danger-color);
+            border-color: var(--danger-color);
         }
 
-        h4.mb-2 {
-            font-size: 35px;
-            color: black;
-            font-weight: 600;
-            line-height: 1.4;
+        .btn-outline-danger:hover {
+            background-color: var(--danger-color);
         }
 
-        li.list-inline-item {
-            margin: 0;
-        }
-
-        i.bi.bi-star-fill {
-            color: #ff8a00;
-        }
-
-        span.text-secondary.me-2 {
-            color: black !important;
-        }
-
-        a {
-            text-decoration: none;
-            color: black;
-        }
-
-        h5 {
-            font-size: 15px;
-            margin-top: 2vh !important;
-        }
-
-        .form-label {
-            font-size: 16px;
-            font-weight: 800;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .price {
-            margin-bottom: 0;
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        .price del {
-            font-size: 18px;
-            opacity: .6;
-            color: #5E626F;
-        }
-
-        .product-num {
-            display: flex;
-            align-items: center;
-
-            gap: 3vh !important;
-        }
-
-        .product-btn {
-            margin: 5px;
-            border-radius: 10px;
-            padding: 12px 20px;
-        }
-
-        .size-btn {
-
-            border: 2px solid black;
-
-            height: 34px;
-            width: 34px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            border: 1px solid;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-
-        .color-circle {
-            display: inline-block;
-            width: 1.125em;
-            height: 1.125em;
-            border-radius: 50%;
-            margin-right: 10px;
-            cursor: pointer;
-            border: 2px solid transparent;
-
-        }
-
-        .color-circle.active {
-            border-color: black;
-        }
-
-        .form-check {
-            display: inline-block;
-            padding: 0;
-            margin: 0;
-        }
-
-        .form-check-input {
-            display: none;
-        }
-
-        .form-check-input:checked+.color-circle {
-            border-color: black;
-        }
-
-        .product-image {
-            background-size: cover;
-            background-position: top center;
-            background-repeat: no-repeat;
-            border-radius: 20px;
-            height: 82vh;
-            padding: 25px;
-            position: sticky;
-            top: 0;
-        }
-
-        .thumbnail-item {
-            height: 70px;
-            width: 70px !important;
-            min-width: 70px !important;
-            background: white;
-            border-radius: 10px;
-            border: 2px solid black;
-            cursor: pointer;
-        }
-
-        .product-details {
-            padding-top: 50px;
-            max-width: 660px;
-            padding-left: 40px;
-        }
-
-        .social-media {
-            position: absolute;
-            top: 250px;
-            right: 25px;
-            z-index: 1;
-        }
-
-        .social-media ul {
-            display: flex;
-            align-items: center;
-            flex-direction: column;
-            list-style: none;
-        }
-
-        .social-media ul li {
-            padding: 20px 0;
-            writing-mode: tb-rl;
-        }
-
-        .social-media ul li a {
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: .1em;
-            color: black;
-        }
-
-        .quantity-btn {
-            padding: 0;
-            height: 34px;
-            width: 34px;
-            line-height: 36px;
-            font-size: 15px;
-            font-weight: 400;
-            background-color: transparent !important;
-            justify-content: center;
-            border: 1px solid;
-            color: black;
-            margin-right: 10px !important;
-            border-radius: 50% !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .quantity-display {
-            height: 34px;
-            width: 34px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            border: 1px solid;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-
-        .dark-btn {
-            background: black !important;
-            color: white;
-        }
-
+        /* Responsive Adjustments */
         @media (max-width: 768px) {
-            .thumbnails {
-                flex-direction: row !important;
-                justify-content: center;
-                margin-bottom: 1rem;
+            .comment-header {
+                flex-direction: column;
             }
 
-            .thumbnail-img {
-                width: 60px;
-                height: 80px;
+            .avatar {
+                margin-right: 0;
+                margin-bottom: 1rem;
+                width: 50px;
+                height: 50px;
+            }
+
+            .reply-box {
+                margin-left: 30px;
+            }
+
+            .comment-actions {
+                justify-content: flex-end;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .comment-box {
+                padding: 1rem;
+            }
+
+            .reply-box {
+                margin-left: 20px;
+                padding-left: 0.75rem;
+            }
+
+            .comment-actions .btn span {
+                display: none;
+            }
+
+            .comment-actions .btn i {
+                margin: 0;
             }
         }
     </style>
 </head>
 
-<body>
-    <div class="container py-5">
-        <div class="d-sm-flex justify-content-between container-fluid py-3">
-            <nav aria-label="breadcrumb" class="breadcrumb-row">
-                <ul class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="/"> Home</a></li>
-                    <li class="breadcrumb-item">Product Thumbnail</li>
-                </ul>
-            </nav>
+<body class="p-4">
+    <div class="container">
+        <!-- Comment 1 -->
+        <div class="comment-box">
+            <div class="comment-header">
+                <div class="avatar" style="background-image: url('https://via.placeholder.com/100x100');">C</div>
+
+
+
+                <div class="comment-content">
+                    <div class="comment-meta">
+                        <h6>Celesto Anderson</h6>
+
+                    </div>
+                    <div class="comment-text">
+                        <p>This is an example text that can be replaced in the same space. This text was generated from
+                            a text generator where you can generate many similar texts or many other texts.</p>
+                    </div>
+                    <div class="comment-actions">
+                        <button class="btn btn-outline-secondary btn-sm" aria-label="Like comment">
+                            <i class="bi bi-hand-thumbs-up"></i> <span class="d-none d-sm-inline">Like</span>
+                        </button>
+                        <button class="btn btn-dark btn-sm">
+                            <span class="d-none d-sm-inline">Reply</span> <i class="bi bi-reply"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" aria-label="Delete comment">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reply -->
+            <div class="reply-box">
+                <div class="comment-header">
+                    <div class="avatar"
+                        style="background-image: url('https://via.placeholder.com/100x100/000000/ffffff');">M</div>
+
+                    <div class="comment-content">
+                        <div class="comment-meta">
+                            <h6>Mona Lisa</h6>
+
+                        </div>
+                        <div class="comment-text">
+                            <p>Thanks for sharing. This is very useful information!</p>
+                        </div>
+                        <div class="comment-actions">
+                            <button class="btn btn-outline-secondary btn-sm" aria-label="Like comment">
+                                <i class="bi bi-hand-thumbs-up"></i> <span class="d-none d-sm-inline">Like</span>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" aria-label="Delete comment">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="row gy-4">
-            <div class="col-lg-6 product-image" style="background-image: url(./lady-1.webp);">
-                <div class="d-flex thumbnails flex-column gap-3 mb-3">
-                    <div class="thumbnail-item"></div>
-                    <div class="thumbnail-item"></div>
-                    <div class="thumbnail-item"></div>
-                </div>
-            </div>
 
-            <div class="col-lg-6 product-details">
-                <div class="social-media">
-                    <ul>
-                        <li><a href="https://www.instagram.com/dexignzone/">Instagram</a></li>
-                        <li><a href="https://www.facebook.com/dexignzone">Facebook</a></li>
-                        <li><a href="https://twitter.com/dexignzones">twitter</a></li>
-                    </ul>
-                </div>
-                <span class="badge bg-black mb-2">SALE 20% Off</span>
-                <h4 class="mb-2">Women Red & White Striped Crepe Top</h4>
+        <!-- Comment 2 -->
+        <div class="comment-box">
+            <div class="comment-header">
+                <div class="avatar" style="background-image: url('https://via.placeholder.com/100x100/000000/ffffff');">
+                    M</div>
+                <div class="comment-content">
+                    <div class="comment-meta">
+                        <h6>Mansour Al-Rahman Lito</h6>
 
-                <div class="d-flex align-items-center mb-2">
-                    <ul class="list-inline mb-0 me-2">
-                        <li class="list-inline-item text-warning"><i class="bi bi-star-fill"></i></li>
-                        <li class="list-inline-item text-warning"><i class="bi bi-star-fill"></i></li>
-                        <li class="list-inline-item text-warning"><i class="bi bi-star-fill"></i></li>
-                        <li class="list-inline-item text-secondary"><i class="bi bi-star"></i></li>
-                        <li class="list-inline-item text-secondary"><i class="bi bi-star"></i></li>
-                    </ul>
-                    <span class="text-secondary me-2">4.7 Rating</span>
-                    <a href="#">(5 customer reviews)</a>
-                </div>
-
-                <h5>This comfortable cotton crop-top features the Divi Engine logo on the front expressing how easy
-                    "data Divi Engine life" is.</h5>
-                <p class="mb-4">It is the perfect tee for any occasion.</p>
-                <div class="meta-content m-b20">
-                    <span class="form-label">Price</span>
-                    <span class="price">$125.75 <del>$132.17</del></span>
-                </div>
-
-                <div class="product-num gap-md-2 gap-xl-0 mt-3 mb-3">
-                    <div class="btn-quantity light">
-                        <label class="form-label">Quantity</label>
-                        <div class="d-flex justify-content-center align-items-center">
-                            <button class="quantity-btn dark-btn" onclick="changeQty(-1)">−</button>
-                            <div class="quantity-display" id="qtyDisplay">1</div>
-                            <button class="quantity-btn dark-btn" onclick="changeQty(1)">+</button>
-                        </div>
                     </div>
-                    <style>
-                        .size-btn {
-                            border: 1px solid #ccc;
-                            padding: 8px 16px;
-                            cursor: pointer;
-                            background-color: transparent;
-                            color: #000;
-                        }
-
-                        .btn-check:checked+.size-btn {
-                            background-color: #000;
-                            color: #fff;
-                            border-color: #000;
-                        }
-
-                        .product-size {
-                            display: flex;
-                            gap: 10px;
-                        }
-                    </style>
-
-                    <div class="d-block">
-                        <label class="form-label">Size</label>
-                        <div class="btn-group product-size grid-media m-0">
-                            <input type="radio" class="btn-check" id="btnradio101" name="btnradio1" autocomplete="off"
-                                checked>
-                            <label class="size-btn" for="btnradio101">S</label>
-
-                            <input type="radio" class="btn-check" id="btnradiol02" name="btnradio1" autocomplete="off">
-                            <label class="size-btn" for="btnradiol02">M</label>
-
-                            <input type="radio" class="btn-check" id="btnradiol03" name="btnradio1" autocomplete="off">
-                            <label class="size-btn" for="btnradiol03">L</label>
-                        </div>
+                    <div class="comment-text">
+                        <p>This is an example text that can be replaced in the same space. This text was generated from
+                            a text generator where you can generate many similar texts or many other texts.</p>
                     </div>
-
-                    <div class="meta-content">
-                        <label class="form-label">Color</label>
-                        <div class="d-flex align-items-center color-filter">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" id="radioNoLabel21" name="radioNoLabel"
-                                    checked value="#24262B">
-                                <span class="color-circle" style="background-color:#24262B"></span>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" id="radioNoLabel22" name="radioNoLabel"
-                                    value="#8CB2D1">
-                                <span class="color-circle" style="background-color:#8CB2D1"></span>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" id="radioNoLabel23" name="radioNoLabel"
-                                    value="#0D775E">
-                                <span class="color-circle" style="background-color:#0D775E"></span>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" id="radioNoLabel24" name="radioNoLabel"
-                                    value="#FEC4C4">
-                                <span class="color-circle" style="background-color:#FEC4C4"></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="d-flex gap-2 mb-4">
-                    <button class="btn btn-dark product-btn w-50">Add to Cart</button>
-                    <button class="btn btn-outline-dark product-btn w-50">Add to Wishlist</button>
-                </div>
-
-                <hr>
-
-                <p><strong>SKU:</strong> PRT584E63A</p>
-                <p><strong>Category:</strong> Dresses, Jeans, Swimwear, Summer, Clothing</p>
-                <p><strong>Tags:</strong> Casual, Athletic, Workwear, Accessories</p>
-
-                <div class="d-flex flex-wrap gap-3 fs-5 mt-4">
-                    <a href="#"><i class="bi bi-facebook"></i> Facebook</a>
-                    <a href="#"><i class="bi bi-instagram"></i> Instagram</a>
-                </div>
-
-                <div class="mt-4 d-flex flex-wrap gap-4">
-                    <div class="d-flex align-items-center">
-                        <img src="https://img.icons8.com/ios/50/shipped.png" width="24">
-                        <span class="ms-2">Free Shipping</span>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <img src="https://img.icons8.com/ios/50/return.png" width="24">
-                        <span class="ms-2">30 Days Easy Return</span>
+                    <div class="comment-actions">
+                        <button class="btn btn-outline-secondary btn-sm" aria-label="Like comment">
+                            <i class="bi bi-hand-thumbs-up"></i> <span class="d-none d-sm-inline">Like</span>
+                        </button>
+                        <button class="btn btn-dark btn-sm">
+                            <span class="d-none d-sm-inline">Reply</span> <i class="bi bi-reply"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" aria-label="Delete comment">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Comment Form -->
+        <div class="comment-form">
+            <h5>Leave a Comment</h5>
+            <p class="lead">Share your thoughts with the community.</p>
+
+            <form>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" placeholder="Name" required>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="email" class="form-control" placeholder="Email" required>
+                    </div>
+                    <div class="col-12">
+                        <textarea class="form-control" rows="4" placeholder="Write your comment here"
+                            required></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-dark mt-3">Submit Comment</button>
+            </form>
         </div>
     </div>
 
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const thumbnails = document.querySelectorAll('.thumbnail-img');
-            const mainImage = document.querySelector('.product-image');
-            const colorOptions = document.querySelectorAll('.form-check-input');
-
-            thumbnails.forEach(thumbnail => {
-                thumbnail.addEventListener('click', function () {
-                    thumbnails.forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    mainImage.src = this.src;
-                });
-            });
-
-            colorOptions.forEach(option => {
-                option.addEventListener('change', function () {
-                    const colorSpan = this.nextElementSibling;
-                    document.querySelectorAll('.color-circle').forEach(span => {
-                        span.style.borderColor = 'transparent';
-                    });
-                    colorSpan.style.borderColor = 'black';
-                });
-            });
-        });
-
-        let qty = 1;
-        const qtyDisplay = document.getElementById('qtyDisplay');
-
-        function changeQty(delta) {
-            qty = Math.max(1, qty + delta);
-            qtyDisplay.textContent = qty;
-        }
-    </script>
-
-
-    <style>
-        @media screen and (max-width: 768px) {
-            .col-lg-6.product-image {
-                position: unset;
-            }
-
-            .product-num.gap-md-2.gap-xl-0.mt-3.mb-3 {
-                flex-direction: column;
-                justify-content: inherit;
-                align-items: baseline;
-            }
-
-            .col-lg-6.product-details {
-                max-width: 100%;
-                padding: 25px;
-            }
-
-            .d-flex.thumbnails.flex-column.gap-3.mb-3 {
-                flex-direction: column !important;
-            }
-
-            .col-lg-6.product-image {
-                margin: 20px;
-                width: -webkit-fill-available;
-                height: 65vh;
-            }
-
-            .social-media {
-                display: none;
-            }
-
-            .thumbnail-item {
-                height: 55px !important;
-                width: 55px !important;
-                min-width: 55px !important;
-            }
-
-            .d-flex.align-items-center.mb-2 {
-                display: block !important;
-            }
-        }
-    </style>
 </body>
 
 </html>

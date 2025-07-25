@@ -1926,8 +1926,7 @@ section.container__ {
   bottom: -20px;
   margin: auto;
   border-radius: 50%;
-  width: 41px !important;
-  height: 41px !important;
+
   border: 1px solid #d0d0d0 !important;
   background: white;
   display: flex;
@@ -1974,7 +1973,8 @@ form#search-form {
     background-position: center bottom;
     background-size: cover;
     background-repeat: no-repeat;
-    border: 5px solid #de4558;
+    border: 10px solid #ffffff;
+    outline: 5px solid black;
   }
 
   .main_cat h2 {
@@ -2003,4 +2003,10 @@ form#search-form {
 
 svg.icon.icon--header-customer {
     color: white;
+}
+
+a h2 {
+    color: black;
+    font-weight: normal;
+    margin-top: 1vh;
 }

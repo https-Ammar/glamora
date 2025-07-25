@@ -7,8 +7,7 @@ session_start([
 
 require('./db.php');
 
-$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http")
-  . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
+$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
 
 if (empty($_SESSION['csrf_token'])) {
   $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -65,6 +64,7 @@ $on_sale = $product['on_sale'] && $sale_price;
 $final_price = $on_sale ? $sale_price : $price;
 $discount = $on_sale ? round((($price - $sale_price) / $price) * 100) : 0;
 
+// الصورة الأساسية للمنتج
 $image_path = !empty($product['image'])
   ? (str_starts_with($product['image'], 'http')
     ? $product['image']
@@ -100,13 +100,15 @@ foreach ($colors as $color) {
 
 $current_color = !empty($colors) ? strtolower(str_replace('#', '', $colors[0]['hex'])) : '';
 $current_images = !empty($current_color) ? $color_images[$current_color] : $gallery;
+$current_color_image = !empty($colors[0]['image']) ?
+  (str_starts_with($colors[0]['image'], 'http') ? $colors[0]['image'] : $base_url . 'dashboard/' . ltrim($colors[0]['image'], './')) :
+  $image_path;
 
 $stock_status = safe($product['stock_status']);
 $is_new = $product['is_new'] ? 'Yes' : 'No';
 $is_featured = $product['is_featured'] ? 'Yes' : 'No';
 $quantity = (int) $product['quantity'];
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -121,6 +123,17 @@ $quantity = (int) $product['quantity'];
   <link rel="stylesheet" href="../style/main.css">
   <link rel="stylesheet" href="../style/viwe.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
+  <style>
+    .color-circle.active {
+      border: 2px solid #000;
+      box-shadow: 0 0 0 2px #fff;
+    }
+
+
+    #mainImageContainer {
+      transition: background-image 0.3s ease;
+    }
+  </style>
 </head>
 
 <body>
@@ -129,7 +142,7 @@ $quantity = (int) $product['quantity'];
     <div class="d-sm-flex justify-content-between container-fluid py-3">
       <nav aria-label="breadcrumb" class="breadcrumb-row">
         <ul class="breadcrumb mb-0">
-          <li class="breadcrumb-item"><a href="/"> Home</a></li>
+          <li class="breadcrumb-item"><a href="/">Home</a></li>
           <li class="breadcrumb-item">Product Thumbnail</li>
         </ul>
       </nav>
@@ -137,14 +150,13 @@ $quantity = (int) $product['quantity'];
     <div class="row gy-4">
       <div class="col-lg-6 product-image position-relative" id="mainImageContainer"
         style="background-image: url('<?php echo $image_path; ?>'); background-size: cover; background-position: center;">
-
         <button type="button" class="btn btn-light position-absolute top-0 end-0 m-3 rounded-circle shadow"
           data-bs-toggle="modal" data-bs-target="#imageModal">
           <i class="bi bi-arrows-fullscreen fs-4"></i>
         </button>
 
         <div class="d-flex thumbnails flex-column gap-3 mb-3" id="thumbnailsContainer">
-          <?php $all_images = array_unique(array_merge([$image_path], $current_images ?? [])); ?>
+          <?php $all_images = array_unique(array_merge([$image_path], $gallery)); ?>
           <?php foreach ($all_images as $index => $img): ?>
             <div class="thumbnail-item <?php echo $index === 0 ? 'active' : ''; ?>"
               style="background-image: url('<?php echo htmlspecialchars($img); ?>'); background-size: cover; background-position: center; cursor: pointer; width: 70px; height: 70px;"
@@ -159,7 +171,7 @@ $quantity = (int) $product['quantity'];
             <div class="modal-body p-0">
               <div id="carouselImages" class="carousel slide" data-bs-ride="carousel">
                 <div class="carousel-inner">
-                  <?php foreach ($current_images as $index => $img): ?>
+                  <?php foreach ($all_images as $index => $img): ?>
                     <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
                       <img src="<?php echo htmlspecialchars($img); ?>" class="d-block w-100" alt="Product Image">
                     </div>
@@ -178,7 +190,6 @@ $quantity = (int) $product['quantity'];
           </div>
         </div>
       </div>
-
       <div class="col-lg-6 product-details">
         <div class="social-media">
           <ul>
@@ -187,9 +198,11 @@ $quantity = (int) $product['quantity'];
             <li><a href="https://twitter.com/dexignzones">Twitter</a></li>
           </ul>
         </div>
+
         <?php if ($on_sale): ?>
           <span class="badge bg-black mb-2">SALE <?php echo htmlspecialchars($discount); ?>% Off</span>
         <?php endif; ?>
+
         <h4 class="mb-2"><?php echo htmlspecialchars($name); ?></h4>
 
         <div class="d-flex align-items-center mb-2">
@@ -255,11 +268,8 @@ $quantity = (int) $product['quantity'];
                   $color_code = isset($color['hex']) ? strtolower(str_replace('#', '', $color['hex'])) : '';
                   $color_name = isset($color['name']) ? htmlspecialchars($color['name']) : '';
                   $color_image = '';
-
                   if (!empty($color['image'])) {
-                    $color_image = (strpos($color['image'], 'http') === 0)
-                      ? $color['image']
-                      : $base_url . 'dashboard/' . ltrim($color['image'], '/');
+                    $color_image = (strpos($color['image'], 'http') === 0) ? $color['image'] : $base_url . 'dashboard/' . ltrim($color['image'], '/');
                   }
                   ?>
                   <label class="form-check color-option" style="cursor: pointer;" title="<?php echo $color_name; ?>">
@@ -267,28 +277,17 @@ $quantity = (int) $product['quantity'];
                       value="<?php echo $color_code; ?>" data-color-id="<?php echo htmlspecialchars($color['id'] ?? ''); ?>"
                       data-color-name="<?php echo $color_name; ?>"
                       data-image="<?php echo htmlspecialchars($color_image); ?>" <?php echo ($index === 0) ? 'checked' : ''; ?>>
-                    <div class="color-wrapper p-1" style="transition: 0.3s;">
-                      <span class="color-circle"
+                    <div class="color-wrapper p-1 <?php echo ($index === 0) ? 'active' : ''; ?>" style="transition: 0.3s;">
+                      <span class="color-circle <?php echo ($index === 0) ? 'active' : ''; ?>"
                         style="background-color:<?php echo htmlspecialchars($color['hex'] ?? '#ccc'); ?>;"></span>
-                      <span class="color-name-tooltip"><?php echo $color_name; ?></span>
                     </div>
                   </label>
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>
           </div>
-          <div class="modal fade" id="colorModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-              <div class="modal-content bg-dark text-white position-relative">
-                <button type="button" class="btn-close position-absolute end-0 m-2" data-bs-dismiss="modal"
-                  aria-label="Close"></button>
-                <div class="modal-body text-center">
-                  <img id="modalColorImage" src="" alt="Color Preview" class="img-fluid rounded">
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
+
         <div class="d-flex gap-2 mb-4">
           <button class="btn btn-dark product-btn w-50" onclick='addToCart(<?php echo $product["id"]; ?>)'>Add to
             Cart</button>
@@ -321,97 +320,191 @@ $quantity = (int) $product['quantity'];
       </div>
     </div>
 
-    <script>
-      function changeMainImage(element, newImageUrl) {
-        // Update main image
-        document.getElementById('mainImageContainer').style.backgroundImage = `url('${newImageUrl}')`;
+    <div class="container my-4 mt-5">
+      <div class="d-flex align-items-center text-center">
+        <div class="flex-grow-1 border-bottom"></div>
+        <span class="px-3 py-1 bg-dark text-white rounded-pill mx-2">ammar</span>
+        <div class="flex-grow-1 border-bottom"></div>
+      </div>
+    </div>
 
-        // Update active thumbnail
-        document.querySelectorAll('.thumbnail-item').forEach(thumb => {
-          thumb.classList.remove('active');
-        });
-        element.classList.add('active');
-
-        // Update modal carousel active item
-        const carouselItems = document.querySelectorAll('#carouselImages .carousel-item');
-        const thumbIndex = Array.from(document.querySelectorAll('.thumbnail-item')).indexOf(element);
-        if (thumbIndex >= 0 && thumbIndex < carouselItems.length) {
-          carouselItems.forEach(item => item.classList.remove('active'));
-          carouselItems[thumbIndex].classList.add('active');
-        }
+    <style>
+      .info-box {
+        border: 1px solid #000;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        text-align: center;
+        height: 100%;
       }
 
-      // Initialize color modal functionality
-      document.addEventListener('DOMContentLoaded', function () {
-        const colorRadios = document.querySelectorAll('.color-radio');
-        const modalColorImage = document.getElementById('modalColorImage');
+      .info-box h6 {
+        font-weight: bold;
+      }
 
-        colorRadios.forEach(radio => {
-          radio.addEventListener('change', function () {
-            const imageUrl = this.getAttribute('data-image');
-            if (imageUrl) {
-              modalColorImage.src = imageUrl;
+      .model-img {
+        border-radius: 15px;
+        background-size: cover;
+        background-position: center;
+        width: 100%;
+        height: 500px;
+        background: #fafafa;
+      }
+
+      .thumb {
+        width: 80px;
+        height: 120px;
+        border-radius: 10px;
+        background-size: cover;
+        background-position: center;
+        cursor: pointer;
+      }
+
+      .small-thumbs {
+        display: flex;
+        gap: 10px;
+      }
+
+      .thumb {
+        background: #fafafa;
+      }
+
+      .info-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+
+      .info-box p {
+        margin: 0;
+        padding: 0;
+        font-size: 14px;
+        font-weight: 400;
+        color: #5E626F;
+        margin-bottom: 0;
+      }
+
+      @media screen and (max-width:767px) {
+        .product-num.gap-md-2.gap-xl-0.mt-3.mb-3 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          align-items: center;
+        }
+      }
+    </style>
+
+    <div class="mt-3 ">
+      <div class="row">
+        <div class="col-lg-7 ">
+          <h2 class="fw-bold mt-3 mb-3">Fits Women</h2>
+          <p>Designed for superior child comfort, OneFit™ provides extra rear-facing legroom and multiple recline
+            options in every mode of use. With the widest range of height adjustments, the easy-adjust headrest system
+            adjusts with the harness to grow with your child. OneFit™ accommodates tiny passengers from the very start
+            with a removable head and body support insert for newborns weighing 5-11 lbs.</p>
+
+          <h5 class="fw-bold mt-4">color</h5>
+          <ul class="list-unstyled">
+            <li>
+              <?php if (!empty($colors)): ?>
+                <?php
+                $color_names = array_map(function ($color) {
+                  return isset($color['name']) ? htmlspecialchars($color['name']) : '';
+                }, $colors);
+                echo implode(' / ', array_filter($color_names));
+                ?>
+              <?php else: ?>
+                N/A
+              <?php endif; ?>
+            </li>
+            <li>Assembled Product Weight: 25 lbs.</li>
+          </ul>
+
+          <div class="row">
+            <div class="bg-white mt-5">
+              <div class="row info-row">
+                <div class="col-6 info-label">Brand</div>
+                <div class="col-6 info-value"><?= $brand ?></div>
+              </div>
+              <div class="row info-row">
+                <div class="col-6 info-label">Barcode</div>
+                <div class="col-6 info-value"><?= $barcode ?></div>
+              </div>
+              <div class="row info-row">
+                <div class="col-6 info-label">Stock Status</div>
+                <div class="col-6 info-value"><?= $stock_status ?></div>
+              </div>
+              <div class="row info-row">
+                <div class="col-6 info-label">On Sale</div>
+                <div class="col-6 info-value"><?= $on_sale ? 'Yes' : 'No' ?></div>
+              </div>
+              <div class="row info-row">
+                <div class="col-6 info-label">New Product</div>
+                <div class="col-6 info-value"><?= $is_new ?></div>
+              </div>
+              <div class="row info-row">
+                <div class="col-6 info-label">Featured</div>
+                <div class="col-6 info-value"><?= $is_featured ?></div>
+              </div>
+              <div class="row info-row">
+                <div class="col-6 info-label">Quantity</div>
+                <div class="col-6 info-value"><?= $quantity ?></div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="row g-2">
+              <?php foreach ($all_images as $img): ?>
+                <div class="col-6 col-sm-4 col-lg-3">
+                  <div class="thumb w-100"
+                    style="background-image: url('<?php echo htmlspecialchars($img); ?>'); height: 120px; background-size: cover; background-position: center;">
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
+          <style>
+            .thumb.w-100 {
+              height: 200px !important;
+              background-size: cover;
+              background-position: center;
+              border-radius: 6px;
             }
-          });
+          </style>
+        </div>
 
-          // Click handler to show color image in modal
-          const parentLabel = radio.closest('.color-option');
-          parentLabel.addEventListener('click', function (e) {
-            if (e.target.tagName !== 'INPUT') {
-              const imageUrl = radio.getAttribute('data-image');
-              if (imageUrl) {
-                modalColorImage.src = imageUrl;
-                const modal = new bootstrap.Modal(document.getElementById('colorModal'));
-                modal.show();
-              }
-            }
-          });
-        });
+        <div class="col-lg-5">
+          <div class="row g-2 mb-4">
+            <div class="col-12 col-sm-6 col-md-6">
+              <div class="info-box">
+                <h6>All-in-One Dress</h6>
+                <p>Lorem Ipsum is simply dummy text </p>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-md-6">
+              <div class="info-box">
+                <h6>Looking wise good</h6>
+                <p>Lorem Ipsum is simply dummy text </p>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-md-6">
+              <div class="info-box">
+                <h6>100% Made In India</h6>
+                <p>Lorem Ipsum is simply dummy text </p>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-md-6">
+              <div class="info-box">
+                <h6>100% Cotton</h6>
+                <p>Lorem Ipsum is simply dummy text </p>
+              </div>
+            </div>
+          </div>
 
-        // Quantity buttons functionality
-        document.querySelectorAll('.quantity-btn').forEach(button => {
-          button.addEventListener('click', function () {
-            const input = this.parentNode.querySelector('.quantity-display');
-            let value = parseInt(input.value);
-
-            if (this.getAttribute('data-type') === 'minus' && value > 1) {
-              input.value = value - 1;
-            } else if (this.getAttribute('data-type') === 'plus' && value < parseInt(input.max)) {
-              input.value = value + 1;
-            }
-          });
-        });
-      });
-    </script>
-    <div class="row">
-      <div class="bg-white  mt-5">
-        <div class="row info-row">
-          <div class="col-6 info-label">brand</div>
-          <div class="col-6 info-value"> <?= $brand ?></div>
-        </div>
-        <div class="row info-row">
-          <div class="col-6 info-label">barcode</div>
-          <div class="col-6 info-value"><?= $barcode ?></div>
-        </div>
-        <div class="row info-row">
-          <div class="col-6 info-label">Stock Status</div>
-          <div class="col-6 info-value"><?= $stock_status ?></div>
-        </div>
-        <div class="row info-row">
-          <div class="col-6 info-label">On Sale</div>
-          <div class="col-6 info-value"><?= $on_sale ? 'Yes' : 'No' ?></div>
-        </div>
-        <div class="row info-row">
-          <div class="col-6 info-label">New Product</div>
-          <div class="col-6 info-value"><?= $is_new ?> </div>
-        </div>
-        <div class="row info-row">
-          <div class="col-6 info-label">Featured</div>
-          <div class="col-6 info-value"><?= $is_featured ?></div>
-        </div>
-        <div class="row">
-          <div class="col-6 info-label">Stock Status</div>
-          <div class="col-6 info-value"><?= $quantity ?> </div>
+          <div class="model-img position-relative"
+            style="background-image: url('<?php echo $image_path; ?>'); background-size: cover; background-position: center; min-height: 400px;">
+          </div>
         </div>
       </div>
     </div>
@@ -475,12 +568,13 @@ $quantity = (int) $product['quantity'];
       </section>
     </div>
   </div>
+
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
   <script>
     document.addEventListener("DOMContentLoaded", function () {
+      // Initialize Owl Carousel
       const owl = $('.js-home-products');
       if (owl.hasClass('owl-loaded')) {
         owl.trigger('destroy.owl.carousel');
@@ -499,49 +593,88 @@ $quantity = (int) $product['quantity'];
       });
 
       const colorRadios = document.querySelectorAll('.color-radio');
-      const colorImagesData = <?= json_encode($color_images) ?>;
+      const colorWrappers = document.querySelectorAll('.color-option .color-wrapper');
+      const colorCircles = document.querySelectorAll('.color-circle');
+      const mainImageContainer = document.getElementById('mainImageContainer');
+      const originalImage = '<?php echo $image_path; ?>';
+      let selectedColor = null;
 
+      // Function to handle color selection
+      function handleColorSelection(radio) {
+        // Reset all active states
+        colorWrappers.forEach(wrapper => wrapper.classList.remove('active'));
+        colorCircles.forEach(circle => circle.classList.remove('active'));
+
+        // Set active state for selected color
+        const wrapper = radio.closest('.color-option').querySelector('.color-wrapper');
+        const circle = wrapper.querySelector('.color-circle');
+        wrapper.classList.add('active');
+        circle.classList.add('active');
+
+        // Get the color image
+        const colorImage = radio.getAttribute('data-image');
+
+        // Update main image
+        if (colorImage) {
+          mainImageContainer.style.backgroundImage = `url('${colorImage}')`;
+          selectedColor = radio.value;
+        } else {
+          // If no color image, show original product image
+          mainImageContainer.style.backgroundImage = `url('${originalImage}')`;
+          selectedColor = null;
+        }
+      }
+
+      // Function to reset to original image
+      function resetToOriginalImage() {
+        mainImageContainer.style.backgroundImage = `url('${originalImage}')`;
+        selectedColor = null;
+
+        // Reset all active states
+        colorWrappers.forEach(wrapper => wrapper.classList.remove('active'));
+        colorCircles.forEach(circle => circle.classList.remove('active'));
+
+        // Set first color as active if exists
+        if (colorRadios.length > 0) {
+          colorRadios[0].checked = true;
+          const firstWrapper = colorRadios[0].closest('.color-option').querySelector('.color-wrapper');
+          const firstCircle = firstWrapper.querySelector('.color-circle');
+          firstWrapper.classList.add('active');
+          firstCircle.classList.add('active');
+        }
+      }
+
+      // Attach click event to color options
       colorRadios.forEach(radio => {
         radio.addEventListener('change', function () {
-          const colorCode = this.value;
-          const images = colorImagesData[colorCode] || [];
-          const thumbnailsContainer = document.getElementById('thumbnailsContainer');
-          const mainImageContainer = document.getElementById('mainImageContainer');
-
-          thumbnailsContainer.innerHTML = '';
-
-          images.forEach((img, index) => {
-            const thumbnail = document.createElement('div');
-            thumbnail.className = 'thumbnail-item' + (index === 0 ? ' active' : '');
-            thumbnail.style.backgroundImage = `url('${img}')`;
-            thumbnail.style.backgroundSize = 'cover';
-            thumbnail.style.backgroundPosition = 'center';
-            thumbnail.style.cursor = 'pointer';
-            thumbnail.style.width = '70px';
-            thumbnail.style.height = '70px';
-            thumbnail.onclick = function () {
-              changeMainImage(this, img);
-            };
-            thumbnailsContainer.appendChild(thumbnail);
-          });
-
-          if (images.length > 0) {
-            mainImageContainer.style.backgroundImage = `url('${images[0]}')`;
+          if (selectedColor === this.value) {
+            // If clicking the already selected color, deselect it
+            this.checked = false;
+            resetToOriginalImage();
+          } else {
+            handleColorSelection(this);
           }
         });
       });
 
-      // عدد المنتج
+      // Initialize first color as selected if exists
+      if (colorRadios.length > 0 && colorRadios[0].checked) {
+        handleColorSelection(colorRadios[0]);
+      }
+
+      // Quantity control
       $('.btn-number').click(function () {
         const input = $('#quantity');
         let value = parseInt(input.val()) || 1;
         const max = parseInt(input.attr('max')) || 100;
         const min = parseInt(input.attr('min')) || 1;
+
         if ($(this).data('type') === 'minus') {
           value = Math.max(min, value - 1);
         } else {
           value = Math.min(max, value + 1);
         }
+
         input.val(value);
       });
     });
@@ -562,9 +695,10 @@ $quantity = (int) $product['quantity'];
       const colorImage = $('.color-radio:checked').data('image');
 
       const formData = new FormData();
-      formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>'); // مهم جداً
+      formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>');
       formData.append('product_id', id);
       formData.append('quantity', qty);
+
       if (size) {
         formData.append('size_id', size);
         formData.append('size_name', sizeName);
@@ -583,9 +717,9 @@ $quantity = (int) $product['quantity'];
         .then(data => {
           if (data.success) {
             updateCartCount(data.cart_count);
-            showSuccessMessage(data.message || 'Item added to cart');
+            showSuccessMessage(data.message || 'Product added to cart successfully');
           } else {
-            showErrorMessage(data.message || 'Failed to add item');
+            showErrorMessage(data.message || 'Failed to add product to cart');
           }
         })
         .catch(error => {
@@ -596,7 +730,7 @@ $quantity = (int) $product['quantity'];
 
     function addQuickToCart(id) {
       const formData = new URLSearchParams();
-      formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>'); // مهم جداً
+      formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>');
       formData.append('product_id', id);
       formData.append('quantity', 1);
 
@@ -611,14 +745,14 @@ $quantity = (int) $product['quantity'];
         .then(data => {
           if (data.success) {
             updateCartCount(data.cart_count);
-            showSuccessMessage(data.message || 'Item added to cart');
+            showSuccessMessage(data.message || 'Product added to cart');
           } else {
-            showErrorMessage(data.message || 'Failed to add item');
+            showErrorMessage(data.message || 'Failed to add product');
           }
         })
         .catch(error => {
           console.error('Error:', error);
-          showErrorMessage('Network error occurred');
+          showErrorMessage('Connection problem');
         });
     }
 
@@ -647,39 +781,7 @@ $quantity = (int) $product['quantity'];
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 3000);
     }
-
-    // تأثير الألوان
-    const radios = document.querySelectorAll('.color-radio');
-    const labels = document.querySelectorAll('.color-option .color-wrapper');
-
-    radios.forEach((radio, index) => {
-      const circle = labels[index].querySelector('.color-circle');
-
-      if (radio.checked) {
-        labels[index].classList.add('border-primary');
-        if (circle) circle.classList.add('active');
-      }
-
-      radio.addEventListener('change', function () {
-        labels.forEach((l, i) => {
-          l.classList.remove('border-primary');
-          const c = l.querySelector('.color-circle');
-          if (c) c.classList.remove('active');
-        });
-
-        labels[index].classList.add('border-primary');
-        if (circle) circle.classList.add('active');
-
-        const imageUrl = this.getAttribute('data-image');
-        if (imageUrl) {
-          document.getElementById('modalColorImage').src = imageUrl;
-          const modal = new bootstrap.Modal(document.getElementById('colorModal'));
-          modal.show();
-        }
-      });
-    });
   </script>
-
 
   <?php require('./footer.php'); ?>
 </body>

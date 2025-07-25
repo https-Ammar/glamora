@@ -1,31 +1,21 @@
 <?php
-require('db.php');
+session_start([
+  'cookie_httponly' => true,
+  'cookie_secure' => true,
+  'use_strict_mode' => true
+]);
 
-$i = 0;
-$finalproducttotal = 0.0;
+if (empty($_SESSION['csrf_token'])) {
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
-if (isset($_COOKIE['userid'])) {
-  $userid = $_COOKIE['userid'];
+require('./db.php');
 
-  $stmt = $conn->prepare("SELECT COUNT(*) as product_count FROM cart WHERE userid = ?");
-  $stmt->bind_param("s", $userid);
-  $stmt->execute();
-  $result = $stmt->get_result();
-  if ($result) {
-    $row = $result->fetch_assoc();
-    $i = $row['product_count'] ?? 0;
-  }
-  $stmt->close();
-} else {
-  $result = $conn->query("SELECT id FROM users ORDER BY id DESC LIMIT 1");
-  $newid = ($result && $result->num_rows > 0) ? ($result->fetch_assoc()['id'] + 1) : 1;
-  $userid = $newid;
-  setcookie('userid', $userid, time() + (10 * 365 * 24 * 60 * 60), "/");
+$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
 
-  $stmt = $conn->prepare("INSERT INTO users (id, name, email, password) VALUES (?, NULL, NULL, NULL)");
-  $stmt->bind_param("i", $userid);
-  $stmt->execute();
-  $stmt->close();
+function formatPrice($price)
+{
+  return number_format((float) $price, 2, '.', '');
 }
 ?>
 
@@ -33,343 +23,290 @@ if (isset($_COOKIE['userid'])) {
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GLAMORA - Cart</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping Cart | GLAMORA</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="../style/main.css">
+  <link rel="stylesheet" href="../style/cart.css">
   <style>
-    .product-options-display {
-      margin: 10px 0;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .option-badge {
-      background: #f5f5f5;
-      padding: 5px 10px;
-      border-radius: 15px;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-    }
-
-    .color-badge {
+    .color-circle {
+      display: inline-block;
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      margin-right: 5px;
       border: 1px solid #ddd;
     }
 
-    .cart-item {
-      display: flex;
-      padding: 20px 0;
-      border-bottom: 1px solid #eee;
-    }
-
-    .product-figure {
-      width: 120px;
-      height: 120px;
-      margin-right: 20px;
-    }
-
-    .viwe_img {
-      width: 100%;
-      height: 100%;
-      background-size: cover;
-      background-position: center;
-    }
-
-    .cart-item-content {
-      flex: 1;
-    }
-
-    ._flex {
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .item-quantity {
-      margin: 15px 0;
-    }
-
-    ._flex_int {
-      display: inline-flex;
-      align-items: center;
-      margin-left: 10px;
-    }
-
-    ._flex_int button {
-      width: 30px;
-      height: 30px;
-      border: 1px solid #ddd;
-      background: #fff;
-      cursor: pointer;
-    }
-
-    ._flex_int input {
-      width: 40px;
-      height: 30px;
+    .quantity-input {
+      max-width: 50px;
       text-align: center;
-      border: 1px solid #ddd;
-      margin: 0 5px;
     }
 
-    .cart-item_remove-btn__yNwhA {
-      display: flex;
-      align-items: center;
-      color: #666;
-      cursor: pointer;
-    }
-
-    .cart-item_remove-btn__yNwhA svg {
-      margin-right: 5px;
-    }
-
-    ._main_grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 30px;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-
-    .Summary {
-      background: #f9f9f9;
-      padding: 20px;
-      border-radius: 8px;
-      height: fit-content;
-    }
-
-    .cart-priceItem {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 15px;
-    }
-
-    .btn-danger {
-      width: 100%;
-      padding: 12px;
-      background: #000;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-      margin-top: 20px;
+    .product-thumbnail {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
     }
 
     .empty-cart {
-      padding: 50px 0;
-      text-align: center;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
     }
 
-    .empty-cart h3 {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-
-    .empty-cart p {
-      color: #666;
+    .size-badge {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.5rem;
     }
   </style>
 </head>
 
 <body>
-  <?php require('./loding.php'); ?>
   <?php require('./header.php'); ?>
 
-  <section id="lod_file">
-    <main class="layout">
-      <div class="checkout-heading-header">
-        <div class="back-btn undefined">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="..." fill="black" fill-opacity="0.6"></path>
-          </svg>
-          <a href="index.php">Back To Home</a>
+  <div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">Your Shopping Cart</h2>
+      <span class="text-muted"><?= count($_SESSION['cart'] ?? []) ?> items</span>
+    </div>
+
+    <?php if (empty($_SESSION['cart'])): ?>
+      <div class="card empty-cart">
+        <div class="card-body text-center">
+          <i class="bi bi-cart-x" style="font-size: 3rem; color: #6c757d;"></i>
+          <h4 class="mt-3">Your cart is empty</h4>
+          <p class="text-muted">Start shopping to add items to your cart</p>
+          <a href="./index.php" class="btn btn-dark mt-3">Continue Shopping</a>
         </div>
-        <h1>Cart</h1>
       </div>
-
-      <div class="_main_grid">
-        <section class="data_">
-          <div class="Customer">
-            <div class="Customer_titel">
-              <h2 class="stepHeader-title optimizedCheckout-headingPrimary">Bag</h2>
+    <?php else: ?>
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table mb-0">
+                  <thead class="bg-light">
+                    <tr>
+                      <th style="width: 40%">Product</th>
+                      <th>Color & Size</th>
+                      <th>Price</th>
+                      <th>Quantity</th>
+                      <th>Total</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php
+                    $total = 0;
+                    foreach ($_SESSION['cart'] as $key => $item):
+                      $item_price = $item['sale_price'] ?? $item['price'];
+                      $item_total = $item_price * $item['quantity'];
+                      $total += $item_total;
+                      ?>
+                      <tr>
+                        <td>
+                          <div class="d-flex align-items-center">
+                            <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>"
+                              class="img-thumbnail product-thumbnail me-3">
+                            <div>
+                              <h6 class="mb-1"><?= htmlspecialchars($item['name']) ?></h6>
+                              <small class="text-muted">SKU: <?= $item['id'] ?? 'N/A' ?></small>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <?php if (!empty($item['color_name']) && $item['color_name'] !== 'Not specified'): ?>
+                            <div class="d-flex align-items-center mb-1">
+                              <?php if (!empty($item['color_image'])): ?>
+                                <img src="<?= htmlspecialchars($item['color_image']) ?>" class="color-circle me-2"
+                                  style="object-fit: cover; width: 20px; height: 20px;">
+                              <?php else: ?>
+                                <span class="color-circle me-2"
+                                  style="background-color: <?= !empty($item['color_hex']) ? $item['color_hex'] : '#ccc' ?>;"></span>
+                              <?php endif; ?>
+                              <span><?= htmlspecialchars($item['color_name']) ?></span>
+                            </div>
+                          <?php endif; ?>
+                          <?php if (!empty($item['size_name']) && $item['size_name'] !== 'Not specified'): ?>
+                            <div class="badge bg-secondary size-badge"><?= htmlspecialchars($item['size_name']) ?></div>
+                          <?php endif; ?>
+                        </td>
+                        <td>
+                          <?php if (isset($item['sale_price']) && $item['sale_price'] < $item['price']): ?>
+                            <span class="text-danger">$<?= formatPrice($item['sale_price']) ?></span>
+                            <small class="text-decoration-line-through text-muted">$<?= formatPrice($item['price']) ?></small>
+                          <?php else: ?>
+                            $<?= formatPrice($item['price']) ?>
+                          <?php endif; ?>
+                        </td>
+                        <td>
+                          <div class="input-group" style="max-width: 120px;">
+                            <button class="btn btn-outline-secondary update-quantity" type="button" data-action="decrease"
+                              data-key="<?= $key ?>">-</button>
+                            <input type="text" class="form-control quantity-input" value="<?= $item['quantity'] ?>"
+                              data-key="<?= $key ?>">
+                            <button class="btn btn-outline-secondary update-quantity" type="button" data-action="increase"
+                              data-key="<?= $key ?>">+</button>
+                          </div>
+                        </td>
+                        <td>$<?= formatPrice($item_total) ?></td>
+                        <td>
+                          <button class="btn btn-sm btn-outline-danger remove-item" data-key="<?= $key ?>">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
             </div>
-
-            <?php if ($i == 0): ?>
-              <div class="row">
-                <div class="col text-center">
-                  <div class="empty-cart">
-                    <h3>Your cart is empty</h3>
-                    <p>There are special products in GLAMORA that you can buy.</p>
-                    <a href="index.php" class="btn btn-danger"
-                      style="width: auto; display: inline-block; margin-top: 20px;">Continue Shopping</a>
-                  </div>
-                </div>
-              </div>
-            <?php else: ?>
-              <div class="loading-skeleton checkout-address">
-                <?php
-                $stmt = $conn->prepare("SELECT c.*, p.name, p.price, p.image, p.colors FROM cart c JOIN products p ON c.productid = p.id WHERE c.userid = ?");
-                $stmt->bind_param("s", $userid);
-                $stmt->execute();
-                $getallcartproducts = $stmt->get_result();
-
-                while ($getcartproducts = $getallcartproducts->fetch_assoc()):
-                  $price = $getcartproducts['price'] ?? 0;
-                  $qty = intval($getcartproducts['qty']);
-                  $subtotal = floatval($price) * $qty;
-                  $finalproducttotal += $subtotal;
-                  $image_path = !empty($getcartproducts['image']) ?
-                    (strpos($getcartproducts['image'], 'http') === 0 ?
-                      $getcartproducts['image'] :
-                      'http://localhost:8888/glamora/dashboard/' . ltrim($getcartproducts['image'], './')) :
-                    'http://localhost:8888/glamora/assets/images/default.jpg';
-
-                  $size = $getcartproducts['size'] ?? null;
-                  $color = $getcartproducts['color'] ?? null;
-                  $colorHex = null;
-
-                  if (!empty($getcartproducts['colors'])) {
-                    $colors = json_decode($getcartproducts['colors'], true);
-                    foreach ($colors as $c) {
-                      if (isset($c['name']) && $c['name'] === $color && isset($c['hex'])) {
-                        $colorHex = $c['hex'];
-                        break;
-                      }
-                    }
-                  }
-                  ?>
-
-                  <div class="product cart-item">
-                    <figure class="product-column product-figure">
-                      <div class="card-image viwe_img" style="background-image: url('<?php echo $image_path; ?>');"></div>
-                    </figure>
-                    <div class="cart-item-content">
-                      <div class="_flex">
-                        <div class="product-column product-body title-div">
-                          <h4 class="product-title"><?php echo htmlspecialchars($getcartproducts['name'] ?? ''); ?></h4>
-                          <div class="product-price">EGP <?php echo number_format($price, 2); ?></div>
-                        </div>
-                        <div class="product-column product-actions price-div">
-                          <div class="product-price">EGP <?php echo number_format($subtotal, 2); ?></div>
-                        </div>
-                      </div>
-
-                      <div class="product-options-display">
-                        <?php if ($size): ?>
-                          <div class="option-badge">
-                            Size: <?php echo htmlspecialchars($size); ?>
-                          </div>
-                        <?php endif; ?>
-
-                        <?php if ($color): ?>
-                          <div class="option-badge">
-                            <?php if ($colorHex): ?>
-                              <div class="color-badge" style="background-color: <?php echo $colorHex; ?>"></div>
-                            <?php endif; ?>
-                            Color: <?php echo htmlspecialchars($color); ?>
-                          </div>
-                        <?php endif; ?>
-                      </div>
-
-                      <div class="item-quantity">
-                        <span class="item-quantity_span">Quantity
-                          <div class="_flex_int">
-                            <button onclick="removemoreone(<?php echo $getcartproducts['id']; ?>)">-</button>
-                            <input type="text" name="quantity" value="<?php echo $qty; ?>" class="input-number text-center"
-                              readonly>
-                            <button onclick="addmoreone(<?php echo $getcartproducts['id']; ?>)">+</button>
-                          </div>
-                        </span>
-                      </div>
-                      <a href="#" onclick="removecart(<?php echo $getcartproducts['id']; ?>)">
-                        <div class="cart-item_remove-btn__yNwhA">
-                          <svg width="12" height="12" viewBox="0 0 10 11" fill="#000">
-                            <path d="M0.757359 1.24264L9.24264 9.72792M9.24264 1.24264L0.757359 9.72792" stroke="black"
-                              stroke-width="1.5"></path>
-                          </svg>
-                          <button class="item_remove" role="removeBtn">Remove</button>
-                        </div>
-                      </a>
-                    </div>
-                  </div>
-                <?php endwhile;
-                $stmt->close();
-                ?>
-              </div>
-            <?php endif; ?>
           </div>
-        </section>
+        </div>
 
-        <?php if ($i > 0): ?>
-          <section class="Summary">
-            <div class="Customer">
-              <div class="Customer_titel">
-                <h2 class="stepHeader-title optimizedCheckout-headingPrimary">Summary</h2>
+        <div class="col-lg-4 mt-4 mt-lg-0">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title mb-4">Order Summary</h5>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Subtotal</span>
+                <span>$<?= formatPrice($total) ?></span>
               </div>
-              <div class="loading-skeleton">
-                <section class="cart-section optimizedCheckout-orderSummary-cartSection">
-                  <div data-test="cart-subtotal">
-                    <div class="cart-priceItem">
-                      <span class="cart-priceItem-label">Subtotal</span>
-                      <span class="cart-priceItem-value">EGP <?php echo number_format($finalproducttotal, 2); ?></span>
-                    </div>
-                  </div>
-                  <div class="cart-shipping">
-                    <div class="cart-priceItem">
-                      <span class="cart-priceItem-label">Count</span>
-                      <span class="cart-priceItem-value">(<?php echo $i; ?>)</span>
-                    </div>
-                  </div>
-                </section>
-                <div class="cart-priceItem">
-                  <span class="cart-priceItem-label">Total to Pay</span>
-                  <span class="cart-priceItem-value">EGP <?php echo number_format($finalproducttotal, 2); ?></span>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Shipping</span>
+                <span>Free</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Tax</span>
+                <span>$0.00</span>
+              </div>
+              <hr>
+              <div class="d-flex justify-content-between fw-bold fs-5">
+                <span>Total</span>
+                <span>$<?= formatPrice($total) ?></span>
+              </div>
+              <a href="./checkout.php" class="btn btn-dark w-100 mt-3 py-2">Proceed to Checkout</a>
+              <a href="./index.php" class="btn btn-outline-dark w-100 mt-2 py-2">Continue Shopping</a>
+
+              <div class="mt-4">
+                <div class="input-group">
+                  <input type="text" class="form-control" placeholder="Coupon code" id="coupon-code">
+                  <button class="btn btn-outline-secondary" type="button" id="apply-coupon">Apply</button>
                 </div>
-                <button onclick="window.location.href='Checkout.php';" class="btn btn-danger">Proceed to Checkout</button>
+                <div id="coupon-message" class="mt-2 small"></div>
               </div>
             </div>
-          </section>
-        <?php endif; ?>
+          </div>
+        </div>
       </div>
-    </main>
-
-    <?php require('footer.php'); ?>
-  </section>
+    <?php endif; ?>
+  </div>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
   <script>
-    function addmoreone(id) {
-      $.post("addmoreone.php", { id: id }, function () {
-        location.reload();
-      });
-    }
+    $(document).ready(function () {
+      $('.update-quantity').click(function () {
+        const key = $(this).data('key');
+        const action = $(this).data('action');
+        const input = $(`.quantity-input[data-key="${key}"]`);
+        let quantity = parseInt(input.val()) || 1;
 
-    function removemoreone(id) {
-      $.post("removemoreone.php", { id: id }, function () {
-        location.reload();
-      });
-    }
+        if (action === 'increase') {
+          quantity += 1;
+        } else if (action === 'decrease' && quantity > 1) {
+          quantity -= 1;
+        }
 
-    function removecart(id) {
-      if (confirm('Are you sure you want to remove this item from your cart?')) {
-        $.post("removecart.php", { id: id }, function () {
-          location.reload();
+        input.val(quantity);
+        updateCartItem(key, quantity);
+      });
+
+      $('.quantity-input').on('change input', function () {
+        const key = $(this).data('key');
+        let quantity = parseInt($(this).val()) || 1;
+        if (quantity < 1) quantity = 1;
+        $(this).val(quantity);
+        updateCartItem(key, quantity);
+      });
+
+      $('.remove-item').click(function () {
+        const key = $(this).data('key');
+        if (confirm('Are you sure you want to remove this item from your cart?')) {
+          updateCartItem(key, 0);
+        }
+      });
+
+      $('#apply-coupon').click(function () {
+        const couponCode = $('#coupon-code').val();
+        if (!couponCode) {
+          $('#coupon-message').html('<span class="text-danger">Please enter a coupon code</span>');
+          return;
+        }
+
+        $.ajax({
+          url: 'apply_coupon.php',
+          method: 'POST',
+          data: {
+            csrf_token: '<?= $_SESSION['csrf_token'] ?>',
+            coupon_code: couponCode
+          },
+          success: function (response) {
+            if (response.success) {
+              $('#coupon-message').html('<span class="text-success">' + response.message + '</span>');
+              if (response.discount) {
+                // Update the total price display
+                const newTotal = response.new_total;
+                $('.fw-bold.fs-5 span:last').text('$' + newTotal.toFixed(2));
+              }
+            } else {
+              $('#coupon-message').html('<span class="text-danger">' + response.message + '</span>');
+            }
+          },
+          error: function () {
+            $('#coupon-message').html('<span class="text-danger">Error applying coupon. Please try again.</span>');
+          }
+        });
+      });
+
+      function updateCartItem(key, quantity) {
+        $.ajax({
+          url: 'update_cart.php',
+          method: 'POST',
+          dataType: 'json',
+          data: {
+            csrf_token: '<?= $_SESSION['csrf_token'] ?>',
+            key: key,
+            quantity: quantity
+          },
+          success: function (response) {
+            if (response.success) {
+              $('.cart-count').text(response.cart_count);
+              if (quantity === 0 || response.cart_count === 0) {
+                window.location.reload();
+              } else {
+                window.location.reload();
+              }
+            } else {
+              alert('Error: ' + (response.message || 'Failed to update cart'));
+              window.location.reload();
+            }
+          },
+          error: function (xhr, status, error) {
+            alert('Error: Could not update cart. Please try again.');
+            console.error(error);
+          }
         });
       }
-    }
-
-    window.onload = function () {
-      document.getElementById('lod_file').style.display = 'block';
-      document.getElementById('loading').style.display = 'none';
-    };
+    });
   </script>
+  <?php require('./footer.php'); ?>
 </body>
 
 </html>

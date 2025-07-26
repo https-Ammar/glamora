@@ -124,14 +124,25 @@ $quantity = (int) $product['quantity'];
   <link rel="stylesheet" href="../style/viwe.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
   <style>
-    .color-circle.active {
-      border: 2px solid #000;
-      box-shadow: 0 0 0 2px #fff;
-    }
-
-
     #mainImageContainer {
       transition: background-image 0.3s ease;
+    }
+
+    .color-option .color-wrapper {
+      border-radius: 50%;
+      padding: 2px;
+    }
+
+    .color-option .color-wrapper.active {
+      border: 2px solid #000;
+    }
+
+    .color-circle {
+      display: block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -272,16 +283,16 @@ $quantity = (int) $product['quantity'];
                     $color_image = (strpos($color['image'], 'http') === 0) ? $color['image'] : $base_url . 'dashboard/' . ltrim($color['image'], '/');
                   }
                   ?>
-                  <label class="form-check color-option" style="cursor: pointer;" title="<?php echo $color_name; ?>">
-                    <input class="form-check-input d-none color-radio" type="radio" name="product_color"
-                      value="<?php echo $color_code; ?>" data-color-id="<?php echo htmlspecialchars($color['id'] ?? ''); ?>"
-                      data-color-name="<?php echo $color_name; ?>"
-                      data-image="<?php echo htmlspecialchars($color_image); ?>" <?php echo ($index === 0) ? 'checked' : ''; ?>>
-                    <div class="color-wrapper p-1 <?php echo ($index === 0) ? 'active' : ''; ?>" style="transition: 0.3s;">
-                      <span class="color-circle <?php echo ($index === 0) ? 'active' : ''; ?>"
-                        style="background-color:<?php echo htmlspecialchars($color['hex'] ?? '#ccc'); ?>;"></span>
+                  <div class="color-option" style="cursor: pointer;" title="<?php echo $color_name; ?>">
+                    <div class="color-wrapper p-1" style="transition: 0.3s;">
+                      <span class="color-circle"
+                        style="background-color:<?php echo htmlspecialchars($color['hex'] ?? '#ccc'); ?>;"
+                        data-color-id="<?php echo htmlspecialchars($color['id'] ?? ''); ?>"
+                        data-color-name="<?php echo $color_name; ?>"
+                        data-image="<?php echo htmlspecialchars($color_image); ?>"
+                        data-color-code="<?php echo $color_code; ?>"></span>
                     </div>
-                  </label>
+                  </div>
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>
@@ -567,6 +578,10 @@ $quantity = (int) $product['quantity'];
         </div>
       </section>
     </div>
+
+
+
+
   </div>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -592,75 +607,55 @@ $quantity = (int) $product['quantity'];
         }
       });
 
-      const colorRadios = document.querySelectorAll('.color-radio');
-      const colorWrappers = document.querySelectorAll('.color-option .color-wrapper');
-      const colorCircles = document.querySelectorAll('.color-circle');
+      const colorOptions = document.querySelectorAll('.color-option');
       const mainImageContainer = document.getElementById('mainImageContainer');
       const originalImage = '<?php echo $image_path; ?>';
       let selectedColor = null;
 
       // Function to handle color selection
-      function handleColorSelection(radio) {
-        // Reset all active states
-        colorWrappers.forEach(wrapper => wrapper.classList.remove('active'));
-        colorCircles.forEach(circle => circle.classList.remove('active'));
+      function handleColorSelection(colorOption) {
+        const colorCircle = colorOption.querySelector('.color-circle');
+        const colorWrapper = colorOption.querySelector('.color-wrapper');
+        const colorImage = colorCircle.getAttribute('data-image');
+        const colorCode = colorCircle.getAttribute('data-color-code');
 
-        // Set active state for selected color
-        const wrapper = radio.closest('.color-option').querySelector('.color-wrapper');
-        const circle = wrapper.querySelector('.color-circle');
-        wrapper.classList.add('active');
-        circle.classList.add('active');
+        // If this color is already selected, deselect it
+        if (selectedColor === colorCode) {
+          colorWrapper.classList.remove('active');
+          colorCircle.classList.remove('active');
+          mainImageContainer.style.backgroundImage = `url('${originalImage}')`;
+          selectedColor = null;
+          return;
+        }
 
-        // Get the color image
-        const colorImage = radio.getAttribute('data-image');
+        // Deselect all other colors
+        document.querySelectorAll('.color-wrapper').forEach(wrapper => {
+          wrapper.classList.remove('active');
+        });
+        document.querySelectorAll('.color-circle').forEach(circle => {
+          circle.classList.remove('active');
+        });
+
+        // Select this color
+        colorWrapper.classList.add('active');
+        colorCircle.classList.add('active');
 
         // Update main image
         if (colorImage) {
           mainImageContainer.style.backgroundImage = `url('${colorImage}')`;
-          selectedColor = radio.value;
         } else {
-          // If no color image, show original product image
           mainImageContainer.style.backgroundImage = `url('${originalImage}')`;
-          selectedColor = null;
         }
-      }
 
-      // Function to reset to original image
-      function resetToOriginalImage() {
-        mainImageContainer.style.backgroundImage = `url('${originalImage}')`;
-        selectedColor = null;
-
-        // Reset all active states
-        colorWrappers.forEach(wrapper => wrapper.classList.remove('active'));
-        colorCircles.forEach(circle => circle.classList.remove('active'));
-
-        // Set first color as active if exists
-        if (colorRadios.length > 0) {
-          colorRadios[0].checked = true;
-          const firstWrapper = colorRadios[0].closest('.color-option').querySelector('.color-wrapper');
-          const firstCircle = firstWrapper.querySelector('.color-circle');
-          firstWrapper.classList.add('active');
-          firstCircle.classList.add('active');
-        }
+        selectedColor = colorCode;
       }
 
       // Attach click event to color options
-      colorRadios.forEach(radio => {
-        radio.addEventListener('change', function () {
-          if (selectedColor === this.value) {
-            // If clicking the already selected color, deselect it
-            this.checked = false;
-            resetToOriginalImage();
-          } else {
-            handleColorSelection(this);
-          }
+      colorOptions.forEach(option => {
+        option.addEventListener('click', function () {
+          handleColorSelection(this);
         });
       });
-
-      // Initialize first color as selected if exists
-      if (colorRadios.length > 0 && colorRadios[0].checked) {
-        handleColorSelection(colorRadios[0]);
-      }
 
       // Quantity control
       $('.btn-number').click(function () {
@@ -690,9 +685,17 @@ $quantity = (int) $product['quantity'];
       const qty = parseInt(document.getElementById('quantity').value) || 1;
       const size = $('.btn-check:checked').data('size-id');
       const sizeName = $('.btn-check:checked').data('size-name');
-      const color = $('.color-radio:checked').data('color-id');
-      const colorName = $('.color-radio:checked').data('color-name');
-      const colorImage = $('.color-radio:checked').data('image');
+
+      // Get selected color data
+      let colorId = null;
+      let colorName = null;
+      let colorImage = null;
+      const activeColorCircle = document.querySelector('.color-circle.active');
+      if (activeColorCircle) {
+        colorId = activeColorCircle.getAttribute('data-color-id');
+        colorName = activeColorCircle.getAttribute('data-color-name');
+        colorImage = activeColorCircle.getAttribute('data-image');
+      }
 
       const formData = new FormData();
       formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>');
@@ -703,8 +706,8 @@ $quantity = (int) $product['quantity'];
         formData.append('size_id', size);
         formData.append('size_name', sizeName);
       }
-      if (color) {
-        formData.append('color_id', color);
+      if (colorId) {
+        formData.append('color_id', colorId);
         formData.append('color_name', colorName);
         formData.append('color_image', colorImage);
       }

@@ -62,6 +62,14 @@ function formatPrice($price)
       font-size: 0.8rem;
       padding: 0.25rem 0.5rem;
     }
+
+    .color-image {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #ddd;
+    }
   </style>
 </head>
 
@@ -123,11 +131,10 @@ function formatPrice($price)
                           <?php if (!empty($item['color_name']) && $item['color_name'] !== 'Not specified'): ?>
                             <div class="d-flex align-items-center mb-1">
                               <?php if (!empty($item['color_image'])): ?>
-                                <img src="<?= htmlspecialchars($item['color_image']) ?>" class="color-circle me-2"
-                                  style="object-fit: cover; width: 20px; height: 20px;">
-                              <?php else: ?>
+                                <img src="<?= htmlspecialchars($item['color_image']) ?>" class="color-image me-2">
+                              <?php elseif (!empty($item['color_hex'])): ?>
                                 <span class="color-circle me-2"
-                                  style="background-color: <?= !empty($item['color_hex']) ? $item['color_hex'] : '#ccc' ?>;"></span>
+                                  style="background-color: <?= htmlspecialchars($item['color_hex']) ?>;"></span>
                               <?php endif; ?>
                               <span><?= htmlspecialchars($item['color_name']) ?></span>
                             </div>

@@ -8,8 +8,7 @@ session_start([
 require('./db.php');
 header('Content-Type: application/json');
 
-$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http")
-    . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
+$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
@@ -31,17 +30,16 @@ if (!$product_id) {
     exit;
 }
 
-// Get product with its sizes and colors
 $stmt = $conn->prepare("
     SELECT p.*, 
            ps.id AS size_id, ps.size_value AS size_name,
            pc.id AS color_id, pc.color_name, pc.color_image
     FROM products p
-    LEFT JOIN product_sizes ps ON p.id = ps.product_id AND ps.id = ?
-    LEFT JOIN product_colors pc ON p.id = pc.product_id AND pc.id = ?
+    LEFT JOIN product_sizes ps ON p.id = ps.product_id AND (ps.id = ? OR ? IS NULL)
+    LEFT JOIN product_colors pc ON p.id = pc.product_id AND (pc.id = ? OR ? IS NULL)
     WHERE p.id = ?
 ");
-$stmt->bind_param("iii", $size_id, $color_id, $product_id);
+$stmt->bind_param("iiiii", $size_id, $size_id, $color_id, $color_id, $product_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $product = $result->fetch_assoc();
@@ -51,21 +49,15 @@ if (!$product) {
     exit;
 }
 
-// Handle image URL
 $image_url = '';
 if (!empty($product['color_image'])) {
-    $image_url = str_starts_with($product['color_image'], 'http')
-        ? $product['color_image']
-        : $base_url . ltrim($product['color_image'], './');
+    $image_url = str_starts_with($product['color_image'], 'http') ? $product['color_image'] : $base_url . 'dashboard/' . ltrim($product['color_image'], '/');
 } elseif (!empty($product['image'])) {
-    $image_url = str_starts_with($product['image'], 'http')
-        ? $product['image']
-        : $base_url . 'dashboard/' . ltrim($product['image'], './');
+    $image_url = str_starts_with($product['image'], 'http') ? $product['image'] : $base_url . 'dashboard/' . ltrim($product['image'], '/');
 } else {
     $image_url = $base_url . 'assets/images/default.jpg';
 }
 
-// Prepare cart item
 $cart_item = [
     'id' => $product_id,
     'name' => $product['name'],
@@ -73,39 +65,31 @@ $cart_item = [
     'original_price' => $product['price'],
     'quantity' => $quantity,
     'image' => $image_url,
-    'size_id' => $product['size_id'] ?: null,
-    'size_name' => $product['size_name'] ?: 'Not specified',
-    'color_id' => $product['color_id'] ?: null,
-    'color_name' => $product['color_name'] ?: 'Not specified',
+    'size_id' => $size_id ?: null,
+    'size_name' => $product['size_name'] ?? 'Not specified',
+    'color_id' => $color_id ?: null,
+    'color_name' => $product['color_name'] ?? 'Not specified',
     'color_image' => $image_url
 ];
 
-// Initialize cart if not exists
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
-// Check for existing item
 $found_index = null;
 foreach ($_SESSION['cart'] as $index => $item) {
-    if (
-        $item['id'] == $product_id &&
-        $item['size_id'] == $product['size_id'] &&
-        $item['color_id'] == $product['color_id']
-    ) {
+    if ($item['id'] == $product_id && $item['size_id'] == $size_id && $item['color_id'] == $color_id) {
         $found_index = $index;
         break;
     }
 }
 
-// Update or add item
 if ($found_index !== null) {
     $_SESSION['cart'][$found_index]['quantity'] += $quantity;
 } else {
     $_SESSION['cart'][] = $cart_item;
 }
 
-// Calculate totals
 $total_count = array_reduce($_SESSION['cart'], function ($carry, $item) {
     return $carry + $item['quantity'];
 }, 0);
@@ -114,7 +98,6 @@ $subtotal = array_reduce($_SESSION['cart'], function ($carry, $item) {
     return $carry + ($item['price'] * $item['quantity']);
 }, 0);
 
-// Prepare response
 $response = [
     'success' => true,
     'message' => 'Product added to cart successfully',

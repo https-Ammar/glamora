@@ -407,7 +407,7 @@ $quantity = (int) $product['quantity'];
 
     <div class="mt-3 ">
       <div class="row">
-        <div class="col-lg-7 ">
+        <div class="col-lg-7  ">
           <h2 class="fw-bold mt-3 mb-3">Fits Women</h2>
           <p>Designed for superior child comfort, OneFit™ provides extra rear-facing legroom and multiple recline
             options in every mode of use. With the widest range of height adjustments, the easy-adjust headrest system

@@ -137,6 +137,8 @@ CREATE TABLE IF NOT EXISTS `discount_logs` (
 CREATE TABLE IF NOT EXISTS `orders` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `user_id` INT(11) NOT NULL,
+    `customer_first_name` VARCHAR(255),
+    `customer_last_name` VARCHAR(255),
     `name` VARCHAR(255) NOT NULL,
     `phoneone` VARCHAR(20) NOT NULL,
     `phonetwo` VARCHAR(20),

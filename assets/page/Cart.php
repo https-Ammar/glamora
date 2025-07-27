@@ -22,9 +22,9 @@ $cart_count = 0;
 $cart_items = [];
 $cart_total = 0;
 
-if (isset($_SESSION['cart'])) {
+if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
   $cart_items = $_SESSION['cart'];
-  $cart_count = count($cart_items);
+  $cart_count = array_sum(array_column($cart_items, 'quantity'));
 
   foreach ($cart_items as $item) {
     $price = isset($item['sale_price']) ? $item['sale_price'] : $item['price'];
@@ -94,7 +94,7 @@ if (isset($_SESSION['cart'])) {
   <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2 class="mb-0">Your Shopping Cart</h2>
-      <span class="text-muted"><?= $cart_count ?> items</span>
+      <span class="text-muted"><?= $cart_count ?> <?= $cart_count === 1 ? 'item' : 'items' ?></span>
     </div>
 
     <?php if ($cart_count === 0): ?>
@@ -124,12 +124,11 @@ if (isset($_SESSION['cart'])) {
                     </tr>
                   </thead>
                   <tbody>
-                    <?php
-                    $total = 0;
-                    foreach ($_SESSION['cart'] as $key => $item):
+                    <?php foreach ($cart_items as $key => $item): ?>
+                      <?php
                       $item_price = $item['sale_price'] ?? $item['price'];
-                      $item_total = $item_price * $item['quantity'];
-                      $total += $item_total;
+                      $item_quantity = $item['quantity'] ?? 1;
+                      $item_total = $item_price * $item_quantity;
                       ?>
                       <tr>
                         <td>
@@ -170,7 +169,7 @@ if (isset($_SESSION['cart'])) {
                           <div class="input-group" style="max-width: 120px;">
                             <button class="btn btn-outline-secondary update-quantity" type="button" data-action="decrease"
                               data-key="<?= $key ?>">-</button>
-                            <input type="text" class="form-control quantity-input" value="<?= $item['quantity'] ?>"
+                            <input type="text" class="form-control quantity-input" value="<?= $item_quantity ?>"
                               data-key="<?= $key ?>">
                             <button class="btn btn-outline-secondary update-quantity" type="button" data-action="increase"
                               data-key="<?= $key ?>">+</button>
@@ -197,7 +196,7 @@ if (isset($_SESSION['cart'])) {
               <h5 class="card-title mb-4">Order Summary</h5>
               <div class="d-flex justify-content-between mb-2">
                 <span>Subtotal</span>
-                <span>$<?= formatPrice($total) ?></span>
+                <span>$<?= formatPrice($cart_total) ?></span>
               </div>
               <div class="d-flex justify-content-between mb-2">
                 <span>Shipping</span>
@@ -210,7 +209,7 @@ if (isset($_SESSION['cart'])) {
               <hr>
               <div class="d-flex justify-content-between fw-bold fs-5">
                 <span>Total</span>
-                <span>$<?= formatPrice($total) ?></span>
+                <span>$<?= formatPrice($cart_total) ?></span>
               </div>
               <a href="./checkout.php" class="btn btn-dark w-100 mt-3 py-2">Proceed to Checkout</a>
               <a href="./index.php" class="btn btn-outline-dark w-100 mt-2 py-2">Continue Shopping</a>
@@ -307,12 +306,7 @@ if (isset($_SESSION['cart'])) {
           },
           success: function (response) {
             if (response.success) {
-              $('.cart-count').text(response.cart_count);
-              if (quantity === 0 || response.cart_count === 0) {
-                window.location.reload();
-              } else {
-                window.location.reload();
-              }
+              window.location.reload();
             } else {
               alert('Error: ' + (response.message || 'Failed to update cart'));
               window.location.reload();

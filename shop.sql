@@ -8,6 +8,7 @@ SET time_zone = "+00:00";
 
 START TRANSACTION;
 
+-- ADMINS
 CREATE TABLE IF NOT EXISTS `usersadmin` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(255) NOT NULL,
@@ -16,15 +17,7 @@ CREATE TABLE IF NOT EXISTS `usersadmin` (
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `categories` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT,
-    `name` VARCHAR(255) NOT NULL,
-    `image` VARCHAR(255) DEFAULT NULL,
-    `parent_id` INT(11) DEFAULT NULL,
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`parent_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
-
+-- USERS
 CREATE TABLE IF NOT EXISTS `users` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(255) NOT NULL,
@@ -34,12 +27,23 @@ CREATE TABLE IF NOT EXISTS `users` (
     `address` TEXT,
     `city` VARCHAR(100),
     `country` VARCHAR(100),
-    `profile_image` VARCHAR(255) DEFAULT NULL,
-    `reset_token` VARCHAR(255) DEFAULT NULL,
-    `reset_token_expiry` DATETIME DEFAULT NULL,
+    `profile_image` VARCHAR(255),
+    `reset_token` VARCHAR(255),
+    `reset_token_expiry` DATETIME,
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
+-- CATEGORIES
+CREATE TABLE IF NOT EXISTS `categories` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(255) NOT NULL,
+    `image` VARCHAR(255),
+    `parent_id` INT(11),
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`parent_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- PRODUCTS
 CREATE TABLE IF NOT EXISTS `products` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(255) NOT NULL,
@@ -76,6 +80,20 @@ CREATE TABLE IF NOT EXISTS `products` (
     FOREIGN KEY (`created_by`) REFERENCES `usersadmin` (`id`) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
+-- CART (تم ربطه بـ users و products)
+CREATE TABLE IF NOT EXISTS `cart` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `userid` INT(11) NOT NULL,
+    `productid` INT(11) NOT NULL,
+    `qty` INT(11) NOT NULL,
+    `size` VARCHAR(100),
+    `color` VARCHAR(100),
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`userid`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`productid`) REFERENCES `products` (`id`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- باقي الجداول: بدون تعديل كبير فقط تنسيق
 CREATE TABLE IF NOT EXISTS `product_colors` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `product_id` INT(11) NOT NULL,
@@ -113,17 +131,6 @@ CREATE TABLE IF NOT EXISTS `ads` (
     FOREIGN KEY (`categoryid`) REFERENCES `categories` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `cart` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT,
-    `userid` INT(11) DEFAULT NULL,
-    `productid` INT(11) NOT NULL,
-    `qty` INT(11) NOT NULL,
-    `size` VARCHAR(100),
-    `color` VARCHAR(100),
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`productid`) REFERENCES `products` (`id`) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
-
 CREATE TABLE IF NOT EXISTS `coupons` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `code` VARCHAR(50) NOT NULL UNIQUE,
@@ -147,7 +154,7 @@ CREATE TABLE IF NOT EXISTS `discount_logs` (
 
 CREATE TABLE IF NOT EXISTS `orders` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
-    `user_id` INT(11) DEFAULT NULL,
+    `user_id` INT(11),
     `customer_first_name` VARCHAR(255),
     `customer_last_name` VARCHAR(255),
     `name` VARCHAR(255) NOT NULL,
@@ -160,9 +167,9 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `date` DATE,
     `numberofproducts` INT(11),
     `finaltotalprice` DECIMAL(10, 2),
-    `coupon_id` INT(11) DEFAULT NULL,
-    `coupon_code` VARCHAR(50) DEFAULT NULL,
-    `discount_type` ENUM('percentage', 'fixed') DEFAULT NULL,
+    `coupon_id` INT(11),
+    `coupon_code` VARCHAR(50),
+    `discount_type` ENUM('percentage', 'fixed'),
     `discount_value` DECIMAL(10, 2) DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
@@ -212,6 +219,7 @@ CREATE TABLE IF NOT EXISTS `order_status_logs` (
     FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
+-- ADMIN INSERT
 INSERT INTO
     `usersadmin` (
         `id`,

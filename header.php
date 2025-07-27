@@ -360,16 +360,14 @@
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
-    // search Cart ---------------------
+    // Search functionality
     let searchinput = document.getElementById('search-input');
 
     searchinput.oninput = () => {
       $.ajax({
         type: "POST",
-        url: "./assets/page/searchresult.php",
-        data: {
-          searchinput: searchinput.value,
-        },
+        url: "searchresult.php",
+        data: { searchinput: searchinput.value },
         success: function (response) {
           $('#suggestions').html(response);
         },
@@ -379,10 +377,11 @@
       });
     };
 
+    // Cart count refresh
     function refreshCartCount() {
       $.ajax({
         type: "GET",
-        url: "./assets/page/count_cart.php",
+        url: "./assets/page/count_cart.php", // Adjust the URL to your actual cart count endpoint
         success: function (response) {
           $('.count_cart').html(response);
         },
@@ -393,9 +392,8 @@
     }
 
     setInterval(refreshCartCount, 1000);
-    // search Cart ---------------------
 
-    // search ---------------------
+    // Search history
     document.getElementById('search-input').addEventListener('input', function () {
       localStorage.setItem('lastSearch', this.value);
     });
@@ -406,22 +404,8 @@
         document.getElementById('search-input').value = lastSearch;
       }
     });
-    // search ---------------------
 
-    // menu ---------------------
-    const sideMenu = document.getElementById("side-menu");
-    const openBtn = document.getElementById("open-btn");
-    const closeBtn = document.getElementById("close-btn");
-
-    openBtn.addEventListener("click", () => {
-      sideMenu.style.left = "0"; // إظهار المنيو
-    });
-
-    closeBtn.addEventListener("click", () => {
-      sideMenu.style.left = "-100%"; // إخفاء المنيو
-    });
-    // menu ---------------------
-
+    // Mobile menu toggle
     const nav = document.querySelector(".nav"),
       searchIcon1 = document.querySelector("#searchIcon1"),
       searchIcon2 = document.querySelector("#searchIcon2"),

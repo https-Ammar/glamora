@@ -154,6 +154,251 @@ foreach ($_SESSION['cart'] as $item) {
 }
 ?>
 
+
+
+<!--  -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Checkout</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #fff;
+      font-family: system-ui, sans-serif;
+    }
+
+    .form-section {
+      padding: 30px;
+    }
+
+    .order-summary {
+      padding: 30px;
+      background: #f5f5f5;
+      height: 100%;
+    }
+
+    .product-box {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .product-image-wrapper {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      flex-shrink: 0;
+    }
+
+    .product-image {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      border-radius: 8px;
+      background-color: red;
+    }
+
+    .product-qty {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: black;
+      color: white;
+      font-size: x-small;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    .product-info {
+      margin-left: 15px;
+    }
+
+    .input-group .form-control {
+      border-radius: 0;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+    }
+
+    .summary-total {
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    .form-check {
+      margin-top: 10px;
+    }
+
+    .order-summary .form-control {
+      border-radius: 6px 0 0 6px;
+    }
+
+    .order-summary .btn {
+      border-radius: 0 6px 6px 0;
+    }
+
+    @media (max-width: 768px) {
+      .form-section {
+        padding: 20px;
+      }
+
+      .order-summary {
+        margin-top: 30px;
+      }
+    }
+
+    .row.min-vh-100.d-flex {
+      justify-content: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="row min-vh-100 d-flex">
+      <div class="col-md-5 form-section border-end">
+        <h5>Contact</h5>
+        <input type="email" class="form-control mb-3" value="Ammar132004@gmail.com" readonly />
+        <div class="form-check mb-4">
+          <input class="form-check-input" type="checkbox" checked id="offers" />
+          <label class="form-check-label" for="offers">Email me with news and offers</label>
+        </div>
+
+        <h5>Delivery</h5>
+        <form>
+          <div class="mb-3">
+            <select class="form-select">
+              <option selected>Egypt</option>
+            </select>
+          </div>
+          <div class="row mb-3">
+            <div class="col">
+              <input type="text" class="form-control" placeholder="First name" />
+            </div>
+            <div class="col">
+              <input type="text" class="form-control" placeholder="Last name" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control"
+              placeholder="Enter full address (e.g: 123 Street, District, Area)" />
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control" placeholder="Apartment, suite, etc." />
+          </div>
+          <div class="row mb-3">
+            <div class="col">
+              <input type="text" class="form-control" placeholder="City" />
+            </div>
+            <div class="col">
+              <select class="form-select">
+                <option selected>Sohag</option>
+              </select>
+            </div>
+            <div class="col">
+              <input type="text" class="form-control" placeholder="Postal code (optional)" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control" placeholder="Mobile Number (e.g: 0123 xxx xxxx)" />
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="saveInfo" />
+            <label class="form-check-label" for="saveInfo">Save this information for next time</label>
+          </div>
+        </form>
+      </div>
+
+      <!-- Right: Order Summary -->
+      <div class="col-md-5 p-0">
+        <div class="order-summary h-100">
+
+
+          <tbody>
+            <?php foreach ($_SESSION['cart'] as $item): ?>
+              <?php
+              $price = $item['sale_price'] ?? $item['price'];
+              $item_total = $price * $item['quantity'];
+              ?>
+
+
+              <div class="product-box">
+                <div class="product-image-wrapper">
+                  <span class="product-qty"><?= $item['quantity'] ?></span>
+                  <div class="product-image" style="background-image: url('<?= htmlspecialchars($item['image']) ?>');">
+                  </div>
+                </div>
+                <div class="product-info">
+                  <p class="m-0"><?= htmlspecialchars($item['name']) ?></p>
+                  <span>Necklace</span>
+                </div>
+                <div class="ms-auto fw-bold">EGP <?= formatPrice($item_total) ?></div>
+              </div>
+
+
+
+            <?php endforeach; ?>
+          </tbody>
+
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="Discount code or gift card" />
+            <button class="btn btn-outline-secondary">Apply</button>
+          </div>
+
+          <div class="summary-item">
+            <span>Subtotal</span>
+            <span>EGP <?= formatPrice($total) ?></span>
+          </div>
+          <div class="summary-item">
+            <span>Shipping</span>
+            <span>free</span>
+          </div>
+          <hr />
+          <div class="summary-item summary-total">
+            <span>Total</span>
+            <span>EGP <?= formatPrice($total) ?></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+<!--  -->
 <!DOCTYPE html>
 <html lang="ar">
 
@@ -161,60 +406,7 @@ foreach ($_SESSION['cart'] as $item) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>الدفع | GLAMORA</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    .color-circle {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: 1px solid #ddd;
-    }
 
-    .product-thumbnail {
-      width: 60px;
-      height: 60px;
-      object-fit: cover;
-    }
-
-    .size-badge {
-      font-size: 0.8rem;
-      padding: 0.25rem 0.5rem;
-    }
-
-    .color-image {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 1px solid #ddd;
-    }
-
-    .form-control:focus {
-      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f8f9fa;
-    }
-
-    .card-header {
-      background-color: #343a40;
-      color: white;
-    }
-
-    .btn-dark {
-      background-color: #343a40;
-      border-color: #343a40;
-    }
-
-    .btn-dark:hover {
-      background-color: #23272b;
-      border-color: #1d2124;
-    }
-  </style>
 </head>
 
 <body>
@@ -286,85 +478,7 @@ foreach ($_SESSION['cart'] as $item) {
         </div>
       </div>
 
-      <div class="col-lg-4">
-        <div class="card mb-4">
-          <div class="card-header">
-            <h4 class="mb-0">ملخص الطلب</h4>
-          </div>
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>المنتج</th>
-                    <th>الكمية</th>
-                    <th>المجموع</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($_SESSION['cart'] as $item): ?>
-                    <?php
-                    $price = $item['sale_price'] ?? $item['price'];
-                    $item_total = $price * $item['quantity'];
-                    ?>
-                    <tr>
-                      <td>
-                        <div class="d-flex align-items-center">
-                          <img src="<?= htmlspecialchars($item['image']) ?>" class="product-thumbnail me-2">
-                          <div>
-                            <h6 class="mb-1"><?= htmlspecialchars($item['name']) ?></h6>
-                            <?php if (!empty($item['color_name']) && $item['color_name'] !== 'Not specified'): ?>
-                              <small>
-                                <?php if (!empty($item['color_image'])): ?>
-                                  <img src="<?= htmlspecialchars($item['color_image']) ?>" class="color-image me-1">
-                                <?php elseif (!empty($item['color_hex'])): ?>
-                                  <span class="color-circle me-1"
-                                    style="background-color: <?= htmlspecialchars($item['color_hex']) ?>;"></span>
-                                <?php endif; ?>
-                                <?= htmlspecialchars($item['color_name']) ?>
-                              </small>
-                            <?php endif; ?>
-                            <?php if (!empty($item['size_name']) && $item['size_name'] !== 'Not specified'): ?>
-                              <div class="badge bg-secondary size-badge mt-1"><?= htmlspecialchars($item['size_name']) ?>
-                              </div>
-                            <?php endif; ?>
-                          </div>
-                        </div>
-                      </td>
-                      <td><?= $item['quantity'] ?></td>
-                      <td><?= formatPrice($item_total) ?> جنيه</td>
-                    </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
 
-            <hr>
-
-            <div class="d-flex justify-content-between mb-2">
-              <span>المجموع الفرعي</span>
-              <span><?= formatPrice($total) ?> جنيه</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-              <span>الشحن</span>
-              <span>مجاني</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-              <span>الضرائب</span>
-              <span>0.00 جنيه</span>
-            </div>
-
-            <hr>
-
-            <div class="d-flex justify-content-between fw-bold fs-5">
-              <span>الإجمالي</span>
-              <span><?= formatPrice($total) ?> جنيه</span>
-            </div>
-
-            <a href="./cart.php" class="btn btn-outline-dark w-100 mt-3">تعديل السلة</a>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 

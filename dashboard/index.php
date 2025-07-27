@@ -2,16 +2,15 @@
 session_start();
 require('./db.php');
 
-// تفعيل عرض أخطاء MySQLi (مفيد للتطوير)
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// التأكد من تسجيل الدخول
+// Check if user is logged in
 if (!isset($_SESSION['userId'])) {
     header('Location: ./login.php');
     exit();
 }
 
-// جلب بيانات المستخدم
+// Get user data
 $userid = $_SESSION['userId'];
 $select = $conn->prepare("SELECT * FROM usersadmin WHERE id = ?");
 $select->bind_param("i", $userid);
@@ -19,7 +18,7 @@ $select->execute();
 $fetchname = $select->get_result()->fetch_assoc();
 $select->close();
 
-// حذف منتج
+// Delete product
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     $id = intval($_GET['id']);
     if ($id > 0) {
@@ -38,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     }
 }
 
-// تحديث حالة الطلب
+// Update order status
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'], $_POST['status'])) {
     $orderId = intval($_POST['order_id']);
     $status = $_POST['status'];
@@ -57,30 +56,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'], $_POST['s
     exit();
 }
 
-// حذف تصنيف وكل ما يتعلق به
+// Delete category
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id']) && !isset($_POST['add_coupon'])) {
     $categoryId = intval($_POST['id']);
 
-    $stmt1 = $conn->prepare("DELETE FROM products WHERE category_id = ?");
-    $stmt1->bind_param("i", $categoryId);
-    $stmt1->execute();
-    $stmt1->close();
+    $conn->begin_transaction();
 
-    $stmt2 = $conn->prepare("DELETE FROM ads WHERE categoryid = ?");
-    $stmt2->bind_param("i", $categoryId);
-    $stmt2->execute();
-    $stmt2->close();
+    try {
+        $stmt1 = $conn->prepare("DELETE FROM products WHERE category_id = ?");
+        $stmt1->bind_param("i", $categoryId);
+        $stmt1->execute();
+        $stmt1->close();
 
-    $stmt3 = $conn->prepare("DELETE FROM categories WHERE id = ?");
-    $stmt3->bind_param("i", $categoryId);
-    $stmt3->execute();
-    $stmt3->close();
+        $stmt2 = $conn->prepare("DELETE FROM ads WHERE categoryid = ?");
+        $stmt2->bind_param("i", $categoryId);
+        $stmt2->execute();
+        $stmt2->close();
+
+        $stmt3 = $conn->prepare("DELETE FROM categories WHERE id = ?");
+        $stmt3->bind_param("i", $categoryId);
+        $stmt3->execute();
+        $stmt3->close();
+
+        $conn->commit();
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo "❌ Failed to delete category: " . $e->getMessage();
+        exit();
+    }
 
     header('Location: index.php');
     exit();
 }
 
-// إضافة إعلان
+// Add advertisement
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['category'], $_POST['linkaddress'], $_FILES['photo'])) {
     $filepath = 'uploads/';
     if (!file_exists($filepath)) {
@@ -109,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['category'], $_POST['l
     exit();
 }
 
-// إضافة تصنيف
+// Add category
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_FILES['image']) && !isset($_POST['add_coupon']) && !isset($_POST['add_product'])) {
     $name = trim($_POST['name']);
     $parent_id = isset($_POST['parent_id']) && $_POST['parent_id'] !== '' ? intval($_POST['parent_id']) : null;
@@ -139,33 +148,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_FILES['imag
             header('Location: index.php');
             exit();
         } else {
-            echo "❌ فشل رفع الصورة.";
+            echo "❌ Failed to upload image.";
         }
     } else {
-        echo "❌ تأكد من إدخال الاسم الصحيح واختيار صورة صالحة.";
+        echo "❌ Please enter a valid name and select a proper image.";
     }
 }
 
-// إضافة كوبون خصم
+// Add discount coupon (with maximum discount limit)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_coupon'])) {
     $code = trim($_POST['coupon_code']);
     $discountType = $_POST['discount_type'];
     $discountValue = floatval($_POST['discount_value']);
     $maxUses = intval($_POST['max_uses']);
+    $maximumDiscount = isset($_POST['maximum_discount']) && $_POST['maximum_discount'] !== '' ? floatval($_POST['maximum_discount']) : null;
     $expiresAt = $_POST['expires_at'];
 
     if (!empty($code) && in_array($discountType, ['percentage', 'fixed']) && $discountValue > 0 && $maxUses > 0 && !empty($expiresAt)) {
-        $stmt = $conn->prepare("INSERT INTO coupons (code, discount_type, discount_value, max_uses, expires_at) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssdss", $code, $discountType, $discountValue, $maxUses, $expiresAt);
-        $stmt->execute();
-        $stmt->close();
-        header("Location: index.php?success=coupon");
-        exit();
+        // Check for duplicate coupon code
+        $check = $conn->prepare("SELECT id FROM coupons WHERE code = ?");
+        $check->bind_param("s", $code);
+        $check->execute();
+
+        if ($check->get_result()->num_rows > 0) {
+            echo "<p style='color:red;'>This coupon code already exists!</p>";
+        } else {
+            $stmt = $conn->prepare("INSERT INTO coupons (code, discount_type, discount_value, max_uses, used_count, maximum_discount, expires_at) VALUES (?, ?, ?, ?, 0, ?, ?)");
+            $stmt->bind_param("ssdids", $code, $discountType, $discountValue, $maxUses, $maximumDiscount, $expiresAt);
+            $stmt->execute();
+            $stmt->close();
+            header("Location: index.php?success=coupon");
+            exit();
+        }
     } else {
-        echo "<p style='color:red;'>يرجى ملء جميع الحقول بشكل صحيح.</p>";
+        echo "<p style='color:red;'>Please fill all fields correctly.</p>";
     }
 }
 
+// Add product
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
     $name = trim($_POST['name']);
     $brand = trim($_POST['brand']);
@@ -174,7 +194,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
     $price = floatval($_POST['price']);
     $discountPercent = isset($_POST['discount_percent']) ? floatval($_POST['discount_percent']) : 0;
 
-    // ✅ حساب سعر الخصم إن وُجد
     $salePrice = ($discountPercent > 0 && $discountPercent <= 100)
         ? $price - ($price * ($discountPercent / 100))
         : null;
@@ -204,7 +223,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
         }
     }
 
-    // ✅ حفظ البيانات بما في ذلك الخصم والسعر بعد الخصم
     $stmt = $conn->prepare("INSERT INTO products (
         name, brand, description, tags, price, sale_price, discount_percent,
         quantity, stock_status, is_new, on_sale, is_featured, barcode,
@@ -236,8 +254,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
     header("Location: index.php?success=product");
     exit();
 }
-
 ?>
+
 
 
 
@@ -1005,84 +1023,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                 <!-- Coupons Section -->
                 <div id="coupons" class="content-section">
                     <div class="row">
+                        <!-- Add Coupon -->
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-body">
-                                    <h5 class="card-title">إضافة كوبون خصم</h5>
+                                    <h5 class="card-title">Add Discount Coupon</h5>
                                     <form method="POST">
                                         <div class="mb-3">
-                                            <label for="coupon_code" class="form-label">كود الكوبون*</label>
+                                            <label for="coupon_code" class="form-label">Coupon Code*</label>
                                             <input type="text" class="form-control" name="coupon_code" required>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="discount_type" class="form-label">نوع الخصم*</label>
+                                            <label for="discount_type" class="form-label">Discount Type*</label>
                                             <select name="discount_type" class="form-select" required>
-                                                <option value="percentage">نسبة مئوية</option>
-                                                <option value="fixed">قيمة ثابتة</option>
+                                                <option value="percentage">Percentage</option>
+                                                <option value="fixed">Fixed Amount</option>
                                             </select>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="discount_value" class="form-label">قيمة الخصم*</label>
+                                            <label for="discount_value" class="form-label">Discount Value*</label>
                                             <input type="number" step="0.01" class="form-control" name="discount_value"
                                                 required>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="max_uses" class="form-label">عدد مرات الاستخدام*</label>
+                                            <label for="max_uses" class="form-label">Maximum Uses*</label>
                                             <input type="number" class="form-control" name="max_uses" min="1" required>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="expires_at" class="form-label">تاريخ الانتهاء*</label>
+                                            <label for="maximum_discount" class="form-label">Maximum Discount Amount
+                                                (optional)</label>
+                                            <input type="number" step="0.01" class="form-control"
+                                                name="maximum_discount">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="expires_at" class="form-label">Expiry Date*</label>
                                             <input type="datetime-local" class="form-control" name="expires_at"
                                                 required>
                                         </div>
-                                        <button type="submit" name="add_coupon" class="btn btn-primary">إضافة
-                                            الكوبون</button>
+                                        <button type="submit" name="add_coupon" class="btn btn-primary">Add
+                                            Coupon</button>
                                     </form>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Current Coupons Table -->
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-body">
-                                    <h5 class="card-title">الكوبونات الحالية</h5>
+                                    <h5 class="card-title">Current Coupons</h5>
                                     <div class="table-responsive">
                                         <table class="table table-striped">
                                             <thead>
                                                 <tr>
-                                                    <th>الكود</th>
-                                                    <th>النوع</th>
-                                                    <th>القيمة</th>
-                                                    <th>المستخدم</th>
-                                                    <th>الحد الأقصى</th>
-                                                    <th>تاريخ الانتهاء</th>
-                                                    <th>الإجراءات</th>
+                                                    <th>Code</th>
+                                                    <th>Type</th>
+                                                    <th>Value</th>
+                                                    <th>Used</th>
+                                                    <th>Max Uses</th>
+                                                    <th>Max Discount</th>
+                                                    <th>Expires</th>
+                                                    <th>Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <?php
                                                 $coupons = $conn->query("
-                                                    SELECT c.*, COUNT(o.id) as used_count 
-                                                    FROM coupons c 
-                                                    LEFT JOIN orders o ON o.coupon_id = c.id 
-                                                    GROUP BY c.id 
-                                                    ORDER BY c.id DESC
-                                                ");
+                                    SELECT c.*, 
+                                    (SELECT COUNT(*) FROM orders WHERE coupon_id = c.id) AS used_count 
+                                    FROM coupons c 
+                                    ORDER BY c.id DESC
+                                ");
                                                 if ($coupons->num_rows > 0):
                                                     while ($coupon = $coupons->fetch_assoc()):
+                                                        $is_expired = strtotime($coupon['expires_at']) < time();
+                                                        $is_fully_used = $coupon['used_count'] >= $coupon['max_uses'];
                                                         ?>
-                                                        <tr>
+                                                        <tr
+                                                            class="<?= $is_expired || $is_fully_used ? 'table-secondary' : '' ?>">
                                                             <td><?= htmlspecialchars($coupon['code']) ?></td>
-                                                            <td><?= $coupon['discount_type'] == 'percentage' ? 'نسبة' : 'قيمة' ?>
+                                                            <td><?= $coupon['discount_type'] == 'percentage' ? 'Percentage' : 'Fixed' ?>
                                                             </td>
-                                                            <td><?= htmlspecialchars($coupon['discount_value']) ?><?= $coupon['discount_type'] == 'percentage' ? '%' : ' ج.م' ?>
+                                                            <td>
+                                                                <?= number_format($coupon['discount_value'], 2) ?>
+                                                                <?= $coupon['discount_type'] == 'percentage' ? '%' : ' EGP' ?>
                                                             </td>
-                                                            <td><?= $coupon['used_count'] ?></td>
-                                                            <td><?= htmlspecialchars($coupon['max_uses']) ?></td>
-                                                            <td><?= date('Y-m-d', strtotime($coupon['expires_at'])) ?></td>
+                                                            <td>
+                                                                <?= $coupon['used_count'] ?>
+                                                                <?php if ($is_fully_used): ?>
+                                                                    <span class="badge bg-danger">Fully Used</span>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                            <td><?= $coupon['max_uses'] ?></td>
+                                                            <td>
+                                                                <?= $coupon['maximum_discount'] ?
+                                                                    number_format($coupon['maximum_discount'], 2) . ' EGP' : 'None' ?>
+                                                            </td>
+                                                            <td>
+                                                                <?= date('Y-m-d', strtotime($coupon['expires_at'])) ?>
+                                                                <?php if ($is_expired): ?>
+                                                                    <span class="badge bg-warning">Expired</span>
+                                                                <?php endif; ?>
+                                                            </td>
                                                             <td>
                                                                 <a href="delete_coupon.php?id=<?= $coupon['id'] ?>"
                                                                     class="btn btn-sm btn-outline-danger"
-                                                                    onclick="return confirm('هل أنت متأكد من حذف هذا الكوبون؟')">
+                                                                    onclick="return confirm('Are you sure you want to delete this coupon?')">
                                                                     <i class="fas fa-trash"></i>
                                                                 </a>
                                                             </td>
@@ -1092,7 +1138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
                                                 else:
                                                     ?>
                                                     <tr>
-                                                        <td colspan="7" class="text-center">لا توجد كوبونات حالياً</td>
+                                                        <td colspan="8" class="text-center">No coupons available</td>
                                                     </tr>
                                                 <?php endif; ?>
                                             </tbody>

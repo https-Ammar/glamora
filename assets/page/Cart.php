@@ -214,13 +214,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
               <a href="./checkout.php" class="btn btn-dark w-100 mt-3 py-2">Proceed to Checkout</a>
               <a href="./index.php" class="btn btn-outline-dark w-100 mt-2 py-2">Continue Shopping</a>
 
-              <div class="mt-4">
-                <div class="input-group">
-                  <input type="text" class="form-control" placeholder="Coupon code" id="coupon-code">
-                  <button class="btn btn-outline-secondary" type="button" id="apply-coupon">Apply</button>
-                </div>
-                <div id="coupon-message" class="mt-2 small"></div>
-              </div>
+
             </div>
           </div>
         </div>

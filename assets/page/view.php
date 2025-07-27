@@ -64,7 +64,6 @@ $on_sale = $product['on_sale'] && $sale_price;
 $final_price = $on_sale ? $sale_price : $price;
 $discount = $on_sale ? round((($price - $sale_price) / $price) * 100) : 0;
 
-// الصورة الأساسية للمنتج
 $image_path = !empty($product['image'])
   ? (str_starts_with($product['image'], 'http')
     ? $product['image']
@@ -143,6 +142,13 @@ $quantity = (int) $product['quantity'];
       height: 20px;
       border-radius: 50%;
       cursor: pointer;
+    }
+
+    .thumb.w-100 {
+      height: 200px !important;
+      background-size: cover;
+      background-position: center;
+      border-radius: 6px;
     }
   </style>
 </head>
@@ -339,72 +345,6 @@ $quantity = (int) $product['quantity'];
       </div>
     </div>
 
-    <style>
-      .info-box {
-        border: 1px solid #000;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 15px;
-        text-align: center;
-        height: 100%;
-      }
-
-      .info-box h6 {
-        font-weight: bold;
-      }
-
-      .model-img {
-        border-radius: 15px;
-        background-size: cover;
-        background-position: center;
-        width: 100%;
-        height: 500px;
-        background: #fafafa;
-      }
-
-      .thumb {
-        width: 80px;
-        height: 120px;
-        border-radius: 10px;
-        background-size: cover;
-        background-position: center;
-        cursor: pointer;
-      }
-
-      .small-thumbs {
-        display: flex;
-        gap: 10px;
-      }
-
-      .thumb {
-        background: #fafafa;
-      }
-
-      .info-box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-      }
-
-      .info-box p {
-        margin: 0;
-        padding: 0;
-        font-size: 14px;
-        font-weight: 400;
-        color: #5E626F;
-        margin-bottom: 0;
-      }
-
-      @media screen and (max-width:767px) {
-        .product-num.gap-md-2.gap-xl-0.mt-3.mb-3 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          align-items: center;
-        }
-      }
-    </style>
-
     <div class="mt-3 ">
       <div class="row">
         <div class="col-lg-7  ">
@@ -474,15 +414,6 @@ $quantity = (int) $product['quantity'];
               <?php endforeach; ?>
             </div>
           </div>
-
-          <style>
-            .thumb.w-100 {
-              height: 200px !important;
-              background-size: cover;
-              background-position: center;
-              border-radius: 6px;
-            }
-          </style>
         </div>
 
         <div class="col-lg-5">
@@ -578,18 +509,21 @@ $quantity = (int) $product['quantity'];
         </div>
       </section>
     </div>
-
-
-
-
   </div>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      // Initialize Owl Carousel
+      initProductCarousel();
+      initColorSelection();
+      initQuantityControls();
+    });
+
+    function initProductCarousel() {
       const owl = $('.js-home-products');
       if (owl.hasClass('owl-loaded')) {
         owl.trigger('destroy.owl.carousel');
@@ -606,59 +540,44 @@ $quantity = (int) $product['quantity'];
           1000: { items: 4 }
         }
       });
+    }
 
+    function initColorSelection() {
       const colorOptions = document.querySelectorAll('.color-option');
       const mainImageContainer = document.getElementById('mainImageContainer');
       const originalImage = '<?php echo $image_path; ?>';
       let selectedColor = null;
 
-      // Function to handle color selection
-      function handleColorSelection(colorOption) {
-        const colorCircle = colorOption.querySelector('.color-circle');
-        const colorWrapper = colorOption.querySelector('.color-wrapper');
-        const colorImage = colorCircle.getAttribute('data-image');
-        const colorCode = colorCircle.getAttribute('data-color-code');
-
-        // If this color is already selected, deselect it
-        if (selectedColor === colorCode) {
-          colorWrapper.classList.remove('active');
-          colorCircle.classList.remove('active');
-          mainImageContainer.style.backgroundImage = `url('${originalImage}')`;
-          selectedColor = null;
-          return;
-        }
-
-        // Deselect all other colors
-        document.querySelectorAll('.color-wrapper').forEach(wrapper => {
-          wrapper.classList.remove('active');
-        });
-        document.querySelectorAll('.color-circle').forEach(circle => {
-          circle.classList.remove('active');
-        });
-
-        // Select this color
-        colorWrapper.classList.add('active');
-        colorCircle.classList.add('active');
-
-        // Update main image
-        if (colorImage) {
-          mainImageContainer.style.backgroundImage = `url('${colorImage}')`;
-        } else {
-          mainImageContainer.style.backgroundImage = `url('${originalImage}')`;
-        }
-
-        selectedColor = colorCode;
-      }
-
-      // Attach click event to color options
       colorOptions.forEach(option => {
         option.addEventListener('click', function () {
-          handleColorSelection(this);
+          const colorCircle = this.querySelector('.color-circle');
+          const colorWrapper = this.querySelector('.color-wrapper');
+          const colorImage = colorCircle?.dataset.image;
+          const colorCode = colorCircle?.dataset.colorCode;
+
+          if (selectedColor === colorCode) {
+            colorWrapper?.classList.remove('active');
+            colorCircle?.classList.remove('active');
+            mainImageContainer.style.backgroundImage = `url('${originalImage}')`;
+            selectedColor = null;
+            return;
+          }
+
+          document.querySelectorAll('.color-wrapper, .color-circle').forEach(el => {
+            el.classList.remove('active');
+          });
+
+          colorWrapper?.classList.add('active');
+          colorCircle?.classList.add('active');
+          mainImageContainer.style.backgroundImage = `url('${colorImage || originalImage}')`;
+          selectedColor = colorCode;
         });
       });
+    }
 
-      // Quantity control
-      $('.btn-number').click(function () {
+    function initQuantityControls() {
+      $('.btn-number').click(function (e) {
+        e.preventDefault();
         const input = $('#quantity');
         let value = parseInt(input.val()) || 1;
         const max = parseInt(input.attr('max')) || 100;
@@ -670,93 +589,87 @@ $quantity = (int) $product['quantity'];
           value = Math.min(max, value + 1);
         }
 
-        input.val(value);
+        input.val(value).trigger('change');
       });
-    });
+    }
 
     function changeMainImage(el, imgUrl) {
       document.getElementById('mainImageContainer').style.backgroundImage = `url('${imgUrl}')`;
-      const allThumbnails = document.querySelectorAll('.thumbnail-item');
-      allThumbnails.forEach(thumbnail => thumbnail.classList.remove('active'));
+      document.querySelectorAll('.thumbnail-item').forEach(thumb => {
+        thumb.classList.remove('active');
+      });
       el.classList.add('active');
     }
 
-    function addToCart(id) {
-      const qty = parseInt(document.getElementById('quantity').value) || 1;
-      const size = $('.btn-check:checked').data('size-id');
-      const sizeName = $('.btn-check:checked').data('size-name');
+    async function addToCart(id, quickAdd = false) {
+      try {
+        const formData = new FormData();
+        formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>');
+        formData.append('product_id', id);
+        formData.append('product_name', '<?= $name ?>');
+        formData.append('product_price', '<?= $price ?>');
+        formData.append('product_sale_price', '<?= $on_sale ? $sale_price : 0 ?>');
+        formData.append('product_image', '<?= $image_path ?>');
 
-      // Get selected color data
-      let colorId = null;
-      let colorName = null;
-      let colorImage = null;
-      const activeColorCircle = document.querySelector('.color-circle.active');
-      if (activeColorCircle) {
-        colorId = activeColorCircle.getAttribute('data-color-id');
-        colorName = activeColorCircle.getAttribute('data-color-name');
-        colorImage = activeColorCircle.getAttribute('data-image');
-      }
+        if (!quickAdd) {
+          const qty = parseInt(document.getElementById('quantity').value) || 1;
+          formData.append('quantity', qty);
 
-      const formData = new FormData();
-      formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>');
-      formData.append('product_id', id);
-      formData.append('quantity', qty);
-
-      if (size) {
-        formData.append('size_id', size);
-        formData.append('size_name', sizeName);
-      }
-      if (colorId) {
-        formData.append('color_id', colorId);
-        formData.append('color_name', colorName);
-        formData.append('color_image', colorImage);
-      }
-
-      fetch('add_to_cart.php', {
-        method: 'POST',
-        body: formData
-      })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            updateCartCount(data.cart_count);
-            showSuccessMessage(data.message || 'Product added to cart successfully');
+          // الحصول على الحجم المحدد
+          const sizeInput = document.querySelector('.btn-check:checked');
+          if (sizeInput) {
+            formData.append('size_id', sizeInput.value);
+            formData.append('size_name', sizeInput.dataset.sizeName || sizeInput.value);
+            formData.append('size_code', sizeInput.value);
           } else {
-            showErrorMessage(data.message || 'Failed to add product to cart');
+            formData.append('size_name', 'Not specified');
+            formData.append('size_code', '');
           }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          showErrorMessage('Network error occurred');
+
+          // الحصول على اللون المحدد
+          const colorCircle = document.querySelector('.color-circle.active');
+          if (colorCircle) {
+            formData.append('color_id', colorCircle.dataset.colorId || '');
+            formData.append('color_name', colorCircle.dataset.colorName || '');
+            formData.append('color_hex', colorCircle.dataset.colorCode || '');
+            formData.append('color_image', colorCircle.dataset.image || '');
+          } else {
+            formData.append('color_name', 'Not specified');
+            formData.append('color_hex', '');
+            formData.append('color_image', '');
+          }
+        } else {
+          formData.append('quantity', 1);
+          formData.append('size_name', 'Not specified');
+          formData.append('color_name', 'Not specified');
+        }
+
+        const response = await fetch('add_to_cart.php', {
+          method: 'POST',
+          body: formData
         });
+
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.message || 'Network response was not ok');
+
+        if (data.success) {
+          updateCartCount(data.cart_count);
+          showToast('success', data.message || 'تم إضافة المنتج إلى السلة بنجاح');
+
+          // إظهار السلة بعد الإضافة إذا كنت تريد ذلك
+          // document.getElementById('cartSidebar').classList.add('show');
+        } else {
+          showToast('error', data.message || 'فشل إضافة المنتج إلى السلة');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('error', error.message || 'حدث خطأ في الاتصال');
+      }
     }
 
     function addQuickToCart(id) {
-      const formData = new URLSearchParams();
-      formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>');
-      formData.append('product_id', id);
-      formData.append('quantity', 1);
-
-      fetch('add_to_cart.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: formData.toString()
-      })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            updateCartCount(data.cart_count);
-            showSuccessMessage(data.message || 'Product added to cart');
-          } else {
-            showErrorMessage(data.message || 'Failed to add product');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          showErrorMessage('Connection problem');
-        });
+      addToCart(id, true);
     }
 
     function updateCartCount(count) {
@@ -767,25 +680,20 @@ $quantity = (int) $product['quantity'];
       }
     }
 
-    function showSuccessMessage(message) {
+    function showToast(type, message) {
       const toast = document.createElement('div');
-      toast.className = 'alert alert-success position-fixed top-0 end-0 m-3';
+      toast.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
       toast.style.zIndex = '9999';
+      toast.style.transition = 'all 0.3s ease';
       toast.textContent = message;
       document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
-    }
 
-    function showErrorMessage(message) {
-      const toast = document.createElement('div');
-      toast.className = 'alert alert-danger position-fixed top-0 end-0 m-3';
-      toast.style.zIndex = '9999';
-      toast.textContent = message;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
     }
   </script>
-
   <?php require('./footer.php'); ?>
 </body>
 

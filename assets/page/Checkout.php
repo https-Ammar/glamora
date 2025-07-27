@@ -16,7 +16,6 @@ if (empty($_SESSION['cart'])) {
   exit();
 }
 
-// جلب بيانات المستخدم إذا كان مسجلاً
 $userData = [];
 if (isset($_SESSION['user_id'])) {
   $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
@@ -154,251 +153,6 @@ foreach ($_SESSION['cart'] as $item) {
 }
 ?>
 
-
-
-<!--  -->
-
-
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Checkout</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <style>
-    body {
-      background-color: #fff;
-      font-family: system-ui, sans-serif;
-    }
-
-    .form-section {
-      padding: 30px;
-    }
-
-    .order-summary {
-      padding: 30px;
-      background: #f5f5f5;
-      height: 100%;
-    }
-
-    .product-box {
-      display: flex;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .product-image-wrapper {
-      position: relative;
-      width: 60px;
-      height: 60px;
-      flex-shrink: 0;
-    }
-
-    .product-image {
-      width: 100%;
-      height: 100%;
-      background-size: cover;
-      background-position: center;
-      border-radius: 8px;
-      background-color: red;
-    }
-
-    .product-qty {
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      background-color: black;
-      color: white;
-      font-size: x-small;
-      font-weight: bold;
-      padding: 2px 6px;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2;
-    }
-
-    .product-info {
-      margin-left: 15px;
-    }
-
-    .input-group .form-control {
-      border-radius: 0;
-    }
-
-    .summary-item {
-      display: flex;
-      justify-content: space-between;
-      margin: 8px 0;
-    }
-
-    .summary-total {
-      font-weight: bold;
-      font-size: 20px;
-    }
-
-    .form-control,
-    .form-select {
-      border-radius: 6px;
-      padding: 12px;
-    }
-
-    .form-check {
-      margin-top: 10px;
-    }
-
-    .order-summary .form-control {
-      border-radius: 6px 0 0 6px;
-    }
-
-    .order-summary .btn {
-      border-radius: 0 6px 6px 0;
-    }
-
-    @media (max-width: 768px) {
-      .form-section {
-        padding: 20px;
-      }
-
-      .order-summary {
-        margin-top: 30px;
-      }
-    }
-
-    .row.min-vh-100.d-flex {
-      justify-content: center;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="container-fluid">
-    <div class="row min-vh-100 d-flex">
-      <div class="col-md-5 form-section border-end">
-        <h5>Contact</h5>
-        <input type="email" class="form-control mb-3" value="Ammar132004@gmail.com" readonly />
-        <div class="form-check mb-4">
-          <input class="form-check-input" type="checkbox" checked id="offers" />
-          <label class="form-check-label" for="offers">Email me with news and offers</label>
-        </div>
-
-        <h5>Delivery</h5>
-        <form>
-          <div class="mb-3">
-            <select class="form-select">
-              <option selected>Egypt</option>
-            </select>
-          </div>
-          <div class="row mb-3">
-            <div class="col">
-              <input type="text" class="form-control" placeholder="First name" />
-            </div>
-            <div class="col">
-              <input type="text" class="form-control" placeholder="Last name" />
-            </div>
-          </div>
-          <div class="mb-3">
-            <input type="text" class="form-control"
-              placeholder="Enter full address (e.g: 123 Street, District, Area)" />
-          </div>
-          <div class="mb-3">
-            <input type="text" class="form-control" placeholder="Apartment, suite, etc." />
-          </div>
-          <div class="row mb-3">
-            <div class="col">
-              <input type="text" class="form-control" placeholder="City" />
-            </div>
-            <div class="col">
-              <select class="form-select">
-                <option selected>Sohag</option>
-              </select>
-            </div>
-            <div class="col">
-              <input type="text" class="form-control" placeholder="Postal code (optional)" />
-            </div>
-          </div>
-          <div class="mb-3">
-            <input type="text" class="form-control" placeholder="Mobile Number (e.g: 0123 xxx xxxx)" />
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="saveInfo" />
-            <label class="form-check-label" for="saveInfo">Save this information for next time</label>
-          </div>
-        </form>
-      </div>
-
-      <!-- Right: Order Summary -->
-      <div class="col-md-5 p-0">
-        <div class="order-summary h-100">
-
-
-          <tbody>
-            <?php foreach ($_SESSION['cart'] as $item): ?>
-              <?php
-              $price = $item['sale_price'] ?? $item['price'];
-              $item_total = $price * $item['quantity'];
-              ?>
-
-
-              <div class="product-box">
-                <div class="product-image-wrapper">
-                  <span class="product-qty"><?= $item['quantity'] ?></span>
-                  <div class="product-image" style="background-image: url('<?= htmlspecialchars($item['image']) ?>');">
-                  </div>
-                </div>
-                <div class="product-info">
-                  <p class="m-0"><?= htmlspecialchars($item['name']) ?></p>
-                  <span>Necklace</span>
-                </div>
-                <div class="ms-auto fw-bold">EGP <?= formatPrice($item_total) ?></div>
-              </div>
-
-
-
-            <?php endforeach; ?>
-          </tbody>
-
-          <div class="input-group mb-3">
-            <input type="text" class="form-control" placeholder="Discount code or gift card" />
-            <button class="btn btn-outline-secondary">Apply</button>
-          </div>
-
-          <div class="summary-item">
-            <span>Subtotal</span>
-            <span>EGP <?= formatPrice($total) ?></span>
-          </div>
-          <div class="summary-item">
-            <span>Shipping</span>
-            <span>free</span>
-          </div>
-          <hr />
-          <div class="summary-item summary-total">
-            <span>Total</span>
-            <span>EGP <?= formatPrice($total) ?></span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-
-</html>
-
-
-
-
-
-
-
-
-<!--  -->
 <!DOCTYPE html>
 <html lang="ar">
 
@@ -406,17 +160,80 @@ foreach ($_SESSION['cart'] as $item) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>الدفع | GLAMORA</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: system-ui, sans-serif;
+    }
 
+    .card {
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .product-item {
+      display: flex;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .product-image {
+      width: 70px;
+      height: 70px;
+      border-radius: 8px;
+      object-fit: cover;
+      margin-left: 15px;
+    }
+
+    .product-details {
+      flex: 1;
+    }
+
+    .product-title {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .product-variants {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .product-price {
+      font-weight: bold;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+    }
+
+    .summary-total {
+      font-weight: bold;
+      font-size: 18px;
+      border-top: 1px solid #eee;
+      padding-top: 15px;
+    }
+
+    .btn-checkout {
+      background-color: #000;
+      color: #fff;
+      padding: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+    }
+  </style>
 </head>
 
 <body>
-
-
   <div class="container py-5">
     <div class="row">
       <div class="col-lg-8">
         <div class="card mb-4">
-          <div class="card-header">
+          <div class="card-header bg-white">
             <h4 class="mb-0">معلومات العميل</h4>
           </div>
           <div class="card-body">
@@ -472,13 +289,55 @@ foreach ($_SESSION['cart'] as $item) {
                 </div>
               </div>
 
-              <button type="submit" name="place_order" class="btn btn-dark w-100 mt-4 py-3">تأكيد الطلب</button>
+              <button type="submit" name="place_order" class="btn btn-checkout w-100 mt-4">تأكيد الطلب</button>
             </form>
           </div>
         </div>
       </div>
 
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h4 class="mb-0">ملخص الطلب</h4>
+          </div>
+          <div class="card-body">
+            <?php foreach ($_SESSION['cart'] as $item): ?>
+              <div class="product-item">
+                <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>"
+                  class="product-image">
+                <div class="product-details">
+                  <div class="product-title"><?= htmlspecialchars($item['name']) ?></div>
+                  <div class="product-variants">
+                    <?php if (!empty($item['color_name'])): ?>
+                      اللون: <?= htmlspecialchars($item['color_name']) ?>
+                    <?php endif; ?>
+                    <?php if (!empty($item['size_name'])): ?>
+                      | المقاس: <?= htmlspecialchars($item['size_name']) ?>
+                    <?php endif; ?>
+                  </div>
+                  <div class="product-qty">الكمية: <?= $item['quantity'] ?></div>
+                </div>
+                <div class="product-price">
+                  EGP <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
 
+            <div class="summary-item">
+              <span>المجموع الفرعي</span>
+              <span>EGP <?= formatPrice($total) ?></span>
+            </div>
+            <div class="summary-item">
+              <span>الشحن</span>
+              <span>مجاني</span>
+            </div>
+            <div class="summary-item summary-total">
+              <span>الإجمالي</span>
+              <span>EGP <?= formatPrice($total) ?></span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -512,8 +371,6 @@ foreach ($_SESSION['cart'] as $item) {
       });
     });
   </script>
-
-
 </body>
 
 </html>

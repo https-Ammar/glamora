@@ -12,8 +12,21 @@ if (empty($_SESSION['csrf_token'])) {
 require('./db.php');
 
 if (empty($_SESSION['cart'])) {
-  header('Location: ./cart.php');
+  header('Location: ./profile.php');
   exit();
+}
+
+// جلب بيانات المستخدم إذا كان مسجلاً
+$userData = [];
+if (isset($_SESSION['user_id'])) {
+  $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+  $stmt->bind_param("i", $_SESSION['user_id']);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  if ($result->num_rows > 0) {
+    $userData = $result->fetch_assoc();
+  }
+  $stmt->close();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
@@ -21,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     die('Invalid CSRF token');
   }
 
-  $required = ['first_name', 'last_name', 'email', 'phone', 'address', 'city', 'country', 'payment_method'];
+  $required = ['full_name', 'email', 'phone', 'address', 'city', 'country'];
   foreach ($required as $field) {
     if (empty($_POST[$field])) {
       die('Please fill all required fields');
@@ -42,66 +55,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 
   try {
     $stmt = $conn->prepare("INSERT INTO orders (
-      user_id, customer_first_name, customer_last_name, customer_email, customer_phone, 
-      customer_address, customer_city, customer_country, notes, payment_method, 
-      subtotal, tax, shipping, total, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+      user_id, customer_first_name, customer_last_name, name, phoneone, 
+      city, address, orderstate, finaltotalprice, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
 
-    $userId = $_SESSION['user_id'] ?? null;
-    $status = 'pending';
-    $tax = 0;
-    $shipping = 0;
+    $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+    $customerName = $_POST['full_name'];
+    $status = 'inprogress';
 
     $stmt->bind_param(
-      "isssssssssddddss",
+      "isssssssd",
       $userId,
-      $_POST['first_name'],
-      $_POST['last_name'],
-      $_POST['email'],
+      $_POST['full_name'],
+      $_POST['full_name'],
+      $customerName,
       $_POST['phone'],
-      $_POST['address'],
       $_POST['city'],
-      $_POST['country'],
-      $_POST['notes'] ?? '',
-      $_POST['payment_method'],
-      $total,
-      $tax,
-      $shipping,
-      $total,
-      $status
+      $_POST['address'],
+      $status,
+      $total
     );
 
-    $stmt->execute();
+    if (!$stmt->execute()) {
+      throw new Exception("Failed to create order: " . $stmt->error);
+    }
+
     $orderId = $conn->insert_id;
 
     $itemStmt = $conn->prepare("INSERT INTO order_items (
-      order_id, product_id, product_name, price, 
-      quantity, color, size, image
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+      order_id, product_id, qty, price, total_price, color, size
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
     foreach ($_SESSION['cart'] as $item) {
       $price = $item['sale_price'] ?? $item['price'];
+      $totalPrice = $price * $item['quantity'];
       $color = $item['color_name'] ?? 'Not specified';
       $size = $item['size_name'] ?? 'Not specified';
 
       $itemStmt->bind_param(
-        "iisdssss",
+        "iiiddss",
         $orderId,
         $item['id'],
-        $item['name'],
-        $price,
         $item['quantity'],
+        $price,
+        $totalPrice,
         $color,
-        $size,
-        $item['image']
+        $size
       );
 
-      $itemStmt->execute();
+      if (!$itemStmt->execute()) {
+        throw new Exception("Failed to add order items: " . $itemStmt->error);
+      }
+    }
+
+    if (isset($_SESSION['user_id'])) {
+      $updateStmt = $conn->prepare("UPDATE users SET 
+        phone = ?, 
+        address = ?, 
+        city = ?, 
+        country = ? 
+        WHERE id = ?");
+
+      $updateStmt->bind_param(
+        "ssssi",
+        $_POST['phone'],
+        $_POST['address'],
+        $_POST['city'],
+        $_POST['country'],
+        $_SESSION['user_id']
+      );
+
+      if (!$updateStmt->execute()) {
+        throw new Exception("Failed to update user info: " . $updateStmt->error);
+      }
+      $updateStmt->close();
     }
 
     $conn->commit();
     unset($_SESSION['cart']);
-    header("Location: ./thank_you.php?id=$orderId");
+    header("Location: ./profile.php?id=$orderId");
     exit();
 
   } catch (Exception $e) {
@@ -109,8 +141,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     die("Order failed: " . $e->getMessage());
   }
 }
-
-$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
 
 function formatPrice($price)
 {
@@ -125,16 +155,14 @@ foreach ($_SESSION['cart'] as $item) {
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Checkout | GLAMORA</title>
+  <title>الدفع | GLAMORA</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  <link rel="stylesheet" href="../style/main.css">
-  <link rel="stylesheet" href="../style/checkout.css">
   <style>
     .color-circle {
       display: inline-block;
@@ -166,122 +194,93 @@ foreach ($_SESSION['cart'] as $item) {
     .form-control:focus {
       box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
     }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+    }
+
+    .card-header {
+      background-color: #343a40;
+      color: white;
+    }
+
+    .btn-dark {
+      background-color: #343a40;
+      border-color: #343a40;
+    }
+
+    .btn-dark:hover {
+      background-color: #23272b;
+      border-color: #1d2124;
+    }
   </style>
 </head>
 
 <body>
-  <?php require('./header.php'); ?>
+
 
   <div class="container py-5">
     <div class="row">
       <div class="col-lg-8">
         <div class="card mb-4">
-          <div class="card-header bg-dark text-white">
-            <h4 class="mb-0">Customer Information</h4>
+          <div class="card-header">
+            <h4 class="mb-0">معلومات العميل</h4>
           </div>
           <div class="card-body">
             <form id="checkout-form" method="POST">
               <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
 
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="first_name" class="form-label">First Name*</label>
-                  <input type="text" class="form-control" id="first_name" name="first_name" required
-                    value="<?= isset($_SESSION['user']) ? htmlspecialchars($_SESSION['user']['first_name']) : '' ?>">
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label for="last_name" class="form-label">Last Name*</label>
-                  <input type="text" class="form-control" id="last_name" name="last_name" required
-                    value="<?= isset($_SESSION['user']) ? htmlspecialchars($_SESSION['user']['last_name']) : '' ?>">
-                </div>
+              <div class="mb-3">
+                <label for="full_name" class="form-label">الاسم الكامل*</label>
+                <input type="text" class="form-control" id="full_name" name="full_name" required
+                  value="<?= !empty($userData['name']) ? htmlspecialchars($userData['name']) :
+                    (!empty($userData['first_name']) ? htmlspecialchars($userData['first_name'] . ' ' . $userData['last_name']) : '') ?>">
               </div>
 
               <div class="row">
                 <div class="col-md-6 mb-3">
-                  <label for="email" class="form-label">Email*</label>
+                  <label for="email" class="form-label">البريد الإلكتروني*</label>
                   <input type="email" class="form-control" id="email" name="email" required
-                    value="<?= isset($_SESSION['user']) ? htmlspecialchars($_SESSION['user']['email']) : '' ?>">
+                    value="<?= !empty($userData['email']) ? htmlspecialchars($userData['email']) : '' ?>">
                 </div>
                 <div class="col-md-6 mb-3">
-                  <label for="phone" class="form-label">Phone*</label>
+                  <label for="phone" class="form-label">رقم الهاتف*</label>
                   <input type="tel" class="form-control" id="phone" name="phone" required
-                    value="<?= isset($_SESSION['user']) ? htmlspecialchars($_SESSION['user']['phone']) : '' ?>">
+                    value="<?= !empty($userData['phone']) ? htmlspecialchars($userData['phone']) : '' ?>">
                 </div>
               </div>
 
               <div class="mb-3">
-                <label for="address" class="form-label">Address*</label>
-                <input type="text" class="form-control" id="address" name="address" required>
+                <label for="address" class="form-label">العنوان*</label>
+                <input type="text" class="form-control" id="address" name="address" required
+                  value="<?= !empty($userData['address']) ? htmlspecialchars($userData['address']) : '' ?>">
               </div>
 
               <div class="row">
                 <div class="col-md-4 mb-3">
-                  <label for="country" class="form-label">Country*</label>
+                  <label for="country" class="form-label">الدولة*</label>
                   <select class="form-select" id="country" name="country" required>
-                    <option value="">Select...</option>
-                    <option value="Egypt">Egypt</option>
-                    <option value="Saudi Arabia">Saudi Arabia</option>
-                    <option value="UAE">UAE</option>
-                    <option value="Kuwait">Kuwait</option>
+                    <option value="">اختر...</option>
+                    <option value="مصر" <?= (!empty($userData['country']) && $userData['country'] == 'مصر') ? 'selected' : '' ?>>مصر</option>
+                    <option value="السعودية" <?= (!empty($userData['country']) && $userData['country'] == 'السعودية') ? 'selected' : '' ?>>السعودية</option>
+                    <option value="الإمارات" <?= (!empty($userData['country']) && $userData['country'] == 'الإمارات') ? 'selected' : '' ?>>الإمارات</option>
+                    <option value="الكويت" <?= (!empty($userData['country']) && $userData['country'] == 'الكويت') ? 'selected' : '' ?>>الكويت</option>
                   </select>
                 </div>
                 <div class="col-md-4 mb-3">
-                  <label for="city" class="form-label">City*</label>
-                  <input type="text" class="form-control" id="city" name="city" required>
+                  <label for="city" class="form-label">المدينة*</label>
+                  <input type="text" class="form-control" id="city" name="city" required
+                    value="<?= !empty($userData['city']) ? htmlspecialchars($userData['city']) : '' ?>">
                 </div>
                 <div class="col-md-4 mb-3">
-                  <label for="postal_code" class="form-label">Postal Code</label>
-                  <input type="text" class="form-control" id="postal_code" name="postal_code">
+                  <label for="postal_code" class="form-label">الرمز البريدي</label>
+                  <input type="text" class="form-control" id="postal_code" name="postal_code"
+                    value="<?= !empty($userData['postal_code']) ? htmlspecialchars($userData['postal_code']) : '' ?>">
                 </div>
               </div>
 
-              <div class="mb-3">
-                <label for="notes" class="form-label">Order Notes (optional)</label>
-                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
-              </div>
-
-              <div class="card mt-4">
-                <div class="card-header bg-dark text-white">
-                  <h4 class="mb-0">Payment Method</h4>
-                </div>
-                <div class="card-body">
-                  <div class="form-check mb-3">
-                    <input class="form-check-input" type="radio" name="payment_method" id="cash_on_delivery"
-                      value="cash_on_delivery" checked required>
-                    <label class="form-check-label" for="cash_on_delivery">
-                      Cash on Delivery
-                    </label>
-                  </div>
-                  <div class="form-check mb-3">
-                    <input class="form-check-input" type="radio" name="payment_method" id="credit_card"
-                      value="credit_card" required>
-                    <label class="form-check-label" for="credit_card">
-                      Credit Card
-                    </label>
-                  </div>
-                  <div id="credit-card-fields" style="display: none;">
-                    <div class="row">
-                      <div class="col-md-12 mb-3">
-                        <label for="card_number" class="form-label">Card Number</label>
-                        <input type="text" class="form-control" id="card_number" name="card_number"
-                          placeholder="1234 5678 9012 3456">
-                      </div>
-                    </div>
-                    <div class="row">
-                      <div class="col-md-6 mb-3">
-                        <label for="card_expiry" class="form-label">Expiry Date</label>
-                        <input type="text" class="form-control" id="card_expiry" name="card_expiry" placeholder="MM/YY">
-                      </div>
-                      <div class="col-md-6 mb-3">
-                        <label for="card_cvv" class="form-label">CVV</label>
-                        <input type="text" class="form-control" id="card_cvv" name="card_cvv" placeholder="123">
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <button type="submit" name="place_order" class="btn btn-dark w-100 mt-4 py-3">Place Order</button>
+              <button type="submit" name="place_order" class="btn btn-dark w-100 mt-4 py-3">تأكيد الطلب</button>
             </form>
           </div>
         </div>
@@ -289,17 +288,17 @@ foreach ($_SESSION['cart'] as $item) {
 
       <div class="col-lg-4">
         <div class="card mb-4">
-          <div class="card-header bg-dark text-white">
-            <h4 class="mb-0">Order Summary</h4>
+          <div class="card-header">
+            <h4 class="mb-0">ملخص الطلب</h4>
           </div>
           <div class="card-body">
             <div class="table-responsive">
               <table class="table">
                 <thead>
                   <tr>
-                    <th>Product</th>
-                    <th>Qty</th>
-                    <th>Total</th>
+                    <th>المنتج</th>
+                    <th>الكمية</th>
+                    <th>المجموع</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -333,7 +332,7 @@ foreach ($_SESSION['cart'] as $item) {
                         </div>
                       </td>
                       <td><?= $item['quantity'] ?></td>
-                      <td>$<?= formatPrice($item_total) ?></td>
+                      <td><?= formatPrice($item_total) ?> جنيه</td>
                     </tr>
                   <?php endforeach; ?>
                 </tbody>
@@ -343,26 +342,26 @@ foreach ($_SESSION['cart'] as $item) {
             <hr>
 
             <div class="d-flex justify-content-between mb-2">
-              <span>Subtotal</span>
-              <span>$<?= formatPrice($total) ?></span>
+              <span>المجموع الفرعي</span>
+              <span><?= formatPrice($total) ?> جنيه</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Shipping</span>
-              <span>Free</span>
+              <span>الشحن</span>
+              <span>مجاني</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Tax</span>
-              <span>$0.00</span>
+              <span>الضرائب</span>
+              <span>0.00 جنيه</span>
             </div>
 
             <hr>
 
             <div class="d-flex justify-content-between fw-bold fs-5">
-              <span>Total</span>
-              <span>$<?= formatPrice($total) ?></span>
+              <span>الإجمالي</span>
+              <span><?= formatPrice($total) ?> جنيه</span>
             </div>
 
-            <a href="./cart.php" class="btn btn-outline-dark w-100 mt-3">Edit Cart</a>
+            <a href="./cart.php" class="btn btn-outline-dark w-100 mt-3">تعديل السلة</a>
           </div>
         </div>
       </div>
@@ -374,16 +373,6 @@ foreach ($_SESSION['cart'] as $item) {
 
   <script>
     $(document).ready(function () {
-      $('input[name="payment_method"]').change(function () {
-        if ($(this).val() === 'credit_card') {
-          $('#credit-card-fields').show();
-          $('#card_number, #card_expiry, #card_cvv').prop('required', true);
-        } else {
-          $('#credit-card-fields').hide();
-          $('#card_number, #card_expiry, #card_cvv').prop('required', false);
-        }
-      });
-
       $('#checkout-form').submit(function (e) {
         let isValid = true;
 
@@ -404,13 +393,13 @@ foreach ($_SESSION['cart'] as $item) {
 
         if (!isValid) {
           e.preventDefault();
-          alert('Please fill all required fields correctly');
+          alert('الرجاء ملء جميع الحقول المطلوبة بشكل صحيح');
         }
       });
     });
   </script>
 
-  <?php require('./footer.php'); ?>
+
 </body>
 
 </html>

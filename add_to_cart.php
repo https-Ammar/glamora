@@ -1,218 +1,115 @@
 <?php
-require('db.php');
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => true,
+    'use_strict_mode' => true
+]);
 
+require('./db.php');
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        // التحقق من البيانات الأساسية
-        if (!isset($_POST['productid'])) {
-            throw new Exception("معرف المنتج مطلوب.");
-        }
+$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
 
-        $productid = intval($_POST['productid']);
-        $qty = isset($_POST['qty']) ? intval($_POST['qty']) : 1;
-        $color = isset($_POST['color']) ? trim($_POST['color']) : null;
-        $size = isset($_POST['size']) ? trim($_POST['size']) : null;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+    exit;
+}
 
-        if ($productid <= 0 || $qty <= 0) {
-            throw new Exception("بيانات المنتج غير صالحة.");
-        }
+if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    echo json_encode(['success' => false, 'message' => 'CSRF token validation failed']);
+    exit;
+}
 
-        // إدارة معرف المستخدم
-        if (!isset($_COOKIE['cart_userid']) || !is_numeric($_COOKIE['cart_userid'])) {
-            $userid = time() . rand(1000, 9999);
-            setcookie('cart_userid', $userid, time() + (86400 * 30), "/");
-        } else {
-            $userid = $_COOKIE['cart_userid'];
-        }
+$product_id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT);
+$quantity = filter_input(INPUT_POST, 'quantity', FILTER_VALIDATE_INT, ['options' => ['default' => 1, 'min_range' => 1]]);
+$size_id = filter_input(INPUT_POST, 'size_id', FILTER_VALIDATE_INT);
+$color_id = filter_input(INPUT_POST, 'color_id', FILTER_VALIDATE_INT);
 
-        // بدء المعاملة
-        $conn->begin_transaction();
+if (!$product_id) {
+    echo json_encode(['success' => false, 'message' => 'Invalid product ID']);
+    exit;
+}
 
-        // جلب معلومات المنتج مع الألوان والأحجام
-        $productQuery = $conn->prepare("
-            SELECT 
-                p.id, 
-                p.name, 
-                p.price, 
-                p.sale_price,
-                p.on_sale,
-                p.quantity AS stock_quantity,
-                p.colors,
-                p.sizes,
-                p.image
-            FROM products p 
-            WHERE p.id = ?
-        ");
-        $productQuery->bind_param("i", $productid);
-        $productQuery->execute();
-        $productResult = $productQuery->get_result();
+$stmt = $conn->prepare("
+    SELECT p.*, 
+           ps.id AS size_id, ps.size_value AS size_name,
+           pc.id AS color_id, pc.color_name, pc.color_image
+    FROM products p
+    LEFT JOIN product_sizes ps ON p.id = ps.product_id AND (ps.id = ? OR ? IS NULL)
+    LEFT JOIN product_colors pc ON p.id = pc.product_id AND (pc.id = ? OR ? IS NULL)
+    WHERE p.id = ?
+");
+$stmt->bind_param("iiiii", $size_id, $size_id, $color_id, $color_id, $product_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$product = $result->fetch_assoc();
 
-        if ($productResult->num_rows === 0) {
-            throw new Exception("المنتج غير موجود.");
-        }
+if (!$product) {
+    echo json_encode(['success' => false, 'message' => 'Product not found']);
+    exit;
+}
 
-        $product = $productResult->fetch_assoc();
-        $productQuery->close();
-
-        // حساب السعر النهائي (سعر الخصم إذا كان في عرض)
-        $basePrice = $product['on_sale'] && $product['sale_price'] ? $product['sale_price'] : $product['price'];
-        $finalPrice = $basePrice;
-
-        // التحقق من المخزون
-        if ($product['stock_quantity'] < $qty) {
-            throw new Exception("الكمية المطلوبة غير متوفرة في المخزون.");
-        }
-
-        // التحقق من صحة اللون إذا تم اختياره
-        $colorHex = null;
-        if ($color !== null) {
-            $colors = json_decode($product['colors'], true) ?: [];
-            $validColor = false;
-
-            foreach ($colors as $c) {
-                if ($c['name'] === $color) {
-                    $validColor = true;
-                    $colorHex = $c['hex'];
-                    break;
-                }
-            }
-
-            if (!$validColor) {
-                throw new Exception("اللون المحدد غير متوفر لهذا المنتج.");
-            }
-        }
-
-        // التحقق من صحة الحجم إذا تم اختياره
-        if ($size !== null) {
-            $sizes = json_decode($product['sizes'], true) ?: [];
-            $validSize = false;
-
-            foreach ($sizes as $s) {
-                if ($s['name'] === $size) {
-                    $validSize = true;
-                    $finalPrice = $s['price'];
-                    break;
-                }
-            }
-
-            if (!$validSize) {
-                throw new Exception("الحجم المحدد غير متوفر لهذا المنتج.");
-            }
-        }
-
-        // التحقق مما إذا كان المنتج موجود بالفعل في السلة بنفس المواصفات
-        $checkCart = $conn->prepare("
-            SELECT id, quantity 
-            FROM cart 
-            WHERE 
-                userid = ? AND 
-                productid = ? AND 
-                color " . ($color === null ? "IS NULL" : "= ?") . " AND 
-                size " . ($size === null ? "IS NULL" : "= ?")
-        );
-
-        if ($color === null && $size === null) {
-            $checkCart->bind_param("ii", $userid, $productid);
-        } elseif ($color !== null && $size === null) {
-            $checkCart->bind_param("iis", $userid, $productid, $color);
-        } elseif ($color === null && $size !== null) {
-            $checkCart->bind_param("iis", $userid, $productid, $size);
-        } else {
-            $checkCart->bind_param("iiss", $userid, $productid, $color, $size);
-        }
-
-        $checkCart->execute();
-        $cartResult = $checkCart->get_result();
-
-        if ($cartResult->num_rows > 0) {
-            // تحديث الكمية إذا كان المنتج موجوداً
-            $cart = $cartResult->fetch_assoc();
-            $newQty = $cart['quantity'] + $qty;
-
-            $updateCart = $conn->prepare("UPDATE cart SET quantity = ? WHERE id = ?");
-            $updateCart->bind_param("ii", $newQty, $cart['id']);
-            $updateCart->execute();
-            $updateCart->close();
-
-            $response = "تم تحديث الكمية في السلة.";
-        } else {
-            // إضافة منتج جديد للسلة
-            $insertCart = $conn->prepare("
-                INSERT INTO cart(
-                    userid, 
-                    productid, 
-                    quantity, 
-                    price,
-                    color, 
-                    color_hex,
-                    size, 
-                    product_name,
-                    product_image,
-                    added_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-            ");
-            $insertCart->bind_param(
-                "iiidsssss",
-                $userid,
-                $productid,
-                $qty,
-                $finalPrice,
-                $color,
-                $colorHex,
-                $size,
-                $product['name'],
-                $product['image']
-            );
-            $insertCart->execute();
-            $insertCart->close();
-
-            $response = "تمت إضافة المنتج إلى السلة.";
-        }
-
-        $checkCart->close();
-
-        // تنفيذ المعاملة
-        $conn->commit();
-
-        echo json_encode([
-            'success' => true,
-            'message' => $response,
-            'cart_count' => getCartCount($conn, $userid),
-            'product' => [
-                'id' => $productid,
-                'name' => $product['name'],
-                'price' => $finalPrice,
-                'quantity' => $qty,
-                'color' => $color,
-                'color_hex' => $colorHex,
-                'size' => $size,
-                'image' => $product['image']
-            ]
-        ]);
-    } catch (Exception $e) {
-        $conn->rollback();
-        echo json_encode([
-            'success' => false,
-            'message' => $e->getMessage()
-        ]);
-    }
+$image_url = '';
+if (!empty($product['color_image'])) {
+    $image_url = str_starts_with($product['color_image'], 'http') ? $product['color_image'] : $base_url . 'dashboard/' . ltrim($product['color_image'], '/');
+} elseif (!empty($product['image'])) {
+    $image_url = str_starts_with($product['image'], 'http') ? $product['image'] : $base_url . 'dashboard/' . ltrim($product['image'], '/');
 } else {
-    echo json_encode([
-        'success' => false,
-        'message' => 'طلب غير صالح'
-    ]);
+    $image_url = $base_url . 'assets/images/default.jpg';
 }
 
-// دالة مساعدة للحصول على عدد العناصر في السلة
-function getCartCount($conn, $userid)
-{
-    $countQuery = $conn->prepare("SELECT SUM(quantity) AS total FROM cart WHERE userid = ?");
-    $countQuery->bind_param("s", $userid);
-    $countQuery->execute();
-    $result = $countQuery->get_result()->fetch_assoc();
-    $countQuery->close();
-    return $result['total'] ?? 0;
+$cart_item = [
+    'id' => $product_id,
+    'name' => $product['name'],
+    'price' => ($product['on_sale'] && $product['sale_price']) ? $product['sale_price'] : $product['price'],
+    'original_price' => $product['price'],
+    'quantity' => $quantity,
+    'image' => $image_url,
+    'size_id' => $size_id ?: null,
+    'size_name' => $product['size_name'] ?? 'Not specified',
+    'color_id' => $color_id ?: null,
+    'color_name' => $product['color_name'] ?? 'Not specified',
+    'color_image' => $image_url
+];
+
+if (!isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = [];
 }
+
+$found_index = null;
+foreach ($_SESSION['cart'] as $index => $item) {
+    if ($item['id'] == $product_id && $item['size_id'] == $size_id && $item['color_id'] == $color_id) {
+        $found_index = $index;
+        break;
+    }
+}
+
+if ($found_index !== null) {
+    $_SESSION['cart'][$found_index]['quantity'] += $quantity;
+} else {
+    $_SESSION['cart'][] = $cart_item;
+}
+
+$total_count = array_reduce($_SESSION['cart'], function ($carry, $item) {
+    return $carry + $item['quantity'];
+}, 0);
+
+$subtotal = array_reduce($_SESSION['cart'], function ($carry, $item) {
+    return $carry + ($item['price'] * $item['quantity']);
+}, 0);
+
+$response = [
+    'success' => true,
+    'message' => 'Product added to cart successfully',
+    'cart_count' => $total_count,
+    'subtotal' => number_format($subtotal, 2),
+    'cart' => $_SESSION['cart'],
+    'is_empty' => $total_count === 0
+];
+
+if ($total_count === 0) {
+    $response['empty_message'] = 'Your shopping cart is currently empty. Start shopping now!';
+}
+
+echo json_encode($response);
 ?>

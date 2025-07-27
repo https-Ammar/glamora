@@ -1,13 +1,20 @@
 <?php
+session_start([
+  'cookie_httponly' => true,
+  'cookie_secure' => true,
+  'use_strict_mode' => true
+]);
+
+if (empty($_SESSION['csrf_token'])) {
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 require_once('./db.php');
 $imagePath = './dashboard/';
 $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
 if ($conn) {
-  $check_stmt = $conn->prepare("
-    SELECT id 
-    FROM site_visits 
-    WHERE ip_address = ? AND DATE(visit_time) = CURDATE()
-  ");
+  $check_stmt = $conn->prepare("SELECT id FROM site_visits WHERE ip_address = ? AND DATE(visit_time) = CURDATE()");
   if ($check_stmt) {
     $check_stmt->bind_param("s", $ip);
     $check_stmt->execute();
@@ -25,10 +32,7 @@ if ($conn) {
           $country = (string) $data['country'];
         }
       }
-      $insert_stmt = $conn->prepare("
-        INSERT INTO site_visits (ip_address, country) 
-        VALUES (?, ?)
-      ");
+      $insert_stmt = $conn->prepare("INSERT INTO site_visits (ip_address, country) VALUES (?, ?)");
       if ($insert_stmt) {
         $insert_stmt->bind_param("ss", $ip, $country);
         $insert_stmt->execute();
@@ -47,6 +51,7 @@ if ($conn) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="<?php echo $_SESSION['csrf_token']; ?>">
   <title>GLAMORA</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -92,10 +97,10 @@ if ($conn) {
       if ($selectad->num_rows > 0) {
         $fetchad = $selectad->fetch_assoc();
         echo '<a class="slider" href="' . htmlspecialchars($fetchad['linkaddress'], ENT_QUOTES, 'UTF-8') . '">
-              <div class="banner-content p-5 add_link first" style="background-image: url(' . $imagePath . htmlspecialchars($fetchad['photo'], ENT_QUOTES, 'UTF-8') . ');">
-              <div class="put_first ">q</div>
-              </div>
-          </a>';
+                      <div class="banner-content p-5 add_link first" style="background-image: url(' . $imagePath . htmlspecialchars($fetchad['photo'], ENT_QUOTES, 'UTF-8') . ');">
+                      <div class="put_first ">q</div>
+                      </div>
+                  </a>';
       } else {
         echo '<p></p>';
       }
@@ -116,11 +121,11 @@ if ($conn) {
           $name = htmlspecialchars($fetchcat['name'] ?? '', ENT_QUOTES, 'UTF-8');
           $id = (int) $fetchcat['id'];
           echo '<div class="main_cat item">
-          <a href="./assets/page/categories.php?id=' . $id . '">
-              <div class="_Categories_img" style="background-image: url(\'' . $imagePath . $image . '\');"></div>
-              <h2>' . $name . '</h2>
-          </a>
-      </div>';
+                    <a href="./assets/page/categories.php?id=' . $id . '">
+                        <div class="_Categories_img" style="background-image: url(\'' . $imagePath . $image . '\');"></div>
+                        <h2>' . $name . '</h2>
+                    </a>
+                </div>';
         }
         $sqlcat->close();
         ?>
@@ -167,8 +172,8 @@ if ($conn) {
                 $photoPath = htmlspecialchars($imagePath . $photo, ENT_QUOTES, 'UTF-8');
                 $link = htmlspecialchars($fetchad['linkaddress'] ?? '#', ENT_QUOTES, 'UTF-8');
                 echo '<a class="slider ' . $firstAdClass . '" href="' . $link . '">
-            <div class="banner-content p-5 add_link" style="background-image: url(\'' . $photoPath . '\');"></div>
-          </a>';
+                            <div class="banner-content p-5 add_link" style="background-image: url(\'' . $photoPath . '\');"></div>
+                          </a>';
               }
               ?>
             </div>
@@ -337,12 +342,29 @@ if ($conn) {
     }
 
     function addcart(productid) {
-      const quantity = $('.quantity' + productid).val();
+      const quantity = $('.quantity' + productid).val() || 1;
+      const csrfToken = $('meta[name="csrf-token"]').attr('content');
+
       $.ajax({
         type: "POST",
         url: "./assets/page/add_to_cart.php",
-        data: { productid, qty: quantity },
-        success: loadCart,
+        data: {
+          product_id: productid,
+          quantity: quantity,
+          csrf_token: csrfToken
+        },
+        success: function (response) {
+          try {
+            const data = JSON.parse(response);
+            if (data.success) {
+              loadCart();
+            } else {
+              console.error(data.message);
+            }
+          } catch (e) {
+            console.error("Error parsing response:", e);
+          }
+        },
         error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
         }

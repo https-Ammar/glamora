@@ -1,15 +1,29 @@
 <?php
-session_start();
+session_start([
+    'cookie_lifetime' => 86400, // 24 hours
+    'cookie_secure' => true,
+    'cookie_httponly' => true,
+    'use_strict_mode' => true
+]);
+
 require('./db.php');
 
+// Redirect if already logged in
+if (isset($_SESSION['user_id'])) {
+    header('Location: profile.php');
+    exit();
+}
+
+$error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL) || empty($password)) {
-        $error = "Invalid credentials.";
+        $error = "Please enter valid email and password.";
     } else {
-        $stmt = $conn->prepare("SELECT id, password FROM users WHERE email = ?");
+        // Modified query to match your actual database columns
+        $stmt = $conn->prepare("SELECT id, password, name FROM users WHERE email = ?");
         if ($stmt) {
             $stmt->bind_param("s", $email);
             $stmt->execute();
@@ -17,20 +31,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user = $result->fetch_assoc()) {
                 if (password_verify($password, $user['password'])) {
+                    // Regenerate session ID for security
                     session_regenerate_id(true);
-                    $_SESSION['userId'] = $user['id'];
+
+                    // Set session variables
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['user_name'] = $user['name']; // Using the 'name' column instead of first_name/last_name
+                    $_SESSION['logged_in'] = true;
+
                     header('Location: profile.php');
                     exit();
                 } else {
-                    $error = "Incorrect password.";
+                    $error = "Incorrect email or password.";
                 }
             } else {
-                $error = "Email not found.";
+                $error = "Account not found.";
             }
-
             $stmt->close();
         } else {
-            $error = "Server error.";
+            $error = "Database error. Please try again later.";
         }
     }
 }
@@ -110,6 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 13px;
             font-weight: bold;
             letter-spacing: 1px;
+            transition: background-color 0.3s;
         }
 
         .btn-login:hover {
@@ -129,6 +149,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         a {
             color: black;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        a:hover {
+            color: #555;
         }
 
         h2.mb-2 {
@@ -138,6 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         p.text-muted {
             margin-bottom: 5vh;
+            color: #6c757d;
         }
 
         button.btn.btn-login.w-100 {
@@ -149,11 +176,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-align: center;
             width: 50%;
             margin: 5vh auto;
+            padding: 20px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            margin-bottom: 15px;
+            font-size: 14px;
         }
 
         @media screen and (max-width: 992px) {
             main.main-content {
-                width: 100%;
+                width: 90%;
+            }
+
+            .floating-label-group input {
+                padding: 20px !important;
             }
         }
     </style>
@@ -166,10 +204,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="login-container text-center">
                 <h2 class="mb-2">Login</h2>
                 <p class="text-muted">Please enter your e-mail and password:</p>
+
+                <?php if (!empty($error)): ?>
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
+                    </div>
+                <?php endif; ?>
+
                 <form method="POST" autocomplete="off">
                     <div class="floating-label-group text-start">
                         <input name="email" type="email" id="email" class="form-control" placeholder=" " required
-                            autocomplete="email" />
+                            autocomplete="email"
+                            value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" />
                         <label for="email">E-mail</label>
                     </div>
                     <div class="floating-label-group text-start input-group-custom">
@@ -178,9 +224,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="password">Password</label>
                         <i class="fa-solid fa-eye input-icon" id="togglePassword"></i>
                     </div>
-                    <?php if (isset($error)): ?>
-                        <p style="color:red;"><?php echo htmlspecialchars($error); ?></p>
-                    <?php endif; ?>
                     <div class="form-text-link mb-3">
                         <a href="./forgot_password.php">Forgot password?</a>
                     </div>
@@ -194,9 +237,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
     <?php require('footer.php'); ?>
     <script>
-        window.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", () => {
             const togglePassword = document.getElementById("togglePassword");
             const password = document.getElementById("password");
+
             if (togglePassword && password) {
                 togglePassword.addEventListener("click", function () {
                     const type = password.getAttribute("type") === "password" ? "text" : "password";
@@ -204,6 +248,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     this.classList.toggle("fa-eye");
                     this.classList.toggle("fa-eye-slash");
                 });
+            }
+
+            // Focus on email field by default
+            const emailField = document.getElementById("email");
+            if (emailField) {
+                emailField.focus();
             }
         });
     </script>

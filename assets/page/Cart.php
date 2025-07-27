@@ -17,6 +17,21 @@ function formatPrice($price)
 {
   return number_format((float) $price, 2, '.', '');
 }
+
+$cart_count = 0;
+$cart_items = [];
+$cart_total = 0;
+
+if (isset($_SESSION['cart'])) {
+  $cart_items = $_SESSION['cart'];
+  $cart_count = count($cart_items);
+
+  foreach ($cart_items as $item) {
+    $price = isset($item['sale_price']) ? $item['sale_price'] : $item['price'];
+    $quantity = isset($item['quantity']) ? $item['quantity'] : 1;
+    $cart_total += $price * $quantity;
+  }
+}
 ?>
 
 <!DOCTYPE html>
@@ -79,10 +94,10 @@ function formatPrice($price)
   <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2 class="mb-0">Your Shopping Cart</h2>
-      <span class="text-muted"><?= count($_SESSION['cart'] ?? []) ?> items</span>
+      <span class="text-muted"><?= $cart_count ?> items</span>
     </div>
 
-    <?php if (empty($_SESSION['cart'])): ?>
+    <?php if ($cart_count === 0): ?>
       <div class="card empty-cart">
         <div class="card-body text-center">
           <i class="bi bi-cart-x" style="font-size: 3rem; color: #6c757d;"></i>
@@ -268,9 +283,7 @@ function formatPrice($price)
             if (response.success) {
               $('#coupon-message').html('<span class="text-success">' + response.message + '</span>');
               if (response.discount) {
-                // Update the total price display
-                const newTotal = response.new_total;
-                $('.fw-bold.fs-5 span:last').text('$' + newTotal.toFixed(2));
+                $('.fw-bold.fs-5 span:last').text('$' + response.new_total.toFixed(2));
               }
             } else {
               $('#coupon-message').html('<span class="text-danger">' + response.message + '</span>');

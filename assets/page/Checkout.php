@@ -284,106 +284,302 @@ if ($coupon) {
 }
 ?>
 
+
+
+
+
+
+
+
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Checkout</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #fff;
+      font-family: system-ui, sans-serif;
+    }
+
+    .form-section {
+      padding: 30px;
+    }
+
+    .order-summary {
+      padding: 30px;
+      background: #f5f5f5;
+      height: 100%;
+    }
+
+    .product-box {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .product-image-wrapper {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      flex-shrink: 0;
+    }
+
+    .product-image {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      border-radius: 8px;
+      background-color: red;
+    }
+
+    .product-qty {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: black;
+      color: white;
+      font-size: x-small;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    .product-info {
+      margin-left: 15px;
+    }
+
+    .input-group .form-control {
+      border-radius: 0;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+    }
+
+    .summary-total {
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    .form-check {
+      margin-top: 10px;
+    }
+
+    .order-summary .form-control {
+      border-radius: 6px 0 0 6px;
+    }
+
+    .order-summary .btn {
+      border-radius: 0 6px 6px 0;
+    }
+
+    @media (max-width: 768px) {
+      .form-section {
+        padding: 20px;
+      }
+
+      .order-summary {
+        margin-top: 30px;
+      }
+    }
+
+    .row.min-vh-100.d-flex {
+      justify-content: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="row min-vh-100 d-flex">
+      <div class="col-md-5 form-section border-end">
+        <h5>Contact</h5>
+        <input type="email" class="form-control mb-3" value="Ammar132004@gmail.com" readonly />
+        <div class="form-check mb-4">
+          <input class="form-check-input" type="checkbox" checked id="offers" />
+          <label class="form-check-label" for="offers">Email me with news and offers</label>
+        </div>
+
+        <h5>Delivery</h5>
+        <form>
+          <div class="mb-3">
+            <select class="form-select">
+              <option selected>Egypt</option>
+            </select>
+          </div>
+          <div class="row mb-3">
+            <div class="col">
+              <input type="text" class="form-control" placeholder="First name" />
+            </div>
+            <div class="col">
+              <input type="text" class="form-control" placeholder="Last name" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control"
+              placeholder="Enter full address (e.g: 123 Street, District, Area)" />
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control" placeholder="Apartment, suite, etc." />
+          </div>
+          <div class="row mb-3">
+            <div class="col">
+              <input type="text" class="form-control" placeholder="City" />
+            </div>
+            <div class="col">
+              <select class="form-select">
+                <option selected>Sohag</option>
+              </select>
+            </div>
+            <div class="col">
+              <input type="text" class="form-control" placeholder="Postal code (optional)" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control" placeholder="Mobile Number (e.g: 0123 xxx xxxx)" />
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="saveInfo" />
+            <label class="form-check-label" for="saveInfo">Save this information for next time</label>
+          </div>
+        </form>
+      </div>
+
+      <!-- Right: Order Summary -->
+      <div class="col-md-5 p-0">
+        <div class="order-summary h-100">
+
+          <div class="card-body">
+            <?php foreach ($_SESSION['cart'] as $item): ?>
+
+
+              <div class="product-box">
+                <div class="product-image-wrapper">
+                  <span class="product-qty"> <?= $item['quantity'] ?></span>
+                  <div class="product-image" style="background-image: url('<?= htmlspecialchars($item['image']) ?>');">
+                  </div>
+                </div>
+                <div class="product-info">
+                  <p class="m-0"><?= htmlspecialchars($item['name']) ?></p>
+                  <span> <?php if (!empty($item['color_name'])): ?>
+                      <?= htmlspecialchars($item['color_name']) ?>
+                    <?php endif; ?>
+                    <?php if (!empty($item['size_name'])): ?>
+                      / <?= htmlspecialchars($item['size_name']) ?>
+                    <?php endif; ?></span>
+                </div>
+                <div class="ms-auto fw-bold">EGP
+                  <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?>
+                </div>
+              </div>
+
+
+
+
+
+
+            <?php endforeach; ?>
+
+
+
+            <div class="mt-3 mb-3">
+              <?php if (isset($coupon) && $coupon): ?>
+                <div class="coupon-success">
+                  <span>كود الخصم: <?= htmlspecialchars($coupon['code']) ?></span>
+
+
+                  <form method="POST" style="display:inline;">
+                    <button type="submit" name="remove_coupon" class="btn btn-sm btn-outline-danger">إلغاء</button>
+                  </form>
+                </div>
+
+
+              <?php else: ?>
+                <form method="POST" class="coupon-form input-group mb-3">
+                  <input type="text" name="coupon_code" class="form-control" placeholder="كود الخصم" required>
+                  <button type="submit" name="apply_coupon" class="btn btn-outline-secondary">تطبيق</button>
+                </form>
+                <?php if ($coupon_error): ?>
+                  <div class="coupon-error"><?= $coupon_error ?></div>
+                <?php endif; ?>
+              <?php endif; ?>
+            </div>
+
+
+
+
+            <tbody>
+
+
+
+
+
+
+
+
+
+
+            </tbody>
+
+
+
+            <div class="summary-item">
+              <span>Subtotal</span>
+              <span>EGP <?= formatPrice($total) ?> </span>
+            </div>
+            <div class="summary-item">
+              <span>descount</span>
+              <span> <?= formatPrice($discount_amount) ?> </span>
+            </div>
+            <hr />
+            <div class="summary-item summary-total">
+              <span>Total</span>
+              <span>EGP <?= formatPrice($final_total) ?> </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
+
+
+
+
+
+<!--  -->
+<!--  -->
+<!DOCTYPE html>
+<html>
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>الدفع | متجرك</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: #f8f9fa;
-      font-family: 'Tajawal', sans-serif;
-    }
 
-    .card {
-      border-radius: 10px;
-      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-    }
-
-    .product-item {
-      display: flex;
-      align-items: center;
-      padding: 15px 0;
-      border-bottom: 1px solid #eee;
-    }
-
-    .product-image {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-      border-radius: 8px;
-      margin-left: 15px;
-    }
-
-    .product-title {
-      font-weight: 600;
-      margin-bottom: 5px;
-    }
-
-    .product-variants {
-      font-size: 14px;
-      color: #666;
-    }
-
-    .product-price {
-      font-weight: bold;
-      white-space: nowrap;
-    }
-
-    .summary-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-    }
-
-    .summary-total {
-      font-weight: bold;
-      font-size: 18px;
-      border-top: 1px solid #eee;
-      padding-top: 15px;
-    }
-
-    .btn-checkout {
-      background-color: #000;
-      color: #fff;
-      padding: 12px;
-      font-weight: 600;
-      border-radius: 8px;
-      width: 100%;
-    }
-
-    .coupon-form {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-
-    .coupon-success {
-      color: #28a745;
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .coupon-error {
-      color: #dc3545;
-      margin-bottom: 15px;
-    }
-
-    .discount-item {
-      color: #28a745;
-    }
-
-    .form-control:focus {
-      box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.1);
-      border-color: #000;
-    }
-  </style>
 </head>
 
 <body>
@@ -458,105 +654,36 @@ if ($coupon) {
         </div>
       </div>
 
-      <div class="col-lg-4">
-        <div class="card">
-          <div class="card-header bg-white">
-            <h4 class="mb-0">ملخص الطلب</h4>
-          </div>
-          <div class="card-body">
-            <?php foreach ($_SESSION['cart'] as $item): ?>
-              <div class="product-item">
-                <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>"
-                  class="product-image">
-                <div class="product-details">
-                  <div class="product-title"><?= htmlspecialchars($item['name']) ?></div>
-                  <div class="product-variants">
-                    <?php if (!empty($item['color_name'])): ?>
-                      اللون: <?= htmlspecialchars($item['color_name']) ?>
-                    <?php endif; ?>
-                    <?php if (!empty($item['size_name'])): ?>
-                      | المقاس: <?= htmlspecialchars($item['size_name']) ?>
-                    <?php endif; ?>
-                  </div>
-                  <div>الكمية: <?= $item['quantity'] ?></div>
-                </div>
-                <div class="product-price">
-                  <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?> ج.م
-                </div>
-              </div>
-            <?php endforeach; ?>
 
-            <div class="summary-item">
-              <span>المجموع الفرعي</span>
-              <span><?= formatPrice($total) ?> ج.م</span>
-            </div>
 
-            <div class="mt-3 mb-3">
-              <?php if (isset($coupon) && $coupon): ?>
-                <div class="coupon-success">
-                  <span>كود الخصم: <?= htmlspecialchars($coupon['code']) ?></span>
-                  <form method="POST" style="display:inline;">
-                    <button type="submit" name="remove_coupon" class="btn btn-sm btn-outline-danger">إلغاء</button>
-                  </form>
-                </div>
-                <div class="summary-item discount-item">
-                  <span>الخصم</span>
-                  <span>- <?= formatPrice($discount_amount) ?> ج.م</span>
-                </div>
-              <?php else: ?>
-                <form method="POST" class="coupon-form">
-                  <input type="text" name="coupon_code" class="form-control" placeholder="كود الخصم" required>
-                  <button type="submit" name="apply_coupon" class="btn btn-outline-secondary">تطبيق</button>
-                </form>
-                <?php if ($coupon_error): ?>
-                  <div class="coupon-error"><?= $coupon_error ?></div>
-                <?php endif; ?>
-              <?php endif; ?>
-            </div>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+      <script>
+        document.getElementById('checkout-form').addEventListener('submit', function (e) {
+          let isValid = true;
 
-            <div class="summary-item">
-              <span>الشحن</span>
-              <span>مجاني</span>
-            </div>
+          // Validate required fields
+          this.querySelectorAll('[required]').forEach(function (field) {
+            if (!field.value.trim()) {
+              field.classList.add('is-invalid');
+              isValid = false;
+            } else {
+              field.classList.remove('is-invalid');
+            }
+          });
 
-            <div class="summary-item summary-total">
-              <span>الإجمالي</span>
-              <span><?= formatPrice($final_total) ?> ج.م</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+          // Validate email format
+          const emailField = document.getElementById('email');
+          if (emailField.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value)) {
+            emailField.classList.add('is-invalid');
+            isValid = false;
+          }
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    document.getElementById('checkout-form').addEventListener('submit', function (e) {
-      let isValid = true;
-
-      // Validate required fields
-      this.querySelectorAll('[required]').forEach(function (field) {
-        if (!field.value.trim()) {
-          field.classList.add('is-invalid');
-          isValid = false;
-        } else {
-          field.classList.remove('is-invalid');
-        }
-      });
-
-      // Validate email format
-      const emailField = document.getElementById('email');
-      if (emailField.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value)) {
-        emailField.classList.add('is-invalid');
-        isValid = false;
-      }
-
-      if (!isValid) {
-        e.preventDefault();
-        alert('الرجاء ملء جميع الحقول المطلوبة بشكل صحيح');
-      }
-    });
-  </script>
+          if (!isValid) {
+            e.preventDefault();
+            alert('الرجاء ملء جميع الحقول المطلوبة بشكل صحيح');
+          }
+        });
+      </script>
 </body>
 
 </html>

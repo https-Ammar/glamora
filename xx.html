@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار المعرفة - صفحة الأسئلة</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            direction: rtl;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #9333ea 0%, #2563eb 50%, #3730a3 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 42rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 4rem;
+            height: 4rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+            font-size: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.125rem;
+        }
+
+        .question-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(16px);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .question-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .question-title {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .question-divider {
+            width: 5rem;
+            height: 0.25rem;
+            background: linear-gradient(to left, #fbbf24, #f97316);
+            border-radius: 9999px;
+            margin: 0 auto;
+        }
+
+        .answers {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .answer-button {
+            width: 100%;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            text-align: right;
+            font-size: 1.125rem;
+            font-weight: 600;
+            transition: all 0.5s ease;
+            transform: scale(1);
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .answer-button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.02);
+        }
+
+        .answer-button.selected:not(.result-shown) {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.02);
+        }
+
+        .answer-button.correct {
+            background: rgba(34, 197, 94, 0.9);
+            border-color: #4ade80;
+            color: white;
+        }
+
+        .answer-button.incorrect {
+            background: rgba(239, 68, 68, 0.9);
+            border-color: #f87171;
+            color: white;
+        }
+
+        .answer-button.disabled {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.6);
+            border-color: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+        }
+
+        .answer-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .answer-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            color: white;
+        }
+
+        .answer-letter {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .answer-button.correct .answer-letter {
+            border-color: white;
+            background: white;
+            color: #22c55e;
+        }
+
+        .answer-button.incorrect .answer-letter {
+            border-color: white;
+            background: white;
+            color: #ef4444;
+        }
+
+        .answer-button.disabled .answer-letter {
+            border-color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .result-card {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            backdrop-filter: blur(16px);
+            border: 1px solid;
+            transition: all 0.5s ease;
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .result-card.correct {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: rgba(74, 222, 128, 0.5);
+            color: #bbf7d0;
+        }
+
+        .result-card.incorrect {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(248, 113, 113, 0.5);
+            color: #fecaca;
+        }
+
+        .result-icon {
+            width: 3rem;
+            height: 3rem;
+            margin: 0 auto 1rem;
+        }
+
+        .result-icon.correct {
+            color: #4ade80;
+        }
+
+        .result-icon.incorrect {
+            color: #f87171;
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-message {
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+        }
+
+        .retry-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            transform: scale(1);
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .retry-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .retry-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .footer p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.875rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.875rem;
+            }
+
+            .question-title {
+                font-size: 1.5rem;
+            }
+
+            .question-card {
+                padding: 1.5rem;
+            }
+
+            .answer-button {
+                padding: 1.25rem;
+                font-size: 1rem;
+            }
+
+            .container {
+                padding: 0 0.5rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fadeInUp {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        /* SVG Icons */
+        .check-icon {
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .x-icon {
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .rotate-icon {
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-icon">
+                <span>🧠</span>
+            </div>
+            <h1>اختبار المعرفة</h1>
+            <p>اختر الإجابة الصحيحة من الخيارات التالية</p>
+        </div>
+
+        <!-- Question Card -->
+        <div class="question-card">
+            <div class="question-header">
+                <h2 class="question-title">ما هي عاصمة المملكة العربية السعودية؟</h2>
+                <div class="question-divider"></div>
+            </div>
+
+            <!-- Answers -->
+            <div class="answers">
+                <button class="answer-button" data-answer="1" data-correct="false">
+                    <div class="answer-content">
+                        <svg class="answer-icon check-icon hidden">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="9,12 12,15 23,4"></polyline>
+                        </svg>
+                        <svg class="answer-icon x-icon hidden">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                        <span>جدة</span>
+                    </div>
+                    <div class="answer-letter">أ</div>
+                </button>
+
+                <button class="answer-button" data-answer="2" data-correct="true">
+                    <div class="answer-content">
+                        <svg class="answer-icon check-icon hidden">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="9,12 12,15 23,4"></polyline>
+                        </svg>
+                        <svg class="answer-icon x-icon hidden">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                        <span>الرياض</span>
+                    </div>
+                    <div class="answer-letter">ب</div>
+                </button>
+
+                <button class="answer-button" data-answer="3" data-correct="false">
+                    <div class="answer-content">
+                        <svg class="answer-icon check-icon hidden">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="9,12 12,15 23,4"></polyline>
+                        </svg>
+                        <svg class="answer-icon x-icon hidden">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                        <span>الدمام</span>
+                    </div>
+                    <div class="answer-letter">ج</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Card -->
+        <div id="result-card" class="result-card hidden">
+            <svg class="result-icon" id="result-icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="9,12 12,15 23,4"></polyline>
+            </svg>
+            <h3 class="result-title" id="result-title">🎉 أحسنت!</h3>
+            <p class="result-message" id="result-message">لقد اخترت الإجابة الصحيحة</p>
+            <button class="retry-button" onclick="resetQuiz()">
+                <svg class="retry-icon rotate-icon" viewBox="0 0 24 24">
+                    <polyline points="1,4 1,10 7,10"></polyline>
+                    <path
+                        d="M3.51,15a9,9,0,0,0,2.13,3.09,9,9,0,0,0,13.72,0,9,9,0,0,0,0-12.72,9,9,0,0,0-13.72,0A8.5,8.5,0,0,0,1.17,8.48">
+                    </path>
+                </svg>
+                <span>إعادة المحاولة</span>
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>صُمم بعناية لتجربة تعليمية ممتعة 💫</p>
+        </div>
+    </div>
+
+    <script>
+        let selectedAnswer = null;
+        let showResult = false;
+        let isCorrect = false;
+
+        const answers = [
+            { id: 1, text: "جدة", isCorrect: false },
+            { id: 2, text: "الرياض", isCorrect: true },
+            { id: 3, text: "الدمام", isCorrect: false }
+        ];
+
+        // Add event listeners to answer buttons
+        document.addEventListener('DOMContentLoaded', function () {
+            const answerButtons = document.querySelectorAll('.answer-button');
+
+            answerButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    if (showResult) return;
+
+                    const answerId = parseInt(this.dataset.answer);
+                    const isCorrectAnswer = this.dataset.correct === 'true';
+
+                    handleAnswerClick(answerId, isCorrectAnswer);
+                });
+            });
+        });
+
+        function handleAnswerClick(answerId, isCorrectAnswer) {
+            if (showResult) return;
+
+            selectedAnswer = answerId;
+            isCorrect = isCorrectAnswer;
+
+            // Add selected class to clicked button
+            const selectedButton = document.querySelector(`[data-answer="${answerId}"]`);
+            selectedButton.classList.add('selected');
+
+            // Show result after delay
+            setTimeout(() => {
+                showResult = true;
+                displayResult();
+            }, 500);
+        }
+
+        function displayResult() {
+            const answerButtons = document.querySelectorAll('.answer-button');
+            const resultCard = document.getElementById('result-card');
+            const resultIcon = document.getElementById('result-icon');
+            const resultTitle = document.getElementById('result-title');
+            const resultMessage = document.getElementById('result-message');
+
+            // Update answer buttons
+            answerButtons.forEach(button => {
+                const answerId = parseInt(button.dataset.answer);
+                const isCorrectAnswer = button.dataset.correct === 'true';
+                const isSelected = answerId === selectedAnswer;
+
+                // Disable all buttons
+                button.disabled = true;
+
+                if (isCorrectAnswer) {
+                    // Show correct answer
+                    button.classList.add('correct');
+                    const checkIcon = button.querySelector('.check-icon');
+                    checkIcon.classList.remove('hidden');
+                } else if (isSelected && !isCorrectAnswer) {
+                    // Show incorrect selected answer
+                    button.classList.add('incorrect');
+                    const xIcon = button.querySelector('.x-icon');
+                    xIcon.classList.remove('hidden');
+                } else {
+                    // Disable other buttons
+                    button.classList.add('disabled');
+                }
+            });
+
+            // Show result card
+            resultCard.classList.remove('hidden');
+            resultCard.classList.add('animate-fadeInUp');
+
+            if (isCorrect) {
+                resultCard.classList.add('correct');
+                resultIcon.classList.add('correct');
+                resultIcon.innerHTML = `
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="9,12 12,15 23,4"></polyline>
+                `;
+                resultTitle.textContent = '🎉 أحسنت!';
+                resultMessage.textContent = 'لقد اخترت الإجابة الصحيحة';
+            } else {
+                resultCard.classList.add('incorrect');
+                resultIcon.classList.add('incorrect');
+                resultIcon.innerHTML = `
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                `;
+                resultTitle.textContent = '😅 إجابة خاطئة';
+                const correctAnswer = answers.find(a => a.isCorrect);
+                resultMessage.textContent = `الإجابة الصحيحة هي: ${correctAnswer.text}`;
+            }
+        }
+
+        function resetQuiz() {
+            selectedAnswer = null;
+            showResult = false;
+            isCorrect = false;
+
+            // Reset answer buttons
+            const answerButtons = document.querySelectorAll('.answer-button');
+            answerButtons.forEach(button => {
+                button.disabled = false;
+                button.classList.remove('selected', 'correct', 'incorrect', 'disabled');
+
+                // Hide icons
+                const checkIcon = button.querySelector('.check-icon');
+                const xIcon = button.querySelector('.x-icon');
+                checkIcon.classList.add('hidden');
+                xIcon.classList.add('hidden');
+            });
+
+            // Hide result card
+            const resultCard = document.getElementById('result-card');
+            resultCard.classList.add('hidden');
+            resultCard.classList.remove('animate-fadeInUp', 'correct', 'incorrect');
+
+            // Reset result icon
+            const resultIcon = document.getElementById('result-icon');
+            resultIcon.classList.remove('correct', 'incorrect');
+        }
+    </script>
+</body>
+
+</html>

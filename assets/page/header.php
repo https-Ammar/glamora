@@ -1,198 +1,214 @@
-<header class="_nav_header">
-  <!DOCTYPE html>
-  <html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Glamora</title>
-    <!-- Unicons CSS -->
-    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css" />
-    <!-- Google Fonts - Poppins -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-      /* Global Styles */
-      ul.nav-links li a {
-        color: white !important;
-        font-size: small;
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+  <!-- Unicons CSS -->
+  <style>
+    /* Google Fonts - Poppins */
+    @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap");
+
+    ul.nav-links li a {
+      color: white !important;
+      font-size: small;
+    }
+
+    form#search-form {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .nav .nav-links {
+      column-gap: 20px;
+      list-style: none;
+    }
+
+    .nav .nav-links a {
+      transition: all 0.2s linear;
+    }
+
+    .nav.openSearch .nav-links a {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .nav .search-icon {
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .nav .search-box {
+      height: 45px;
+      max-width: 555px;
+      width: 100%;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s linear;
+    }
+
+    .nav.openSearch .search-box {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .search-box .search-icon {
+      color: white;
+    }
+
+    ul.nav-links {
+      display: none !important;
+    }
+
+    .search-box input {
+      height: 100%;
+      width: 100%;
+      border: none;
+      outline: none;
+      color: white;
+      border-radius: 6px;
+      background-color: black;
+      border: none;
+    }
+
+    .nav .navOpenBtn,
+    .nav .navCloseBtn {
+      display: none;
+    }
+
+    a.a_link {
+      display: flex;
+      align-items: center;
+    }
+
+    .logo_ {
+      color: black;
+      font-size: x-large;
+      letter-spacing: 5px;
+    }
+
+    ul._block {
+      display: block;
+    }
+
+    ul._block li {
+      display: block;
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      font-size: small;
+    }
+
+    label#companyInput-label {
+      color: black;
+      margin-top: 5vh !important;
+    }
+
+    .flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    nav.nav_bar.nav.openSearch {
+      overflow: hidden !important;
+      position: relative;
+    }
+
+    .container_flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2vh;
+      padding-bottom: 2vh;
+    }
+
+    .container_ p.Footer_footer__heading__bwFl4 {
+      margin: 0;
+    }
+
+    @media screen and (max-width: 768px) {
+
+      .nav .navOpenBtn,
+      .nav .navCloseBtn {
+        display: block;
       }
 
-      form#search-form {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
+      .nav {
+        padding: 5px 20px;
       }
 
       .nav .nav-links {
-        column-gap: 20px;
-        list-style: none;
+        position: fixed;
+        top: 0;
+        left: -100%;
+        height: 100%;
+        width: 100%;
+        row-gap: 30px;
+        flex-direction: column;
+        background-color: black;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.4s ease;
+        z-index: 100;
       }
 
-      .nav .nav-links a {
-        transition: all 0.2s linear;
+      .nav.openNav .nav-links {
+        left: 0;
       }
 
-      .nav.openSearch .nav-links a {
-        opacity: 0;
-        pointer-events: none;
-      }
-
-      .nav .search-icon {
+      .nav .navOpenBtn {
         color: white;
         font-size: 20px;
         cursor: pointer;
       }
 
-      .nav .search-box {
-        height: 45px;
-        max-width: 555px;
-        width: 100%;
-        opacity: 0;
-        pointer-events: none;
-        transition: all 0.2s linear;
-      }
-
-      .nav.openSearch .search-box {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      .search-box .search-icon {
+      .nav .navCloseBtn {
         color: white;
+        font-size: xx-large;
+        cursor: pointer;
       }
 
       ul.nav-links {
-        display: none !important;
+        display: block !important;
       }
 
-      .search-box input {
-        height: 100%;
-        width: 100%;
-        border: none;
-        outline: none;
-        color: white;
-        border-radius: 6px;
-        background-color: black;
-        border: none;
+      ul.nav-links li a {
+        line-height: 3;
+        font-size: unset;
       }
 
-      .nav .navOpenBtn,
-      .nav .navCloseBtn {
-        display: none;
+      ul.nav-links {
+        padding: 20px;
       }
 
-      a.a_link {
-        display: flex;
-        align-items: center;
+      ul.nav-links li {
+        border-bottom: 1px solid #ffffff3b;
       }
 
-      .container_flex {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 2vh;
-        padding-bottom: 2vh;
-      }
-
-      .container_ p.Footer_footer__heading__bwFl4 {
-        margin: 0;
-      }
-
-      .logo_ {
+      h3.title {
         color: black;
-        font-size: x-large;
-        letter-spacing: 5px;
+        font-weight: normal;
+        margin-bottom: 20px;
+        font-size: large;
       }
+    }
 
-      .flex {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+    @media screen and (max-width: 992px) {
+      form#search-form {
+        position: absolute;
+        left: 0;
+        background: black;
+        padding-left: 10px;
       }
+    }
+  </style>
+</head>
 
-      nav.nav_bar.nav.openSearch {
-        overflow: hidden !important;
-        position: relative;
-      }
-
-      /* Mobile Styles */
-      @media screen and (max-width: 768px) {
-
-        .nav .navOpenBtn,
-        .nav .navCloseBtn {
-          display: block;
-        }
-
-        .nav {
-          padding: 5px 20px;
-        }
-
-        .nav .nav-links {
-          position: fixed;
-          top: 0;
-          left: -100%;
-          height: 100%;
-          width: 100%;
-          row-gap: 30px;
-          flex-direction: column;
-          background-color: black;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-          transition: all 0.4s ease;
-          z-index: 100;
-        }
-
-        .nav.openNav .nav-links {
-          left: 0;
-        }
-
-        .nav .navOpenBtn {
-          color: white;
-          font-size: 20px;
-          cursor: pointer;
-        }
-
-        .nav .navCloseBtn {
-          color: white;
-          font-size: xx-large;
-          cursor: pointer;
-        }
-
-        ul.nav-links {
-          display: block !important;
-        }
-
-        ul.nav-links li a {
-          line-height: 3;
-          font-size: unset;
-        }
-
-        ul.nav-links {
-          padding: 20px;
-        }
-
-        ul.nav-links li {
-          border-bottom: 1px solid #ffffff3b;
-        }
-
-        h3.title {
-          color: black;
-          font-weight: normal;
-          margin-bottom: 20px;
-          font-size: large;
-        }
-
-        form#search-form {
-          position: absolute;
-          left: 0;
-          background: black;
-          padding-left: 10px;
-        }
-      }
-    </style>
-  </head>
-
-  <body>
+<body>
+  <header class="_nav_header">
     <nav class="nav_bar nav">
       <ul class="nav-links">
         <div class="container_flex">
@@ -204,14 +220,16 @@
           <i class="uil uil-times navCloseBtn"></i>
         </div>
 
-        <?php
-        $sqlcat = mysqli_query($conn, "SELECT * FROM categories");
-        while ($fetchcat = mysqli_fetch_assoc($sqlcat)) {
-          echo '<li>
-            <a href="Categories.php?id=' . $fetchcat['id'] . '" class="nav-link">' . $fetchcat['name'] . '</a>
-          </li>';
-        }
-        ?>
+        <li>
+          <?php
+          $sqlcat = mysqli_query($conn, "SELECT * FROM categories");
+          while ($fetchcat = mysqli_fetch_assoc($sqlcat)) {
+            echo '<li>
+              <a href="Categories.php?id=' . $fetchcat['id'] . '" class="nav-link">' . $fetchcat['name'] . '</a>
+            </li>';
+          }
+          ?>
+        </li>
       </ul>
 
       <div class="flex">
@@ -220,7 +238,6 @@
             <li>
               <i class="uil uil-bars navOpenBtn"></i>
             </li>
-
             <li>
               <button class="border-0 bg-transparent d-flex flex-column gap-2 lh-1" type="button"
                 data-bs-toggle="offcanvas" data-bs-target="#offcanvasCart" aria-controls="offcanvasCart">
@@ -236,9 +253,7 @@
                 </a>
               </button>
             </li>
-
             <li>|</li>
-
             <li>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
@@ -246,7 +261,6 @@
                   fill="white" stroke="white" stroke-width="0.3"></path>
               </svg>
             </li>
-
             <li>
               <a href="profile.php">
                 <svg focusable="false" width="18" height="17" class="icon icon--header-customer" viewBox="0 0 18 17">
@@ -257,7 +271,6 @@
                 </svg>
               </a>
             </li>
-
             <i class="uil uil-search search-icon" id="searchIcon2"></i>
           </ul>
         </section>
@@ -342,85 +355,85 @@
         </ul>
       </div>
     </section>
+  </header>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-      // Search functionality
-      let searchinput = document.getElementById('search-input');
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    // Search functionality
+    let searchinput = document.getElementById('search-input');
 
-      searchinput.oninput = () => {
-        $.ajax({
-          type: "POST",
-          url: "searchresult.php",
-          data: { searchinput: searchinput.value },
-          success: function (response) {
-            $('#suggestions').html(response);
-          },
-          error: function (xhr, status, error) {
-            console.error("AJAX Error:", status, error);
-          }
-        });
-      };
-
-      // Cart count refresh
-      function refreshCartCount() {
-        $.ajax({
-          type: "GET",
-          url: "count_cart.php",
-          success: function (response) {
-            $('.count_cart').html(response);
-          },
-          error: function (xhr, status, error) {
-            console.error("AJAX Error:", status, error);
-          }
-        });
-      }
-
-      setInterval(refreshCartCount, 1000);
-
-      // Search history
-      document.getElementById('search-input').addEventListener('input', function () {
-        localStorage.setItem('lastSearch', this.value);
-      });
-
-      window.addEventListener('load', function () {
-        const lastSearch = localStorage.getItem('lastSearch');
-        if (lastSearch) {
-          document.getElementById('search-input').value = lastSearch;
+    searchinput.oninput = () => {
+      $.ajax({
+        type: "POST",
+        url: "searchresult.php",
+        data: { searchinput: searchinput.value },
+        success: function (response) {
+          $('#suggestions').html(response);
+        },
+        error: function (xhr, status, error) {
+          console.error("AJAX Error:", status, error);
         }
       });
+    };
 
-      // Mobile menu toggle
-      const nav = document.querySelector(".nav"),
-        searchIcon1 = document.querySelector("#searchIcon1"),
-        searchIcon2 = document.querySelector("#searchIcon2"),
-        navOpenBtn = document.querySelector(".navOpenBtn"),
-        navCloseBtn = document.querySelector(".navCloseBtn");
-
-      function toggleSearch(icon) {
-        nav.classList.toggle("openSearch");
-        nav.classList.remove("openNav");
-        if (nav.classList.contains("openSearch")) {
-          return icon.classList.replace("uil-search", "uil-times");
+    // Cart count refresh
+    function refreshCartCount() {
+      $.ajax({
+        type: "GET",
+        url: "count_cart.php", // Adjust the URL to your actual cart count endpoint
+        success: function (response) {
+          $('.count_cart').html(response);
+        },
+        error: function (xhr, status, error) {
+          console.error("AJAX Error:", status, error);
         }
-        icon.classList.replace("uil-times", "uil-search");
+      });
+    }
+
+    setInterval(refreshCartCount, 1000);
+
+    // Search history
+    document.getElementById('search-input').addEventListener('input', function () {
+      localStorage.setItem('lastSearch', this.value);
+    });
+
+    window.addEventListener('load', function () {
+      const lastSearch = localStorage.getItem('lastSearch');
+      if (lastSearch) {
+        document.getElementById('search-input').value = lastSearch;
       }
+    });
 
-      searchIcon1.addEventListener("click", () => toggleSearch(searchIcon1));
-      searchIcon2.addEventListener("click", () => toggleSearch(searchIcon2));
+    // Mobile menu toggle
+    const nav = document.querySelector(".nav"),
+      searchIcon1 = document.querySelector("#searchIcon1"),
+      searchIcon2 = document.querySelector("#searchIcon2"),
+      navOpenBtn = document.querySelector(".navOpenBtn"),
+      navCloseBtn = document.querySelector(".navCloseBtn");
 
-      navOpenBtn.addEventListener("click", () => {
-        nav.classList.add("openNav");
-        nav.classList.remove("openSearch");
-        searchIcon1.classList.replace("uil-times", "uil-search");
-        searchIcon2.classList.replace("uil-times", "uil-search");
-      });
+    function toggleSearch(icon) {
+      nav.classList.toggle("openSearch");
+      nav.classList.remove("openNav");
+      if (nav.classList.contains("openSearch")) {
+        return icon.classList.replace("uil-search", "uil-times");
+      }
+      icon.classList.replace("uil-times", "uil-search");
+    }
 
-      navCloseBtn.addEventListener("click", () => {
-        nav.classList.remove("openNav");
-      });
-    </script>
-  </body>
+    searchIcon1.addEventListener("click", () => toggleSearch(searchIcon1));
+    searchIcon2.addEventListener("click", () => toggleSearch(searchIcon2));
 
-  </html>
-</header>
+    navOpenBtn.addEventListener("click", () => {
+      nav.classList.add("openNav");
+      nav.classList.remove("openSearch");
+      searchIcon1.classList.replace("uil-times", "uil-search");
+      searchIcon2.classList.replace("uil-times", "uil-search");
+    });
+
+    navCloseBtn.addEventListener("click", () => {
+      nav.classList.remove("openNav");
+    });
+  </script>
+</body>
+
+</html>

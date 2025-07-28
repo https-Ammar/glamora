@@ -23,7 +23,6 @@ if (empty($_SESSION['cart'])) {
 $coupon = null;
 $coupon_error = null;
 
-// Apply coupon
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_coupon'])) {
   $coupon_code = trim($_POST['coupon_code']);
 
@@ -35,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_coupon'])) {
   if ($result->num_rows > 0) {
     $coupon = $result->fetch_assoc();
 
-    // Check if coupon has reached max uses
     $usage_stmt = $conn->prepare("SELECT COUNT(*) as usage_count FROM orders WHERE coupon_code = ?");
     $usage_stmt->bind_param("s", $coupon_code);
     $usage_stmt->execute();
@@ -55,13 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_coupon'])) {
   $stmt->close();
 }
 
-// Remove coupon
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_coupon'])) {
   unset($_SESSION['applied_coupon']);
   $coupon = null;
 }
 
-// Load coupon from session
 if (isset($_SESSION['applied_coupon'])) {
   $stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ?");
   $stmt->bind_param("s", $_SESSION['applied_coupon']);
@@ -71,7 +67,6 @@ if (isset($_SESSION['applied_coupon'])) {
   $stmt->close();
 }
 
-// Load user data
 $userData = [];
 if (isset($_SESSION['user_id'])) {
   $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
@@ -84,7 +79,6 @@ if (isset($_SESSION['user_id'])) {
   $stmt->close();
 }
 
-// Place order
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
   if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
     die('Invalid CSRF token');
@@ -101,7 +95,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     die('Invalid email address');
   }
 
-  // Calculate cart total
   $total = 0;
   foreach ($_SESSION['cart'] as $item) {
     $price = $item['sale_price'] ?? $item['price'];
@@ -112,7 +105,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
   $coupon_id = null;
   $coupon_code = null;
 
-  // Apply coupon if valid
   if (isset($_SESSION['applied_coupon'])) {
     $coupon_code = $_SESSION['applied_coupon'];
     $stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ?");
@@ -123,7 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     $stmt->close();
 
     if ($coupon) {
-      // Verify coupon hasn't reached max uses
       $usage_stmt = $conn->prepare("SELECT COUNT(*) as usage_count FROM orders WHERE coupon_code = ?");
       $usage_stmt->bind_param("s", $coupon_code);
       $usage_stmt->execute();
@@ -154,7 +145,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
   $conn->begin_transaction();
 
   try {
-    // Create order
     $stmt = $conn->prepare("INSERT INTO orders (
       user_id, customer_first_name, customer_last_name, name, phoneone,
       city, address, orderstate, finaltotalprice, discount_value,
@@ -187,7 +177,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 
     $orderId = $conn->insert_id;
 
-    // Add order items
     $itemStmt = $conn->prepare("INSERT INTO order_items (
       order_id, product_id, qty, price, total_price, color, size
     ) VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -214,7 +203,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
       }
     }
 
-    // Update user info if logged in
     if (isset($_SESSION['user_id'])) {
       $updateStmt = $conn->prepare("UPDATE users SET 
         phone = ?, 
@@ -240,11 +228,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 
     $conn->commit();
 
-    // Clear cart and coupon
     unset($_SESSION['cart']);
     unset($_SESSION['applied_coupon']);
 
-    // Redirect to order confirmation
     header("Location: ./order_confirmation.php?id=$orderId");
     exit();
 
@@ -254,13 +240,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
   }
 }
 
-// Format price
 function formatPrice($price)
 {
   return number_format((float) $price, 2, '.', '');
 }
 
-// Calculate cart totals
 $total = 0;
 foreach ($_SESSION['cart'] as $item) {
   $price = $item['sale_price'] ?? $item['price'];
@@ -284,21 +268,14 @@ if ($coupon) {
 }
 ?>
 
-
-
-
-
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Checkout</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
       background-color: #fff;
@@ -412,38 +389,63 @@ if ($coupon) {
   <div class="container-fluid">
     <div class="row min-vh-100 d-flex">
       <div class="col-md-5 form-section border-end">
-        <h5>Contact</h5>
-        <input type="email" class="form-control mb-3" value="Ammar132004@gmail.com" readonly />
-        <div class="form-check mb-4">
-          <input class="form-check-input" type="checkbox" checked id="offers" />
-          <label class="form-check-label" for="offers">Email me with news and offers</label>
-        </div>
+        <form id="checkout-form" method="POST">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="country" class="form-label">Country*</label>
+              <select class="form-select" id="country" name="country" required>
+                <option value="">Select...</option>
+                <option value="Egypt" <?= isset($userData['country']) && $userData['country'] == 'Egypt' ? 'selected' : '' ?>>Egypt</option>
+                <option value="Saudi Arabia" <?= isset($userData['country']) && $userData['country'] == 'Saudi Arabia' ? 'selected' : '' ?>>Saudi Arabia</option>
+                <option value="UAE" <?= isset($userData['country']) && $userData['country'] == 'UAE' ? 'selected' : '' ?>>
+                  UAE</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="city" class="form-label">City*</label>
+              <input type="text" class="form-control" id="city" name="city" required
+                value="<?= htmlspecialchars($userData['city'] ?? '') ?>">
+            </div>
+          </div>
 
-        <h5>Delivery</h5>
-        <form>
+          <button type="submit" name="place_order" class="btn btn-checkout mt-3">Confirm Order</button>
+
+          <h5>Contact</h5>
+          <input type="email" class="form-control mb-3" id="email" name="email"
+            value="<?= htmlspecialchars($userData['email'] ?? '') ?>" required />
+          <div class="form-check mb-4">
+            <input class="form-check-input" type="checkbox" checked id="offers">
+            <label class="form-check-label" for="offers">Email me with news and offers</label>
+          </div>
+
+          <h5>Delivery</h5>
+          <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
           <div class="mb-3">
             <select class="form-select">
               <option selected>Egypt</option>
             </select>
           </div>
+
           <div class="row mb-3">
             <div class="col">
-              <input type="text" class="form-control" placeholder="First name" />
+              <input type="text" class="form-control" id="full_name" name="full_name" required
+                value="<?= htmlspecialchars($userData['name'] ?? '') ?>" placeholder="Full Name" />
             </div>
             <div class="col">
-              <input type="text" class="form-control" placeholder="Last name" />
+              <input type="text" class="form-control" placeholder="Last name">
             </div>
           </div>
           <div class="mb-3">
-            <input type="text" class="form-control"
-              placeholder="Enter full address (e.g: 123 Street, District, Area)" />
+            <input type="tel" class="form-control" id="phone" name="phone" required
+              value="<?= htmlspecialchars($userData['phone'] ?? '') ?>" placeholder="Phone">
           </div>
           <div class="mb-3">
-            <input type="text" class="form-control" placeholder="Apartment, suite, etc." />
+            <input type="text" class="form-control" id="address" name="address" required
+              value="<?= htmlspecialchars($userData['address'] ?? '') ?>" placeholder="Address">
           </div>
           <div class="row mb-3">
             <div class="col">
-              <input type="text" class="form-control" placeholder="City" />
+              <input type="text" class="form-control" placeholder="City">
             </div>
             <div class="col">
               <select class="form-select">
@@ -451,72 +453,58 @@ if ($coupon) {
               </select>
             </div>
             <div class="col">
-              <input type="text" class="form-control" placeholder="Postal code (optional)" />
+              <input type="text" class="form-control" placeholder="Postal code (optional)" id="postal_code"
+                name="postal_code" value="<?= htmlspecialchars($userData['postal_code'] ?? '') ?>">
             </div>
           </div>
           <div class="mb-3">
-            <input type="text" class="form-control" placeholder="Mobile Number (e.g: 0123 xxx xxxx)" />
+            <input type="text" class="form-control" placeholder="Mobile Number (e.g: 0123 xxx xxxx)">
           </div>
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="saveInfo" />
+            <input class="form-check-input" type="checkbox" id="saveInfo">
             <label class="form-check-label" for="saveInfo">Save this information for next time</label>
           </div>
         </form>
       </div>
 
-      <!-- Right: Order Summary -->
       <div class="col-md-5 p-0">
         <div class="order-summary h-100">
-
           <div class="card-body">
             <?php foreach ($_SESSION['cart'] as $item): ?>
-
-
               <div class="product-box">
                 <div class="product-image-wrapper">
-                  <span class="product-qty"> <?= $item['quantity'] ?></span>
+                  <span class="product-qty"><?= $item['quantity'] ?></span>
                   <div class="product-image" style="background-image: url('<?= htmlspecialchars($item['image']) ?>');">
                   </div>
                 </div>
                 <div class="product-info">
                   <p class="m-0"><?= htmlspecialchars($item['name']) ?></p>
-                  <span> <?php if (!empty($item['color_name'])): ?>
+                  <span>
+                    <?php if (!empty($item['color_name'])): ?>
                       <?= htmlspecialchars($item['color_name']) ?>
                     <?php endif; ?>
                     <?php if (!empty($item['size_name'])): ?>
                       / <?= htmlspecialchars($item['size_name']) ?>
-                    <?php endif; ?></span>
+                    <?php endif; ?>
+                  </span>
                 </div>
                 <div class="ms-auto fw-bold">EGP
-                  <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?>
-                </div>
+                  <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?></div>
               </div>
-
-
-
-
-
-
             <?php endforeach; ?>
-
-
 
             <div class="mt-3 mb-3">
               <?php if (isset($coupon) && $coupon): ?>
                 <div class="coupon-success">
-                  <span>كود الخصم: <?= htmlspecialchars($coupon['code']) ?></span>
-
-
+                  <span>Coupon Code: <?= htmlspecialchars($coupon['code']) ?></span>
                   <form method="POST" style="display:inline;">
-                    <button type="submit" name="remove_coupon" class="btn btn-sm btn-outline-danger">إلغاء</button>
+                    <button type="submit" name="remove_coupon" class="btn btn-sm btn-outline-danger">Remove</button>
                   </form>
                 </div>
-
-
               <?php else: ?>
                 <form method="POST" class="coupon-form input-group mb-3">
-                  <input type="text" name="coupon_code" class="form-control" placeholder="كود الخصم" required>
-                  <button type="submit" name="apply_coupon" class="btn btn-outline-secondary">تطبيق</button>
+                  <input type="text" name="coupon_code" class="form-control" placeholder="Coupon Code" required>
+                  <button type="submit" name="apply_coupon" class="btn btn-outline-secondary">Apply</button>
                 </form>
                 <?php if ($coupon_error): ?>
                   <div class="coupon-error"><?= $coupon_error ?></div>
@@ -524,36 +512,18 @@ if ($coupon) {
               <?php endif; ?>
             </div>
 
-
-
-
-            <tbody>
-
-
-
-
-
-
-
-
-
-
-            </tbody>
-
-
-
             <div class="summary-item">
               <span>Subtotal</span>
-              <span>EGP <?= formatPrice($total) ?> </span>
+              <span>EGP <?= formatPrice($total) ?></span>
             </div>
             <div class="summary-item">
-              <span>descount</span>
-              <span> <?= formatPrice($discount_amount) ?> </span>
+              <span>Discount</span>
+              <span>-EGP <?= formatPrice($discount_amount) ?></span>
             </div>
-            <hr />
+            <hr>
             <div class="summary-item summary-total">
               <span>Total</span>
-              <span>EGP <?= formatPrice($final_total) ?> </span>
+              <span>EGP <?= formatPrice($final_total) ?></span>
             </div>
           </div>
         </div>
@@ -561,129 +531,31 @@ if ($coupon) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+    <script>
+      document.getElementById('checkout-form').addEventListener('submit', function (e) {
+        let isValid = true;
 
-</html>
-
-
-
-
-
-<!--  -->
-<!--  -->
-<!DOCTYPE html>
-<html>
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>الدفع | متجرك</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-</head>
-
-<body>
-  <div class="container py-5">
-    <?php if (isset($_GET['error']) && $_GET['error'] == 'coupon_limit'): ?>
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        هذا الكوبون قد تجاوز الحد الأقصى لعدد مرات الاستخدام
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    <?php endif; ?>
-
-    <div class="row">
-      <div class="col-lg-8">
-        <div class="card mb-4">
-          <div class="card-header bg-white">
-            <h4 class="mb-0">معلومات العميل</h4>
-          </div>
-          <div class="card-body">
-            <form id="checkout-form" method="POST">
-              <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-
-              <div class="mb-3">
-                <label for="full_name" class="form-label">الاسم الكامل*</label>
-                <input type="text" class="form-control" id="full_name" name="full_name" required
-                  value="<?= htmlspecialchars($userData['name'] ?? '') ?>">
-              </div>
-
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="email" class="form-label">البريد الإلكتروني*</label>
-                  <input type="email" class="form-control" id="email" name="email" required
-                    value="<?= htmlspecialchars($userData['email'] ?? '') ?>">
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label for="phone" class="form-label">رقم الهاتف*</label>
-                  <input type="tel" class="form-control" id="phone" name="phone" required
-                    value="<?= htmlspecialchars($userData['phone'] ?? '') ?>">
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label for="address" class="form-label">العنوان*</label>
-                <input type="text" class="form-control" id="address" name="address" required
-                  value="<?= htmlspecialchars($userData['address'] ?? '') ?>">
-              </div>
-
-              <div class="row">
-                <div class="col-md-4 mb-3">
-                  <label for="country" class="form-label">الدولة*</label>
-                  <select class="form-select" id="country" name="country" required>
-                    <option value="">اختر...</option>
-                    <option value="مصر" <?= isset($userData['country']) && $userData['country'] == 'مصر' ? 'selected' : '' ?>>مصر</option>
-                    <option value="السعودية" <?= isset($userData['country']) && $userData['country'] == 'السعودية' ? 'selected' : '' ?>>السعودية</option>
-                    <option value="الإمارات" <?= isset($userData['country']) && $userData['country'] == 'الإمارات' ? 'selected' : '' ?>>الإمارات</option>
-                  </select>
-                </div>
-                <div class="col-md-4 mb-3">
-                  <label for="city" class="form-label">المدينة*</label>
-                  <input type="text" class="form-control" id="city" name="city" required
-                    value="<?= htmlspecialchars($userData['city'] ?? '') ?>">
-                </div>
-                <div class="col-md-4 mb-3">
-                  <label for="postal_code" class="form-label">الرمز البريدي</label>
-                  <input type="text" class="form-control" id="postal_code" name="postal_code"
-                    value="<?= htmlspecialchars($userData['postal_code'] ?? '') ?>">
-                </div>
-              </div>
-
-              <button type="submit" name="place_order" class="btn btn-checkout mt-3">تأكيد الطلب</button>
-            </form>
-          </div>
-        </div>
-      </div>
-
-
-
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-      <script>
-        document.getElementById('checkout-form').addEventListener('submit', function (e) {
-          let isValid = true;
-
-          // Validate required fields
-          this.querySelectorAll('[required]').forEach(function (field) {
-            if (!field.value.trim()) {
-              field.classList.add('is-invalid');
-              isValid = false;
-            } else {
-              field.classList.remove('is-invalid');
-            }
-          });
-
-          // Validate email format
-          const emailField = document.getElementById('email');
-          if (emailField.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value)) {
-            emailField.classList.add('is-invalid');
+        this.querySelectorAll('[required]').forEach(function (field) {
+          if (!field.value.trim()) {
+            field.classList.add('is-invalid');
             isValid = false;
-          }
-
-          if (!isValid) {
-            e.preventDefault();
-            alert('الرجاء ملء جميع الحقول المطلوبة بشكل صحيح');
+          } else {
+            field.classList.remove('is-invalid');
           }
         });
-      </script>
+
+        const emailField = document.getElementById('email');
+        if (emailField.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value)) {
+          emailField.classList.add('is-invalid');
+          isValid = false;
+        }
+
+        if (!isValid) {
+          e.preventDefault();
+          alert('Please fill all required fields correctly');
+        }
+      });
+    </script>
 </body>
 
 </html>

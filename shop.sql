@@ -112,6 +112,25 @@ CREATE TABLE IF NOT EXISTS `product_sizes` (
     FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `product_comments` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `product_id` INT(11) NOT NULL,
+    `user_id` INT(11),
+    `name` VARCHAR(100) NOT NULL,
+    `email` VARCHAR(100),
+    `comment` TEXT NOT NULL,
+    `rating` TINYINT,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `status` ENUM(
+        'pending',
+        'approved',
+        'rejected'
+    ) DEFAULT 'pending',
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
 -- WISHLIST
 CREATE TABLE IF NOT EXISTS `wishlist` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,

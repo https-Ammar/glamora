@@ -489,7 +489,8 @@ if ($coupon) {
                   </span>
                 </div>
                 <div class="ms-auto fw-bold">EGP
-                  <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?></div>
+                  <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?>
+                </div>
               </div>
             <?php endforeach; ?>
 

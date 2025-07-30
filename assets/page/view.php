@@ -47,123 +47,241 @@ try {
   exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
-  if (!isset($_SESSION['user_id'])) {
-    die("Unauthorized access");
-  }
-
-  $csrf_token = $_POST['csrf_token'] ?? '';
-  if (!hash_equals($_SESSION['csrf_token'], $csrf_token)) {
-    die("Invalid CSRF token");
-  }
-
-  $comment_id = filter_input(INPUT_POST, 'comment_id', FILTER_VALIDATE_INT);
-  if (!$comment_id) {
-    die("Invalid comment ID");
-  }
-
-  try {
-    $check_stmt = $conn->prepare("
-      SELECT user_id FROM product_comments 
-      WHERE id = ? AND (user_id = ? OR ? IN (SELECT id FROM users WHERE is_admin = 1))
-    ");
-    $user_id = $_SESSION['user_id'];
-    $check_stmt->bind_param("iii", $comment_id, $user_id, $user_id);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result();
-
-    if ($check_result->num_rows > 0) {
-      $delete_stmt = $conn->prepare("DELETE FROM product_comments WHERE id = ?");
-      $delete_stmt->bind_param("i", $comment_id);
-      if ($delete_stmt->execute()) {
-        $_SESSION['message'] = "Comment deleted successfully";
-      } else {
-        $_SESSION['error'] = "Error deleting comment";
-      }
-    } else {
-      die("You don't have permission to delete this comment");
-    }
-  } catch (Exception $e) {
-    error_log("Comment deletion error: " . $e->getMessage());
-    $_SESSION['error'] = "A system error occurred";
-  }
-
-  header("Location: " . $_SERVER['HTTP_REFERER']);
-  exit();
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_comment'])) {
-  $csrf_token = $_POST['csrf_token'] ?? '';
-  if (!hash_equals($_SESSION['csrf_token'], $csrf_token)) {
-    die("Invalid CSRF token");
-  }
-
-  if (!isset($_SESSION['user_id'])) {
-    die("You must be logged in to post a comment");
-  }
-
-  $comment = trim(htmlspecialchars($_POST['comment'] ?? '', ENT_QUOTES, 'UTF-8'));
-  $rating = filter_input(INPUT_POST, 'rating', FILTER_VALIDATE_INT, [
-    'options' => ['min_range' => 1, 'max_range' => 5]
-  ]);
-
-  $user_id = $_SESSION['user_id'];
-
-  try {
-    $user_stmt = $conn->prepare("SELECT name, email FROM users WHERE id = ?");
-    $user_stmt->bind_param("i", $user_id);
-    $user_stmt->execute();
-    $user_result = $user_stmt->get_result();
-    $user = $user_result->fetch_assoc();
-
-    if (!$user) {
-      die("User not found");
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  if (isset($_POST['delete_comment'])) {
+    if (!isset($_SESSION['user_id'])) {
+      die("Unauthorized access");
     }
 
-    $name = $user['name'];
-    $email = $user['email'];
-  } catch (Exception $e) {
-    error_log("User fetch error: " . $e->getMessage());
-    die("Error fetching user details");
-  }
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'], $csrf_token)) {
+      die("Invalid CSRF token");
+    }
 
-  if (empty($comment) || !$rating) {
-    $comment_error = "Please fill all required fields and provide a valid rating.";
-  } elseif (strlen($comment) > 1000) {
-    $comment_error = "Comment is too long. Maximum 1000 characters allowed.";
-  } else {
+    $comment_id = filter_input(INPUT_POST, 'comment_id', FILTER_VALIDATE_INT);
+    if (!$comment_id) {
+      die("Invalid comment ID");
+    }
+
     try {
-      $stmt = $conn->prepare("
-                INSERT INTO product_comments 
-                (product_id, user_id, name, email, comment, rating, status) 
-                VALUES (?, ?, ?, ?, ?, ?, 'pending')
-            ");
-      $stmt->bind_param("iissii", $id, $user_id, $name, $email, $comment, $rating);
+      $check_stmt = $conn->prepare("
+        SELECT user_id FROM product_comments 
+        WHERE id = ? AND (user_id = ? OR ? IN (SELECT id FROM users WHERE is_admin = 1))
+      ");
+      $user_id = $_SESSION['user_id'];
+      $check_stmt->bind_param("iii", $comment_id, $user_id, $user_id);
+      $check_stmt->execute();
+      $check_result = $check_stmt->get_result();
 
-      if ($stmt->execute()) {
-        $comment_success = "Thank you for your comment! It will be reviewed before publishing.";
+      if ($check_result->num_rows > 0) {
+        $delete_stmt = $conn->prepare("DELETE FROM product_comments WHERE id = ?");
+        $delete_stmt->bind_param("i", $comment_id);
+        if ($delete_stmt->execute()) {
+          $_SESSION['message'] = "Comment deleted successfully";
+        } else {
+          $_SESSION['error'] = "Error deleting comment";
+        }
       } else {
-        $comment_error = "Error submitting your comment. Please try again.";
+        die("You don't have permission to delete this comment");
       }
     } catch (Exception $e) {
-      error_log("Comment submission error: " . $e->getMessage());
-      $comment_error = "A system error occurred. Please try again later.";
+      error_log("Comment deletion error: " . $e->getMessage());
+      $_SESSION['error'] = "A system error occurred";
+    }
+
+    header("Location: " . $_SERVER['HTTP_REFERER']);
+    exit();
+  }
+
+  if (isset($_POST['submit_comment'])) {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'], $csrf_token)) {
+      die("Invalid CSRF token");
+    }
+
+    if (!isset($_SESSION['user_id'])) {
+      die("You must be logged in to post a comment");
+    }
+
+    $comment = trim(htmlspecialchars($_POST['comment'] ?? '', ENT_QUOTES, 'UTF-8'));
+    $rating = filter_input(INPUT_POST, 'rating', FILTER_VALIDATE_INT, [
+      'options' => ['min_range' => 1, 'max_range' => 5]
+    ]);
+
+    $user_id = $_SESSION['user_id'];
+
+    try {
+      $user_stmt = $conn->prepare("SELECT name, email FROM users WHERE id = ?");
+      $user_stmt->bind_param("i", $user_id);
+      $user_stmt->execute();
+      $user_result = $user_stmt->get_result();
+      $user = $user_result->fetch_assoc();
+
+      if (!$user) {
+        die("User not found");
+      }
+
+      $name = $user['name'];
+      $email = $user['email'];
+    } catch (Exception $e) {
+      error_log("User fetch error: " . $e->getMessage());
+      die("Error fetching user details");
+    }
+
+    if (empty($comment) || !$rating) {
+      $comment_error = "Please fill all required fields and provide a valid rating.";
+    } elseif (strlen($comment) > 1000) {
+      $comment_error = "Comment is too long. Maximum 1000 characters allowed.";
+    } else {
+      try {
+        $stmt = $conn->prepare("
+          INSERT INTO product_comments 
+          (product_id, user_id, name, email, comment, rating, status) 
+          VALUES (?, ?, ?, ?, ?, ?, 'pending')
+        ");
+        $stmt->bind_param("iissii", $id, $user_id, $name, $email, $comment, $rating);
+
+        if ($stmt->execute()) {
+          $comment_success = "Thank you for your comment! It will be reviewed before publishing.";
+        } else {
+          $comment_error = "Error submitting your comment. Please try again.";
+        }
+      } catch (Exception $e) {
+        error_log("Comment submission error: " . $e->getMessage());
+        $comment_error = "A system error occurred. Please try again later.";
+      }
+    }
+  }
+
+  if (isset($_POST['submit_reply'])) {
+    if (!isset($_SESSION['user_id'])) {
+      die("You must be logged in to post a reply");
+    }
+
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'], $csrf_token)) {
+      die("Invalid CSRF token");
+    }
+
+    $comment_id = filter_input(INPUT_POST, 'comment_id', FILTER_VALIDATE_INT);
+    $reply_text = trim(htmlspecialchars($_POST['reply_text'] ?? '', ENT_QUOTES, 'UTF-8'));
+
+    if (!$comment_id || empty($reply_text)) {
+      die("Invalid input");
+    }
+
+    try {
+      $stmt = $conn->prepare("
+        INSERT INTO comment_replies 
+        (comment_id, user_id, reply_text, status) 
+        VALUES (?, ?, ?, 'pending')
+      ");
+      $stmt->bind_param("iis", $comment_id, $_SESSION['user_id'], $reply_text);
+
+      if ($stmt->execute()) {
+        $_SESSION['message'] = "Reply submitted successfully! It will be reviewed before publishing.";
+      } else {
+        $_SESSION['error'] = "Error submitting your reply.";
+      }
+    } catch (Exception $e) {
+      error_log("Reply submission error: " . $e->getMessage());
+      $_SESSION['error'] = "A system error occurred. Please try again later.";
+    }
+
+    header("Location: " . $_SERVER['HTTP_REFERER']);
+    exit();
+  }
+
+  if (isset($_POST['like_comment'])) {
+    if (!isset($_SESSION['user_id'])) {
+      die(json_encode(['status' => 'error', 'message' => 'Login required']));
+    }
+
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'], $csrf_token)) {
+      die(json_encode(['status' => 'error', 'message' => 'Invalid CSRF token']));
+    }
+
+    $comment_id = filter_input(INPUT_POST, 'comment_id', FILTER_VALIDATE_INT);
+    if (!$comment_id) {
+      die(json_encode(['status' => 'error', 'message' => 'Invalid comment ID']));
+    }
+
+    try {
+      $check_stmt = $conn->prepare("SELECT id FROM comment_likes WHERE comment_id = ? AND user_id = ?");
+      $check_stmt->bind_param("ii", $comment_id, $_SESSION['user_id']);
+      $check_stmt->execute();
+      $result = $check_stmt->get_result();
+
+      if ($result->num_rows > 0) {
+        $delete_stmt = $conn->prepare("DELETE FROM comment_likes WHERE comment_id = ? AND user_id = ?");
+        $delete_stmt->bind_param("ii", $comment_id, $_SESSION['user_id']);
+        $delete_stmt->execute();
+        $action = 'unliked';
+      } else {
+        $insert_stmt = $conn->prepare("INSERT INTO comment_likes (comment_id, user_id) VALUES (?, ?)");
+        $insert_stmt->bind_param("ii", $comment_id, $_SESSION['user_id']);
+        $insert_stmt->execute();
+        $action = 'liked';
+      }
+
+      $count_stmt = $conn->prepare("SELECT COUNT(*) as like_count FROM comment_likes WHERE comment_id = ?");
+      $count_stmt->bind_param("i", $comment_id);
+      $count_stmt->execute();
+      $count_result = $count_stmt->get_result();
+      $count_data = $count_result->fetch_assoc();
+
+      echo json_encode([
+        'status' => 'success',
+        'action' => $action,
+        'like_count' => $count_data['like_count']
+      ]);
+      exit();
+    } catch (Exception $e) {
+      error_log("Like error: " . $e->getMessage());
+      die(json_encode(['status' => 'error', 'message' => 'System error']));
     }
   }
 }
 
 try {
   $comments_stmt = $conn->prepare("
-        SELECT pc.*, u.profile_image, u.id as user_id
-        FROM product_comments pc
-        LEFT JOIN users u ON pc.user_id = u.id
-        WHERE pc.product_id = ? AND pc.status = 'approved'
-        ORDER BY pc.created_at DESC
-    ");
+    SELECT pc.*, u.profile_image, u.id as user_id,
+    (SELECT COUNT(*) FROM comment_likes WHERE comment_id = pc.id) as like_count
+    FROM product_comments pc
+    LEFT JOIN users u ON pc.user_id = u.id
+    WHERE pc.product_id = ? AND pc.status = 'approved'
+    ORDER BY pc.created_at DESC
+  ");
   $comments_stmt->bind_param("i", $id);
   $comments_stmt->execute();
   $comments_result = $comments_stmt->get_result();
   $comments = $comments_result->fetch_all(MYSQLI_ASSOC);
+
+  foreach ($comments as &$comment) {
+    $comment_id = $comment['id'];
+    if (isset($_SESSION['user_id'])) {
+      $like_stmt = $conn->prepare("SELECT id FROM comment_likes WHERE comment_id = ? AND user_id = ?");
+      $like_stmt->bind_param("ii", $comment_id, $_SESSION['user_id']);
+      $like_stmt->execute();
+      $like_result = $like_stmt->get_result();
+      $comment['user_liked'] = $like_result->num_rows > 0;
+    } else {
+      $comment['user_liked'] = false;
+    }
+
+    $replies_stmt = $conn->prepare("
+      SELECT cr.*, u.name, u.profile_image 
+      FROM comment_replies cr
+      JOIN users u ON cr.user_id = u.id
+      WHERE cr.comment_id = ? AND cr.status = 'approved'
+      ORDER BY cr.created_at ASC
+    ");
+    $replies_stmt->bind_param("i", $comment_id);
+    $replies_stmt->execute();
+    $replies_result = $replies_stmt->get_result();
+    $comment['replies'] = $replies_result->fetch_all(MYSQLI_ASSOC);
+  }
 } catch (Exception $e) {
   error_log("Comments fetch error: " . $e->getMessage());
   $comments = [];
@@ -171,10 +289,10 @@ try {
 
 try {
   $avg_rating_stmt = $conn->prepare("
-        SELECT AVG(rating) as avg_rating, COUNT(*) as total_reviews 
-        FROM product_comments 
-        WHERE product_id = ? AND status = 'approved'
-    ");
+    SELECT AVG(rating) as avg_rating, COUNT(*) as total_reviews 
+    FROM product_comments 
+    WHERE product_id = ? AND status = 'approved'
+  ");
   $avg_rating_stmt->bind_param("i", $id);
   $avg_rating_stmt->execute();
   $avg_rating_result = $avg_rating_stmt->get_result();
@@ -314,174 +432,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
   <link rel="stylesheet" href="../style/main.css">
   <link rel="stylesheet" href="../style/viwe.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
-  <style>
-    #mainImageContainer {
-      transition: background-image 0.3s ease;
-    }
 
-    .color-option .color-wrapper {
-      border-radius: 50%;
-      padding: 2px;
-    }
-
-    .color-option .color-wrapper.active {
-      border: 2px solid #000;
-    }
-
-    .color-circle {
-      display: block;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-
-    .thumb.w-100 {
-      height: 200px !important;
-      background-size: cover;
-      background-position: center;
-      border-radius: 6px;
-    }
-
-    /* Comment Section Styles */
-    .comment-section {
-      margin-top: 50px;
-      border-top: 1px solid #eee;
-      padding-top: 30px;
-    }
-
-    .comment-card {
-      border: 1px solid #eee;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-      background-color: #fff;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    }
-
-    .comment-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-
-    .comment-avatar {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background-color: #f5f5f5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 15px;
-      overflow: hidden;
-    }
-
-    .comment-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .comment-author {
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-
-    .comment-date {
-      color: #777;
-      font-size: 0.9em;
-    }
-
-    .comment-rating {
-      color: #ffc107;
-      margin-bottom: 10px;
-    }
-
-    .comment-form {
-      background-color: #f9f9f9;
-      padding: 30px;
-      border-radius: 8px;
-      margin-top: 40px;
-    }
-
-    .rating-input {
-      display: flex;
-      flex-direction: row-reverse;
-      justify-content: flex-end;
-      margin-bottom: 20px;
-    }
-
-    .rating-input input {
-      display: none;
-    }
-
-    .rating-input label {
-      color: #ddd;
-      font-size: 24px;
-      cursor: pointer;
-      padding: 0 5px;
-    }
-
-    .rating-input input:checked~label,
-    .rating-input input:hover~label {
-      color: #ffc107;
-    }
-
-    .rating-input label:hover,
-    .rating-input label:hover~label {
-      color: #ffc107;
-    }
-
-    .no-comments {
-      text-align: center;
-      padding: 30px;
-      background-color: #f9f9f9;
-      border-radius: 8px;
-      margin-bottom: 30px;
-    }
-
-    .average-rating {
-      display: flex;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .average-rating-number {
-      font-size: 2.5rem;
-      font-weight: bold;
-      margin-right: 15px;
-    }
-
-    .rating-count {
-      color: #777;
-      margin-left: 10px;
-    }
-
-    .rating-distribution {
-      margin-top: 20px;
-    }
-
-    .rating-bar {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .rating-label {
-      width: 80px;
-    }
-
-    .rating-progress {
-      flex-grow: 1;
-      margin: 0 10px;
-    }
-
-    .rating-percent {
-      width: 50px;
-      text-align: right;
-    }
-  </style>
 </head>
 
 <body>
@@ -782,7 +733,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
         <div class="col-lg-12">
           <h3 class="mb-4">Customer Reviews</h3>
 
-          <!-- Display current date and time -->
           <div class="current-time mb-3">
             <i class="bi bi-calendar"></i> <?= date('l, F j, Y') ?> |
             <i class="bi bi-clock"></i> <?= date('h:i A') ?>
@@ -800,7 +750,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
 
           <?php if ($total_reviews > 0): ?>
             <?php foreach ($comments as $comment): ?>
-              <div class="comment-card">
+              <div class="comment-card mb-4" id="comment-<?= $comment['id'] ?>">
                 <div class="comment-header">
                   <div class="comment-avatar">
                     <?php if (!empty($comment['profile_image'])): ?>
@@ -813,21 +763,80 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                     <div class="comment-author"><?= htmlspecialchars($comment['name']) ?></div>
                     <div class="comment-date"><?= date('F j, Y \a\t h:i A', strtotime($comment['created_at'])) ?></div>
                   </div>
-                  <?php if (isset($_SESSION['user_id']) && ($_SESSION['user_id'] == $comment['user_id'] || ($_SESSION['is_admin'] ?? false))): ?>
-                    <form method="POST" class="ms-auto">
-                      <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                      <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
-                      <button type="submit" name="delete_comment" class="btn btn-sm btn-outline-danger">
-                        <i class="bi bi-trash"></i> Delete
-                      </button>
-                    </form>
-                  <?php endif; ?>
+                  <div class="comment-actions ms-auto">
+                    <button class="btn btn-sm btn-outline-secondary like-btn" data-comment-id="<?= $comment['id'] ?>">
+                      <i class="bi bi-hand-thumbs-up<?= $comment['user_liked'] ? '-fill text-primary' : '' ?>"></i>
+                      <span class="like-count"><?= $comment['like_count'] ?></span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary reply-btn" data-comment-id="<?= $comment['id'] ?>">
+                      <i class="bi bi-reply"></i> Reply
+                    </button>
+                    <?php if (isset($_SESSION['user_id']) && ($_SESSION['user_id'] == $comment['user_id'] || ($_SESSION['is_admin'] ?? false))): ?>
+                      <form method="POST" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                        <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
+                        <button type="submit" name="delete_comment" class="btn btn-sm btn-outline-danger">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+                    <?php endif; ?>
+
+                  </div>
                 </div>
                 <div class="comment-rating">
                   <?= renderStars($comment['rating']) ?>
                 </div>
                 <div class="comment-body">
                   <p><?= nl2br(htmlspecialchars($comment['comment'])) ?></p>
+                </div>
+
+                <!-- Replies Section -->
+                <?php if (!empty($comment['replies'])): ?>
+                  <div class="replies-container mt-3 ps-4 border-start">
+                    <?php foreach ($comment['replies'] as $reply): ?>
+                      <div class="reply-card mb-3">
+                        <div class="comment-header">
+                          <div class="comment-avatar">
+                            <?php if (!empty($reply['profile_image'])): ?>
+                              <img src="<?= htmlspecialchars($reply['profile_image']) ?>" alt="User Avatar">
+                            <?php else: ?>
+                              <i class="bi bi-person-fill" style="font-size: 20px;"></i>
+                            <?php endif; ?>
+                          </div>
+                          <div>
+                            <div class="comment-author"><?= htmlspecialchars($reply['name']) ?></div>
+                            <div class="comment-date"><?= date('F j, Y \a\t h:i A', strtotime($reply['created_at'])) ?></div>
+                          </div>
+                        </div>
+                        <div class="comment-body">
+                          <p><?= nl2br(htmlspecialchars($reply['reply_text'])) ?></p>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
+
+                <!-- Reply Form (Hidden by default) -->
+                <div class="reply-form-container mt-3" id="reply-form-<?= $comment['id'] ?>" style="display: none;">
+                  <?php if (isset($_SESSION['user_id'])): ?>
+                    <form method="post" action="#comment-<?= $comment['id'] ?>">
+                      <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                      <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
+                      <div class="mb-3">
+                        <textarea class="form-control" name="reply_text" rows="3" required maxlength="500"
+                          placeholder="Write your reply..."></textarea>
+                        <div class="form-text">Maximum 500 characters</div>
+                      </div>
+                      <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary cancel-reply-btn">Cancel</button>
+                        <button type="submit" name="submit_reply" class="btn btn-dark">Post Reply</button>
+                      </div>
+                    </form>
+                  <?php else: ?>
+                    <div class="alert alert-info py-2">
+                      You must <a href="<?= $base_url ?>login.php" class="alert-link">login</a> to reply to this comment.
+                    </div>
+                  <?php endif; ?>
                 </div>
               </div>
             <?php endforeach; ?>
@@ -891,6 +900,87 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
         </div>
       </div>
     </div>
+
+    <!-- JavaScript for Like and Reply Functionality -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Handle like buttons
+        document.querySelectorAll('.like-btn').forEach(button => {
+          button.addEventListener('click', function () {
+            const commentId = this.dataset.commentId;
+            const likeIcon = this.querySelector('i');
+            const likeCount = this.querySelector('.like-count');
+
+            if (!<?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>) {
+              window.location.href = '<?= $base_url ?>login.php';
+              return;
+            }
+
+            fetch('', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({
+                like_comment: '1',
+                comment_id: commentId,
+                csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>'
+              })
+            })
+              .then(response => response.json())
+              .then(data => {
+                if (data.status === 'success') {
+                  likeCount.textContent = data.like_count;
+                  if (data.action === 'liked') {
+                    likeIcon.classList.remove('bi-hand-thumbs-up');
+                    likeIcon.classList.add('bi-hand-thumbs-up-fill', 'text-primary');
+                  } else {
+                    likeIcon.classList.remove('bi-hand-thumbs-up-fill', 'text-primary');
+                    likeIcon.classList.add('bi-hand-thumbs-up');
+                  }
+                } else if (data.message === 'Login required') {
+                  window.location.href = '<?= $base_url ?>login.php';
+                }
+              });
+          });
+        });
+
+        // Handle reply buttons
+        document.querySelectorAll('.reply-btn').forEach(button => {
+          button.addEventListener('click', function () {
+            const commentId = this.dataset.commentId;
+            const replyForm = document.getElementById(`reply-form-${commentId}`);
+
+            if (!<?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>) {
+              window.location.href = '<?= $base_url ?>login.php';
+              return;
+            }
+
+            // Hide all other reply forms
+            document.querySelectorAll('.reply-form-container').forEach(form => {
+              if (form.id !== `reply-form-${commentId}`) {
+                form.style.display = 'none';
+              }
+            });
+
+            // Toggle current reply form
+            if (replyForm.style.display === 'none') {
+              replyForm.style.display = 'block';
+              replyForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+              replyForm.style.display = 'none';
+            }
+          });
+        });
+
+        // Handle cancel reply buttons
+        document.querySelectorAll('.cancel-reply-btn').forEach(button => {
+          button.addEventListener('click', function () {
+            this.closest('.reply-form-container').style.display = 'none';
+          });
+        });
+      });
+    </script>
     <div class="row">
       <section class="py-5">
         <div class="_con">
@@ -1137,3 +1227,175 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
 </body>
 
 </html>
+
+
+
+<!--  -->
+<style>
+  #mainImageContainer {
+    transition: background-image 0.3s ease;
+  }
+
+  .color-option .color-wrapper {
+    border-radius: 50%;
+    padding: 2px;
+  }
+
+  .color-option .color-wrapper.active {
+    border: 2px solid #000;
+  }
+
+  .color-circle {
+    display: block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .thumb.w-100 {
+    height: 200px !important;
+    background-size: cover;
+    background-position: center;
+    border-radius: 6px;
+  }
+
+  /* Comment Section Styles */
+  .comment-section {
+    margin-top: 50px;
+    border-top: 1px solid #eee;
+    padding-top: 30px;
+  }
+
+  .comment-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  .comment-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .comment-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    overflow: hidden;
+  }
+
+  .comment-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .comment-author {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  .comment-date {
+    color: #777;
+    font-size: 0.9em;
+  }
+
+  .comment-rating {
+    color: #ffc107;
+    margin-bottom: 10px;
+  }
+
+  .comment-form {
+    background-color: #f9f9f9;
+    padding: 30px;
+    border-radius: 8px;
+    margin-top: 40px;
+  }
+
+  .rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+  }
+
+  .rating-input input {
+    display: none;
+  }
+
+  .rating-input label {
+    color: #ddd;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 5px;
+  }
+
+  .rating-input input:checked~label,
+  .rating-input input:hover~label {
+    color: #ffc107;
+  }
+
+  .rating-input label:hover,
+  .rating-input label:hover~label {
+    color: #ffc107;
+  }
+
+  .no-comments {
+    text-align: center;
+    padding: 30px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin-bottom: 30px;
+  }
+
+  .average-rating {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .average-rating-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-right: 15px;
+  }
+
+  .rating-count {
+    color: #777;
+    margin-left: 10px;
+  }
+
+  .rating-distribution {
+    margin-top: 20px;
+  }
+
+  .rating-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .rating-label {
+    width: 80px;
+  }
+
+  .rating-progress {
+    flex-grow: 1;
+    margin: 0 10px;
+  }
+
+  .rating-percent {
+    width: 50px;
+    text-align: right;
+  }
+</style>

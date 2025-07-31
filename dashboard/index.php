@@ -5,10 +5,10 @@ require('./db.php');
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 // Check if user is logged in
-if (!isset($_SESSION['userId'])) {
-    header('Location: ./login.php');
-    exit();
-}
+// if (!isset($_SESSION['userId'])) {
+//     header('Location: ./login.php');
+//     exit();
+// }
 
 // Get user data
 $userid = $_SESSION['userId'];

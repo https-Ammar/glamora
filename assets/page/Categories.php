@@ -124,7 +124,7 @@ $types = str_repeat('i', count($categoryIds));
 
                 while ($product = $productsResult->fetch_assoc()) {
                   $productName = htmlspecialchars($product['name']);
-                  $productImage = './dashboard/dashboard_shop-main/' . htmlspecialchars($product['image']);
+                  $productImage = 'http://localhost:8888/glamora/dashboard/' . htmlspecialchars($product['image']);
                   $productPrice = number_format($product['price'], 2);
                   $productDiscount = (int) $product['discount_percent'];
                   $finalPrice = $product['sale_price'] ?? $product['price'];

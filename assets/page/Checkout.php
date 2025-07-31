@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 
     $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
     $customerName = $_POST['full_name'];
-    $status = 'inprogress';
+    $status = 'pending';
 
     $stmt->bind_param(
       "isssssssdiss",

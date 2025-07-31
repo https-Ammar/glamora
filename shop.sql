@@ -8,7 +8,6 @@ SET time_zone = "+00:00";
 
 START TRANSACTION;
 
--- ADMINS
 CREATE TABLE IF NOT EXISTS `usersadmin` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(255) NOT NULL,
@@ -17,7 +16,6 @@ CREATE TABLE IF NOT EXISTS `usersadmin` (
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- USERS
 CREATE TABLE IF NOT EXISTS `users` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(255) NOT NULL,
@@ -33,7 +31,6 @@ CREATE TABLE IF NOT EXISTS `users` (
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- CATEGORIES
 CREATE TABLE IF NOT EXISTS `categories` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(255) NOT NULL,
@@ -43,7 +40,6 @@ CREATE TABLE IF NOT EXISTS `categories` (
     FOREIGN KEY (`parent_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- PRODUCTS
 CREATE TABLE IF NOT EXISTS `products` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(255) NOT NULL,
@@ -80,7 +76,6 @@ CREATE TABLE IF NOT EXISTS `products` (
     FOREIGN KEY (`created_by`) REFERENCES `usersadmin` (`id`) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- CART
 CREATE TABLE IF NOT EXISTS `cart` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `userid` INT(11) NOT NULL,
@@ -93,7 +88,6 @@ CREATE TABLE IF NOT EXISTS `cart` (
     FOREIGN KEY (`productid`) REFERENCES `products` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- PRODUCT COLORS
 CREATE TABLE IF NOT EXISTS `product_colors` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `product_id` INT(11) NOT NULL,
@@ -103,7 +97,6 @@ CREATE TABLE IF NOT EXISTS `product_colors` (
     FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- PRODUCT SIZES
 CREATE TABLE IF NOT EXISTS `product_sizes` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `product_id` INT(11) NOT NULL,
@@ -121,6 +114,7 @@ CREATE TABLE IF NOT EXISTS `product_comments` (
     `comment` TEXT NOT NULL,
     `rating` TINYINT,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `status` ENUM(
         'pending',
         'approved',
@@ -128,37 +122,43 @@ CREATE TABLE IF NOT EXISTS `product_comments` (
     ) DEFAULT 'pending',
     PRIMARY KEY (`id`),
     FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+    INDEX (`product_id`),
+    INDEX (`status`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- جدول ردود التعليقات
-CREATE TABLE comment_replies (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    comment_id INT NOT NULL,
-    user_id INT NOT NULL,
-    reply_text TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM(
+CREATE TABLE IF NOT EXISTS `comment_replies` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `comment_id` INT NOT NULL,
+    `user_id` INT,
+    `parent_reply_id` INT DEFAULT NULL,
+    `name` VARCHAR(100),
+    `email` VARCHAR(100),
+    `reply_text` TEXT NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `status` ENUM(
         'pending',
         'approved',
         'rejected'
     ) DEFAULT 'pending',
-    FOREIGN KEY (comment_id) REFERENCES product_comments (id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users (id)
-);
+    FOREIGN KEY (`comment_id`) REFERENCES `product_comments` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`parent_reply_id`) REFERENCES `comment_replies` (`id`) ON DELETE CASCADE,
+    INDEX (`comment_id`),
+    INDEX (`status`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- جدول إعجابات التعليقات
-CREATE TABLE comment_likes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    comment_id INT NOT NULL,
-    user_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY (comment_id, user_id),
-    FOREIGN KEY (comment_id) REFERENCES product_comments (id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users (id)
-);
+CREATE TABLE IF NOT EXISTS `comment_likes` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `comment_id` INT NOT NULL,
+    `user_id` INT NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY (`comment_id`, `user_id`),
+    FOREIGN KEY (`comment_id`) REFERENCES `product_comments` (`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- WISHLIST
 CREATE TABLE IF NOT EXISTS `wishlist` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `user_id` INT(11) NOT NULL,
@@ -170,7 +170,6 @@ CREATE TABLE IF NOT EXISTS `wishlist` (
     UNIQUE KEY `user_product_unique` (`user_id`, `product_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- ADS
 CREATE TABLE IF NOT EXISTS `ads` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `categoryid` INT(11) NOT NULL,
@@ -180,7 +179,6 @@ CREATE TABLE IF NOT EXISTS `ads` (
     FOREIGN KEY (`categoryid`) REFERENCES `categories` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- ✅ COUPONS (بعد التعديل)
 CREATE TABLE IF NOT EXISTS `coupons` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `code` VARCHAR(50) NOT NULL UNIQUE,
@@ -200,7 +198,6 @@ CREATE TABLE IF NOT EXISTS `coupons` (
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- ORDERS
 CREATE TABLE IF NOT EXISTS `orders` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `user_id` INT(11),
@@ -212,7 +209,14 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `city` VARCHAR(100),
     `address` TEXT NOT NULL,
     `html_tag` TEXT,
-    `orderstate` VARCHAR(50) DEFAULT 'inprogress',
+    `orderstate` ENUM(
+        'pending',
+        'processing',
+        'shipped',
+        'delivered',
+        'cancelled',
+        'refunded'
+    ) DEFAULT 'pending',
     `date` DATE,
     `numberofproducts` INT(11),
     `finaltotalprice` DECIMAL(10, 2),
@@ -226,7 +230,6 @@ CREATE TABLE IF NOT EXISTS `orders` (
     FOREIGN KEY (`coupon_id`) REFERENCES `coupons` (`id`) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- COUPON USAGE
 CREATE TABLE IF NOT EXISTS `coupon_usage` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `coupon_id` INT(11) NOT NULL,
@@ -240,7 +243,6 @@ CREATE TABLE IF NOT EXISTS `coupon_usage` (
     INDEX `coupon_user_index` (`coupon_id`, `user_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- DISCOUNT LOGS
 CREATE TABLE IF NOT EXISTS `discount_logs` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `user_id` INT(11) NOT NULL,
@@ -252,7 +254,6 @@ CREATE TABLE IF NOT EXISTS `discount_logs` (
     FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- ORDER ITEMS
 CREATE TABLE IF NOT EXISTS `order_items` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `order_id` INT(11) NOT NULL,
@@ -267,7 +268,6 @@ CREATE TABLE IF NOT EXISTS `order_items` (
     FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- SITE VISITS
 CREATE TABLE IF NOT EXISTS `site_visits` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `ip_address` VARCHAR(50) NOT NULL,
@@ -276,18 +276,24 @@ CREATE TABLE IF NOT EXISTS `site_visits` (
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- NOTIFICATIONS
 CREATE TABLE IF NOT EXISTS `notifications` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `user_id` INT(11) NOT NULL,
     `message` TEXT NOT NULL,
+    `type` ENUM(
+        'order',
+        'product',
+        'promotion',
+        'system'
+    ) DEFAULT 'system',
+    `related_id` INT(11),
     `is_read` TINYINT(1) DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    INDEX (`user_id`, `is_read`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- ORDER STATUS LOGS
 CREATE TABLE IF NOT EXISTS `order_status_logs` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `order_id` INT(11) NOT NULL,
@@ -298,7 +304,14 @@ CREATE TABLE IF NOT EXISTS `order_status_logs` (
     FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- INSERT ADMIN
+CREATE TABLE IF NOT EXISTS `sliders` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `image_url` VARCHAR(255) NOT NULL,
+    `link_url` VARCHAR(255) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
 INSERT INTO
     `usersadmin` (
         `id`,

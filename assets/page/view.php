@@ -23,15 +23,15 @@ if (!$id || $id <= 0) {
 
 try {
   $stmt = $conn->prepare("
-        SELECT 
-            p.*, 
-            c1.name AS category_name, 
-            c2.name AS parent_category_name 
-        FROM products p 
-        LEFT JOIN categories c1 ON p.category_id = c1.id 
-        LEFT JOIN categories c2 ON c1.parent_id = c2.id 
-        WHERE p.id = ?
-    ");
+    SELECT 
+      p.*, 
+      c1.name AS category_name, 
+      c2.name AS parent_category_name 
+    FROM products p 
+    LEFT JOIN categories c1 ON p.category_id = c1.id 
+    LEFT JOIN categories c2 ON c1.parent_id = c2.id 
+    WHERE p.id = ?
+  ");
   $stmt->bind_param("i", $id);
   $stmt->execute();
   $result = $stmt->get_result();
@@ -418,7 +418,6 @@ $is_new = !empty($product['is_new']) ? 'Yes' : 'No';
 $is_featured = !empty($product['is_featured']) ? 'Yes' : 'No';
 $quantity = max(0, (int) ($product['quantity'] ?? 0));
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -432,7 +431,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
   <link rel="stylesheet" href="../style/main.css">
   <link rel="stylesheet" href="../style/viwe.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
-
 </head>
 
 <body>
@@ -489,12 +487,12 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
           </div>
         </div>
       </div>
-      <div class="col-lg-6 product-details">
+      <div class="col-lg-6 ">
         <div class="social-media">
           <ul>
-            <li><a href="https://www.instagram.com/dexignzone/">Instagram</a></li>
-            <li><a href="https://www.facebook.com/dexignzone">Facebook</a></li>
-            <li><a href="https://twitter.com/dexignzones">Twitter</a></li>
+            <li><a href="#">Instagram</a></li>
+            <li><a href="#">Facebook</a></li>
+            <li><a href="#">Twitter</a></li>
           </ul>
         </div>
 
@@ -506,18 +504,21 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
 
         <div class="d-flex align-items-center mb-2">
           <?php echo renderStars($average_rating); ?>
-          <span class="text-secondary me-2"><?= number_format($average_rating, 1) ?> Rating</span>
-          <a href="#reviews">(<?= $total_reviews ?> customer reviews)</a>
+          <span class="text-secondary m-2"><?= number_format($average_rating, 1) ?> Rating</span>
+          <a href="#reviews">( <?= $total_reviews ?> customer reviews )</a>
         </div>
 
-        <h5><?php echo htmlspecialchars($description); ?></h5>
+        <h5
+          style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+          <?php echo htmlspecialchars($description); ?>
+        </h5>
         <p class="mb-4">It is the perfect tee for any occasion.</p>
 
         <div class="meta-content m-b20">
           <span class="form-label">Price</span>
-          <span class="price">$<?php echo formatPrice($final_price); ?>
+          <span class="price"> <?php echo formatPrice($final_price); ?> <sub>EG</sub>
             <?php if ($on_sale): ?>
-              <del>$<?php echo formatPrice($price); ?></del>
+              <del><?php echo formatPrice($price); ?> <sub>EG</sub></del>
             <?php endif; ?>
           </span>
         </div>
@@ -616,36 +617,17 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
     <div class="container my-4 mt-5">
       <div class="d-flex align-items-center text-center">
         <div class="flex-grow-1 border-bottom"></div>
-        <span class="px-3 py-1 bg-dark text-white rounded-pill mx-2">ammar</span>
         <div class="flex-grow-1 border-bottom"></div>
       </div>
     </div>
 
     <div class="mt-3 ">
       <div class="row">
-        <div class="col-lg-7  ">
-          <h2 class="fw-bold mt-3 mb-3">Fits Women</h2>
-          <p>Designed for superior child comfort, OneFit™ provides extra rear-facing legroom and multiple recline
-            options in every mode of use. With the widest range of height adjustments, the easy-adjust headrest system
-            adjusts with the harness to grow with your child. OneFit™ accommodates tiny passengers from the very start
-            with a removable head and body support insert for newborns weighing 5-11 lbs.</p>
+        <div class="col-lg-12  ">
 
-          <h5 class="fw-bold mt-4">color</h5>
-          <ul class="list-unstyled">
-            <li>
-              <?php if (!empty($colors)): ?>
-                <?php
-                $color_names = array_map(function ($color) {
-                  return isset($color['name']) ? htmlspecialchars($color['name']) : '';
-                }, $colors);
-                echo implode(' / ', array_filter($color_names));
-                ?>
-              <?php else: ?>
-                N/A
-              <?php endif; ?>
-            </li>
-            <li>Assembled Product Weight: 25 lbs.</li>
-          </ul>
+          <h3 class="mb-4">Customer Reviews</h3>
+
+          <p><?php echo htmlspecialchars($description); ?></p>
 
           <div class="row">
             <div class="bg-white mt-5">
@@ -653,6 +635,22 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                 <div class="col-6 info-label">Brand</div>
                 <div class="col-6 info-value"><?= $brand ?></div>
               </div>
+
+              <div class="row info-row">
+                <div class="col-6 info-label">color</div>
+                <div class="col-6 info-value"> <?php if (!empty($colors)): ?>
+                    <?php
+                    $color_names = array_map(function ($color) {
+                      return isset($color['name']) ? htmlspecialchars($color['name']) : '';
+                    }, $colors);
+                    echo implode(' / ', array_filter($color_names));
+                    ?>
+                  <?php else: ?>
+                    N/A
+                  <?php endif; ?>
+                </div>
+              </div>
+
               <div class="row info-row">
                 <div class="col-6 info-label">Barcode</div>
                 <div class="col-6 info-value"><?= $barcode ?></div>
@@ -679,374 +677,329 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
               </div>
             </div>
           </div>
-          <div class="mt-3">
-            <div class="row g-2">
-              <?php foreach ($all_images as $img): ?>
-                <div class="col-6 col-sm-4 col-lg-3">
-                  <div class="thumb w-100"
-                    style="background-image: url('<?php echo htmlspecialchars($img); ?>'); height: 120px; background-size: cover; background-position: center;">
+        </div>
+      </div>
+
+
+
+      <div class="comment-section" id="reviews">
+        <div class="row">
+          <div class="col-lg-12">
+            <h3 class="mb-4">Customer Reviews</h3>
+
+            <div class="current-time mb-3">
+              <i class="bi bi-calendar"></i> <?= date('l, F j, Y') ?> |
+              <i class="bi bi-clock"></i> <?= date('h:i A') ?>
+            </div>
+
+            <div class="average-rating mb-5">
+              <div class="average-rating-number"><?= number_format($average_rating, 1) ?></div>
+              <div>
+                <div class="comment-rating">
+                  <?= renderStars($average_rating) ?>
+                </div>
+                <div class="rating-count">Based on <?= $total_reviews ?> reviews</div>
+              </div>
+            </div>
+
+            <?php if ($total_reviews > 0): ?>
+              <?php foreach ($comments as $comment): ?>
+                <div class="comment-card mb-4" id="comment-<?= $comment['id'] ?>">
+                  <div class="comment-header">
+                    <div class="comment-avatar">
+                      <?php if (!empty($comment['profile_image'])): ?>
+                        <img src="<?= htmlspecialchars($comment['profile_image']) ?>" alt="User Avatar">
+                      <?php else: ?>
+                        <i class="bi bi-person-fill" style="font-size: 24px;"></i>
+                      <?php endif; ?>
+                    </div>
+                    <div>
+                      <div class="comment-author"><?= htmlspecialchars($comment['name']) ?></div>
+                      <div class="comment-date"><?= date('F j, Y \a\t h:i A', strtotime($comment['created_at'])) ?></div>
+                    </div>
+                    <div class="comment-actions ms-auto">
+                      <button class="btn btn-sm btn-outline-secondary like-btn" data-comment-id="<?= $comment['id'] ?>">
+                        <i class="bi bi-hand-thumbs-up<?= $comment['user_liked'] ? '-fill text-primary' : '' ?>"></i>
+                        <span class="like-count"><?= $comment['like_count'] ?></span>
+                      </button>
+                      <button class="btn btn-sm btn-outline-secondary reply-btn" data-comment-id="<?= $comment['id'] ?>">
+                        <i class="bi bi-reply"></i> Reply
+                      </button>
+                      <?php if (isset($_SESSION['user_id']) && ($_SESSION['user_id'] == $comment['user_id'] || ($_SESSION['is_admin'] ?? false))): ?>
+                        <form method="POST" class="d-inline">
+                          <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                          <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
+                          <button type="submit" name="delete_comment" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </form>
+                      <?php endif; ?>
+
+                    </div>
+                  </div>
+                  <div class="comment-rating">
+                    <?= renderStars($comment['rating']) ?>
+                  </div>
+                  <div class="comment-body">
+                    <p><?= nl2br(htmlspecialchars($comment['comment'])) ?></p>
+                  </div>
+
+                  <?php if (!empty($comment['replies'])): ?>
+                    <div class="replies-container mt-3 ps-4 border-start">
+                      <?php foreach ($comment['replies'] as $reply): ?>
+                        <div class="reply-card mb-3">
+                          <div class="comment-header">
+                            <div class="comment-avatar">
+                              <?php if (!empty($reply['profile_image'])): ?>
+                                <img src="<?= htmlspecialchars($reply['profile_image']) ?>" alt="User Avatar">
+                              <?php else: ?>
+                                <i class="bi bi-person-fill" style="font-size: 20px;"></i>
+                              <?php endif; ?>
+                            </div>
+                            <div>
+                              <div class="comment-author"><?= htmlspecialchars($reply['name']) ?></div>
+                              <div class="comment-date"><?= date('F j, Y \a\t h:i A', strtotime($reply['created_at'])) ?></div>
+                            </div>
+                          </div>
+                          <div class="comment-body">
+                            <p><?= nl2br(htmlspecialchars($reply['reply_text'])) ?></p>
+                          </div>
+                        </div>
+                      <?php endforeach; ?>
+                    </div>
+                  <?php endif; ?>
+
+                  <div class="reply-form-container mt-3" id="reply-form-<?= $comment['id'] ?>" style="display: none;">
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                      <form method="post" action="#comment-<?= $comment['id'] ?>">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                        <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
+                        <div class="mb-3">
+                          <textarea class="form-control" name="reply_text" rows="3" required maxlength="500"
+                            placeholder="Write your reply..."></textarea>
+                          <div class="form-text">Maximum 500 characters</div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                          <button type="button" class="btn btn-outline-secondary cancel-reply-btn">Cancel</button>
+                          <button type="submit" name="submit_reply" class="btn btn-dark">Post Reply</button>
+                        </div>
+                      </form>
+                    <?php else: ?>
+                      <div class="alert alert-info py-2">
+                        You must <a href="<?= $base_url ?>login.php" class="alert-link">login</a> to reply to this comment.
+                      </div>
+                    <?php endif; ?>
                   </div>
                 </div>
               <?php endforeach; ?>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-lg-5">
-          <div class="row g-2 mb-4">
-            <div class="col-12 col-sm-6 col-md-6">
-              <div class="info-box">
-                <h6>All-in-One Dress</h6>
-                <p>Lorem Ipsum is simply dummy text </p>
-              </div>
-            </div>
-            <div class="col-12 col-sm-6 col-md-6">
-              <div class="info-box">
-                <h6>Looking wise good</h6>
-                <p>Lorem Ipsum is simply dummy text </p>
-              </div>
-            </div>
-            <div class="col-12 col-sm-6 col-md-6">
-              <div class="info-box">
-                <h6>100% Made In India</h6>
-                <p>Lorem Ipsum is simply dummy text </p>
-              </div>
-            </div>
-            <div class="col-12 col-sm-6 col-md-6">
-              <div class="info-box">
-                <h6>100% Cotton</h6>
-                <p>Lorem Ipsum is simply dummy text </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="model-img position-relative"
-            style="background-image: url('<?php echo $image_path; ?>'); background-size: cover; background-position: center; min-height: 400px;">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Reviews and Ratings Section -->
-    <div class="comment-section" id="reviews">
-      <div class="row">
-        <div class="col-lg-12">
-          <h3 class="mb-4">Customer Reviews</h3>
-
-          <div class="current-time mb-3">
-            <i class="bi bi-calendar"></i> <?= date('l, F j, Y') ?> |
-            <i class="bi bi-clock"></i> <?= date('h:i A') ?>
-          </div>
-
-          <div class="average-rating mb-5">
-            <div class="average-rating-number"><?= number_format($average_rating, 1) ?></div>
-            <div>
-              <div class="comment-rating">
-                <?= renderStars($average_rating) ?>
-              </div>
-              <div class="rating-count">Based on <?= $total_reviews ?> reviews</div>
-            </div>
-          </div>
-
-          <?php if ($total_reviews > 0): ?>
-            <?php foreach ($comments as $comment): ?>
-              <div class="comment-card mb-4" id="comment-<?= $comment['id'] ?>">
-                <div class="comment-header">
-                  <div class="comment-avatar">
-                    <?php if (!empty($comment['profile_image'])): ?>
-                      <img src="<?= htmlspecialchars($comment['profile_image']) ?>" alt="User Avatar">
-                    <?php else: ?>
-                      <i class="bi bi-person-fill" style="font-size: 24px;"></i>
-                    <?php endif; ?>
-                  </div>
-                  <div>
-                    <div class="comment-author"><?= htmlspecialchars($comment['name']) ?></div>
-                    <div class="comment-date"><?= date('F j, Y \a\t h:i A', strtotime($comment['created_at'])) ?></div>
-                  </div>
-                  <div class="comment-actions ms-auto">
-                    <button class="btn btn-sm btn-outline-secondary like-btn" data-comment-id="<?= $comment['id'] ?>">
-                      <i class="bi bi-hand-thumbs-up<?= $comment['user_liked'] ? '-fill text-primary' : '' ?>"></i>
-                      <span class="like-count"><?= $comment['like_count'] ?></span>
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary reply-btn" data-comment-id="<?= $comment['id'] ?>">
-                      <i class="bi bi-reply"></i> Reply
-                    </button>
-                    <?php if (isset($_SESSION['user_id']) && ($_SESSION['user_id'] == $comment['user_id'] || ($_SESSION['is_admin'] ?? false))): ?>
-                      <form method="POST" class="d-inline">
-                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                        <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
-                        <button type="submit" name="delete_comment" class="btn btn-sm btn-outline-danger">
-                          <i class="bi bi-trash"></i>
-                        </button>
-                      </form>
-                    <?php endif; ?>
-
-                  </div>
-                </div>
-                <div class="comment-rating">
-                  <?= renderStars($comment['rating']) ?>
-                </div>
-                <div class="comment-body">
-                  <p><?= nl2br(htmlspecialchars($comment['comment'])) ?></p>
-                </div>
-
-                <!-- Replies Section -->
-                <?php if (!empty($comment['replies'])): ?>
-                  <div class="replies-container mt-3 ps-4 border-start">
-                    <?php foreach ($comment['replies'] as $reply): ?>
-                      <div class="reply-card mb-3">
-                        <div class="comment-header">
-                          <div class="comment-avatar">
-                            <?php if (!empty($reply['profile_image'])): ?>
-                              <img src="<?= htmlspecialchars($reply['profile_image']) ?>" alt="User Avatar">
-                            <?php else: ?>
-                              <i class="bi bi-person-fill" style="font-size: 20px;"></i>
-                            <?php endif; ?>
-                          </div>
-                          <div>
-                            <div class="comment-author"><?= htmlspecialchars($reply['name']) ?></div>
-                            <div class="comment-date"><?= date('F j, Y \a\t h:i A', strtotime($reply['created_at'])) ?></div>
-                          </div>
-                        </div>
-                        <div class="comment-body">
-                          <p><?= nl2br(htmlspecialchars($reply['reply_text'])) ?></p>
-                        </div>
-                      </div>
-                    <?php endforeach; ?>
-                  </div>
-                <?php endif; ?>
-
-                <!-- Reply Form (Hidden by default) -->
-                <div class="reply-form-container mt-3" id="reply-form-<?= $comment['id'] ?>" style="display: none;">
-                  <?php if (isset($_SESSION['user_id'])): ?>
-                    <form method="post" action="#comment-<?= $comment['id'] ?>">
-                      <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                      <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
-                      <div class="mb-3">
-                        <textarea class="form-control" name="reply_text" rows="3" required maxlength="500"
-                          placeholder="Write your reply..."></textarea>
-                        <div class="form-text">Maximum 500 characters</div>
-                      </div>
-                      <div class="d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-outline-secondary cancel-reply-btn">Cancel</button>
-                        <button type="submit" name="submit_reply" class="btn btn-dark">Post Reply</button>
-                      </div>
-                    </form>
-                  <?php else: ?>
-                    <div class="alert alert-info py-2">
-                      You must <a href="<?= $base_url ?>login.php" class="alert-link">login</a> to reply to this comment.
-                    </div>
-                  <?php endif; ?>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <div class="no-comments text-center py-5">
-              <i class="bi bi-chat-square-text" style="font-size: 48px; color: #ddd;"></i>
-              <h4 class="mt-3">No reviews yet</h4>
-              <p class="text-muted">There are currently no reviews for this product.</p>
-              <p>Be the first to share your experience!</p>
-            </div>
-          <?php endif; ?>
-
-          <!-- Comment Form -->
-          <div class="comment-form mt-5">
-            <h4 class="mb-4">Write a Review</h4>
-
-            <?php if (isset($comment_success)): ?>
-              <div class="alert alert-success"><?= $comment_success ?></div>
-            <?php endif; ?>
-
-            <?php if (isset($comment_error)): ?>
-              <div class="alert alert-danger"><?= $comment_error ?></div>
-            <?php endif; ?>
-
-            <?php if (isset($_SESSION['user_id'])): ?>
-              <form method="post" action="#reviews">
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-
-                <div class="mb-3">
-                  <label for="rating" class="form-label">Your Rating</label>
-                  <div class="rating-input">
-                    <input type="radio" id="star5" name="rating" value="5" required>
-                    <label for="star5" title="5 stars"><i class="bi bi-star-fill"></i></label>
-                    <input type="radio" id="star4" name="rating" value="4">
-                    <label for="star4" title="4 stars"><i class="bi bi-star-fill"></i></label>
-                    <input type="radio" id="star3" name="rating" value="3">
-                    <label for="star3" title="3 stars"><i class="bi bi-star-fill"></i></label>
-                    <input type="radio" id="star2" name="rating" value="2">
-                    <label for="star2" title="2 stars"><i class="bi bi-star-fill"></i></label>
-                    <input type="radio" id="star1" name="rating" value="1">
-                    <label for="star1" title="1 star"><i class="bi bi-star-fill"></i></label>
-                  </div>
-                </div>
-
-                <div class="mb-3">
-                  <label for="comment" class="form-label">Your Review *</label>
-                  <textarea class="form-control" id="comment" name="comment" rows="5" required maxlength="1000"
-                    placeholder="Share your experience with this product..."></textarea>
-                  <div class="form-text">Maximum 1000 characters</div>
-                </div>
-
-                <button type="submit" name="submit_comment" class="btn btn-dark">Submit Review</button>
-              </form>
             <?php else: ?>
-              <div class="alert alert-info">
-                You must <a href="<?= $base_url ?>login.php" class="alert-link">login</a> to write a review.
-                Don't have an account? <a href="<?= $base_url ?>register.php" class="alert-link">Register here</a>.
+              <div class="no-comments text-center py-5">
+                <i class="bi bi-chat-square-text" style="font-size: 48px; color: #ddd;"></i>
+                <h4 class="mt-3">No reviews yet</h4>
+                <p class="text-muted">There are currently no reviews for this product.</p>
+                <p>Be the first to share your experience!</p>
               </div>
             <?php endif; ?>
+
+            <div class="comment-form mt-5">
+              <h4 class="mb-4">Write a Review</h4>
+
+              <?php if (isset($comment_success)): ?>
+                <div class="alert alert-success"><?= $comment_success ?></div>
+              <?php endif; ?>
+
+              <?php if (isset($comment_error)): ?>
+                <div class="alert alert-danger"><?= $comment_error ?></div>
+              <?php endif; ?>
+
+              <?php if (isset($_SESSION['user_id'])): ?>
+                <form method="post" action="#reviews">
+                  <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+
+                  <div class="mb-3">
+                    <label for="rating" class="form-label">Your Rating</label>
+                    <div class="rating-input">
+                      <input type="radio" id="star5" name="rating" value="5" required>
+                      <label for="star5" title="5 stars"><i class="bi bi-star-fill"></i></label>
+                      <input type="radio" id="star4" name="rating" value="4">
+                      <label for="star4" title="4 stars"><i class="bi bi-star-fill"></i></label>
+                      <input type="radio" id="star3" name="rating" value="3">
+                      <label for="star3" title="3 stars"><i class="bi bi-star-fill"></i></label>
+                      <input type="radio" id="star2" name="rating" value="2">
+                      <label for="star2" title="2 stars"><i class="bi bi-star-fill"></i></label>
+                      <input type="radio" id="star1" name="rating" value="1">
+                      <label for="star1" title="1 star"><i class="bi bi-star-fill"></i></label>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="comment" class="form-label">Your Review *</label>
+                    <textarea class="form-control" id="comment" name="comment" rows="5" required maxlength="1000"
+                      placeholder="Share your experience with this product..."></textarea>
+                    <div class="form-text">Maximum 1000 characters</div>
+                  </div>
+
+                  <button type="submit" name="submit_comment" class="btn btn-dark">Submit Review</button>
+                </form>
+              <?php else: ?>
+                <div class="alert alert-info">
+                  You must <a href="./login.php" class="alert-link">login</a> to write a review.
+                  Don't have an account? <a href="<?= $base_url ?>register.php" class="alert-link">Register here</a>.
+                </div>
+              <?php endif; ?>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- JavaScript for Like and Reply Functionality -->
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        // Handle like buttons
-        document.querySelectorAll('.like-btn').forEach(button => {
-          button.addEventListener('click', function () {
-            const commentId = this.dataset.commentId;
-            const likeIcon = this.querySelector('i');
-            const likeCount = this.querySelector('.like-count');
 
-            if (!<?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>) {
-              window.location.href = '<?= $base_url ?>login.php';
-              return;
-            }
-
-            fetch('', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-              },
-              body: new URLSearchParams({
-                like_comment: '1',
-                comment_id: commentId,
-                csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>'
-              })
-            })
-              .then(response => response.json())
-              .then(data => {
-                if (data.status === 'success') {
-                  likeCount.textContent = data.like_count;
-                  if (data.action === 'liked') {
-                    likeIcon.classList.remove('bi-hand-thumbs-up');
-                    likeIcon.classList.add('bi-hand-thumbs-up-fill', 'text-primary');
-                  } else {
-                    likeIcon.classList.remove('bi-hand-thumbs-up-fill', 'text-primary');
-                    likeIcon.classList.add('bi-hand-thumbs-up');
-                  }
-                } else if (data.message === 'Login required') {
-                  window.location.href = '<?= $base_url ?>login.php';
-                }
-              });
-          });
-        });
-
-        // Handle reply buttons
-        document.querySelectorAll('.reply-btn').forEach(button => {
-          button.addEventListener('click', function () {
-            const commentId = this.dataset.commentId;
-            const replyForm = document.getElementById(`reply-form-${commentId}`);
-
-            if (!<?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>) {
-              window.location.href = '<?= $base_url ?>login.php';
-              return;
-            }
-
-            // Hide all other reply forms
-            document.querySelectorAll('.reply-form-container').forEach(form => {
-              if (form.id !== `reply-form-${commentId}`) {
-                form.style.display = 'none';
-              }
-            });
-
-            // Toggle current reply form
-            if (replyForm.style.display === 'none') {
-              replyForm.style.display = 'block';
-              replyForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
-              replyForm.style.display = 'none';
-            }
-          });
-        });
-
-        // Handle cancel reply buttons
-        document.querySelectorAll('.cancel-reply-btn').forEach(button => {
-          button.addEventListener('click', function () {
-            this.closest('.reply-form-container').style.display = 'none';
-          });
-        });
-      });
-    </script>
-    <div class="row">
-      <section class="py-5">
-        <div class="_con">
-          <div class="row">
-            <div class="col-md-12">
-              <h3 class="title">Related Products</h3>
+      <div class="row">
+        <section class="py-5">
+          <div class="_con">
+            <div class="row">
+              <div class="col-md-12">
+                <h3 class="title">Related Products</h3>
+              </div>
             </div>
-          </div>
-          <div class="owl-carousel js-home-products">
-            <?php
-            $stmtSimilar = $conn->prepare("
+            <div class="owl-carousel js-home-products">
+              <?php
+              $stmtSimilar = $conn->prepare("
               SELECT p.* 
               FROM products p
               WHERE p.category_id = ? AND p.id != ?
               ORDER BY RAND()
               LIMIT 10
             ");
-            $stmtSimilar->bind_param("ii", $category_id, $id);
-            $stmtSimilar->execute();
-            $similarProducts = $stmtSimilar->get_result();
+              $stmtSimilar->bind_param("ii", $category_id, $id);
+              $stmtSimilar->execute();
+              $similarProducts = $stmtSimilar->get_result();
 
-            while ($sim = $similarProducts->fetch_assoc()):
-              $simName = safe($sim['name']);
-              $simImage = !empty($sim['image']) ?
-                (str_starts_with($sim['image'], 'http') ?
-                  $sim['image']
-                  : $base_url . 'dashboard/' . ltrim($sim['image'], './')) :
-                $base_url . 'assets/images/default.jpg';
+              while ($sim = $similarProducts->fetch_assoc()):
+                $simName = safe($sim['name']);
+                $simImage = !empty($sim['image']) ?
+                  (str_starts_with($sim['image'], 'http') ?
+                    $sim['image']
+                    : $base_url . 'dashboard/' . ltrim($sim['image'], './')) :
+                  $base_url . 'assets/images/default.jpg';
 
-              $simPrice = (float) $sim['price'];
-              $simSale = isset($sim['sale_price']) ? (float) $sim['sale_price'] : null;
-              $simOnSale = $sim['on_sale'] && $simSale;
-              $simFinal = $simOnSale ? $simSale : $simPrice;
-              $simDisc = $simOnSale ? round((($simPrice - $simSale) / $simPrice) * 100) : 0;
-              ?>
-              <div class="item">
-                <a href="view.php?id=<?= $sim['id'] ?>" title="<?= $simName ?>">
-                  <figure class="bg_img" style="background-image: url('<?= $simImage ?>');">
-                    <?php if ($simDisc > 0): ?>
-                      <span class="badge bg-success"><?= (int) $simDisc ?>%</span>
-                    <?php endif; ?>
-                  </figure>
-                </a>
+                $simPrice = (float) $sim['price'];
+                $simSale = isset($sim['sale_price']) ? (float) $sim['sale_price'] : null;
+                $simOnSale = $sim['on_sale'] && $simSale;
+                $simFinal = $simOnSale ? $simSale : $simPrice;
+                $simDisc = $simOnSale ? round((($simPrice - $simSale) / $simPrice) * 100) : 0;
+                ?>
+                <div class="item">
+                  <a href="view.php?id=<?= $sim['id'] ?>" title="<?= $simName ?>">
+                    <figure class="bg_img" style="background-image: url('<?= $simImage ?>');">
+                      <?php if ($simDisc > 0): ?>
+                        <span class="badge bg-success"><?= (int) $simDisc ?>%</span>
+                      <?php endif; ?>
+                    </figure>
+                  </a>
 
-                <span class="snize-title"><?= $simName ?></span>
-                <div class="flex_pric playSound" onclick='addQuickToCart(<?= $sim["id"] ?>)'>
-                  <button class="nav-link">Add To Cart</button>
-                  <div class="block_P">
-                    <span class="price"><?= formatPrice($simFinal) ?></span>
-                    <span>EGP</span>
+                  <span class="snize-title"><?= $simName ?></span>
+                  <div class="flex_pric playSound" onclick='addQuickToCart(<?= $sim["id"] ?>)'>
+                    <button class="nav-link">Add To Cart</button>
+                    <div class="block_P">
+                      <span class="price"><?= formatPrice($simFinal) ?></span>
+                      <span>EGP</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            <?php endwhile; ?>
+              <?php endwhile; ?>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
+
+
+
+
     </div>
+
+
+
   </div>
+
+
+  <?php require('./footer.php'); ?>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.like-btn').forEach(button => {
+        button.addEventListener('click', function () {
+          const commentId = this.dataset.commentId;
+          const likeIcon = this.querySelector('i');
+          const likeCount = this.querySelector('.like-count');
+
+          if (!<?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>) {
+            window.location.href = '<?= $base_url ?>login.php';
+            return;
+          }
+
+          fetch('', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              like_comment: '1',
+              comment_id: commentId,
+              csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>'
+            })
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (data.status === 'success') {
+                likeCount.textContent = data.like_count;
+                if (data.action === 'liked') {
+                  likeIcon.classList.remove('bi-hand-thumbs-up');
+                  likeIcon.classList.add('bi-hand-thumbs-up-fill', 'text-primary');
+                } else {
+                  likeIcon.classList.remove('bi-hand-thumbs-up-fill', 'text-primary');
+                  likeIcon.classList.add('bi-hand-thumbs-up');
+                }
+              } else if (data.message === 'Login required') {
+                window.location.href = '<?= $base_url ?>login.php';
+              }
+            });
+        });
+      });
+
+      document.querySelectorAll('.reply-btn').forEach(button => {
+        button.addEventListener('click', function () {
+          const commentId = this.dataset.commentId;
+          const replyForm = document.getElementById(`reply-form-${commentId}`);
+
+          if (!<?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>) {
+            window.location.href = '<?= $base_url ?>login.php';
+            return;
+          }
+
+          document.querySelectorAll('.reply-form-container').forEach(form => {
+            if (form.id !== `reply-form-${commentId}`) {
+              form.style.display = 'none';
+            }
+          });
+
+          if (replyForm.style.display === 'none') {
+            replyForm.style.display = 'block';
+            replyForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } else {
+            replyForm.style.display = 'none';
+          }
+        });
+      });
+
+      document.querySelectorAll('.cancel-reply-btn').forEach(button => {
+        button.addEventListener('click', function () {
+          this.closest('.reply-form-container').style.display = 'none';
+        });
+      });
+
       initProductCarousel();
       initColorSelection();
       initQuantityControls();
@@ -1144,7 +1097,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
           const qty = parseInt(document.getElementById('quantity').value) || 1;
           formData.append('quantity', qty);
 
-          // الحصول على الحجم المحدد
           const sizeInput = document.querySelector('.btn-check:checked');
           if (sizeInput) {
             formData.append('size_id', sizeInput.value);
@@ -1155,7 +1107,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
             formData.append('size_code', '');
           }
 
-          // الحصول على اللون المحدد
           const colorCircle = document.querySelector('.color-circle.active');
           if (colorCircle) {
             formData.append('color_id', colorCircle.dataset.colorId || '');
@@ -1185,9 +1136,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
         if (data.success) {
           updateCartCount(data.cart_count);
           showToast('success', data.message || 'تم إضافة المنتج إلى السلة بنجاح');
-
-          // إظهار السلة بعد الإضافة إذا كنت تريد ذلك
-          // document.getElementById('cartSidebar').classList.add('show');
         } else {
           showToast('error', data.message || 'فشل إضافة المنتج إلى السلة');
         }
@@ -1223,7 +1171,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
       }, 3000);
     }
   </script>
-  <?php require('./footer.php'); ?>
 </body>
 
 </html>
@@ -1263,7 +1210,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
   /* Comment Section Styles */
   .comment-section {
     margin-top: 50px;
-    border-top: 1px solid #eee;
     padding-top: 30px;
   }
 
@@ -1397,5 +1343,18 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
   .rating-percent {
     width: 50px;
     text-align: right;
+  }
+
+  @media screen and (max-width:992px) {
+    .product-num.gap-md-2.gap-xl-0.mt-3.mb-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+    }
+
+    div#thumbnailsContainer {
+      position: absolute;
+      left: 0;
+    }
   }
 </style>

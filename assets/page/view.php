@@ -717,31 +717,33 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                       <div class="comment-author"><?= htmlspecialchars($comment['name']) ?></div>
                       <div class="comment-date"><?= date('F j, Y \a\t h:i A', strtotime($comment['created_at'])) ?></div>
                     </div>
-                    <div class="comment-actions ms-auto">
-                      <button class="btn btn-sm btn-outline-secondary like-btn" data-comment-id="<?= $comment['id'] ?>">
-                        <i class="bi bi-hand-thumbs-up<?= $comment['user_liked'] ? '-fill text-primary' : '' ?>"></i>
-                        <span class="like-count"><?= $comment['like_count'] ?></span>
-                      </button>
-                      <button class="btn btn-sm btn-outline-secondary reply-btn" data-comment-id="<?= $comment['id'] ?>">
-                        <i class="bi bi-reply"></i> Reply
-                      </button>
-                      <?php if (isset($_SESSION['user_id']) && ($_SESSION['user_id'] == $comment['user_id'] || ($_SESSION['is_admin'] ?? false))): ?>
-                        <form method="POST" class="d-inline">
-                          <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                          <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
-                          <button type="submit" name="delete_comment" class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-trash"></i>
-                          </button>
-                        </form>
-                      <?php endif; ?>
 
-                    </div>
                   </div>
                   <div class="comment-rating">
                     <?= renderStars($comment['rating']) ?>
                   </div>
                   <div class="comment-body">
                     <p><?= nl2br(htmlspecialchars($comment['comment'])) ?></p>
+                  </div>
+
+                  <div class="comment-actions ms-auto">
+                    <button class="btn btn-sm btn-outline-secondary like-btn" data-comment-id="<?= $comment['id'] ?>">
+                      <i class="bi bi-hand-thumbs-up<?= $comment['user_liked'] ? '-fill text-primary' : '' ?>"></i>
+                      <span class="like-count"><?= $comment['like_count'] ?></span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary reply-btn" data-comment-id="<?= $comment['id'] ?>">
+                      <i class="bi bi-reply"></i> Reply
+                    </button>
+                    <?php if (isset($_SESSION['user_id']) && ($_SESSION['user_id'] == $comment['user_id'] || ($_SESSION['is_admin'] ?? false))): ?>
+                      <form method="POST" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                        <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
+                        <button type="submit" name="delete_comment" class="btn btn-sm btn-outline-danger">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+                    <?php endif; ?>
+
                   </div>
 
                   <?php if (!empty($comment['replies'])): ?>
@@ -1174,187 +1176,3 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
 </body>
 
 </html>
-
-
-
-<!--  -->
-<style>
-  #mainImageContainer {
-    transition: background-image 0.3s ease;
-  }
-
-  .color-option .color-wrapper {
-    border-radius: 50%;
-    padding: 2px;
-  }
-
-  .color-option .color-wrapper.active {
-    border: 2px solid #000;
-  }
-
-  .color-circle {
-    display: block;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    cursor: pointer;
-  }
-
-  .thumb.w-100 {
-    height: 200px !important;
-    background-size: cover;
-    background-position: center;
-    border-radius: 6px;
-  }
-
-  /* Comment Section Styles */
-  .comment-section {
-    margin-top: 50px;
-    padding-top: 30px;
-  }
-
-  .comment-card {
-    border: 1px solid #eee;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    background-color: #fff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  }
-
-  .comment-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-  }
-
-  .comment-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-color: #f5f5f5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 15px;
-    overflow: hidden;
-  }
-
-  .comment-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .comment-author {
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-
-  .comment-date {
-    color: #777;
-    font-size: 0.9em;
-  }
-
-  .comment-rating {
-    color: #ffc107;
-    margin-bottom: 10px;
-  }
-
-  .comment-form {
-    background-color: #f9f9f9;
-    padding: 30px;
-    border-radius: 8px;
-    margin-top: 40px;
-  }
-
-  .rating-input {
-    display: flex;
-    flex-direction: row-reverse;
-    justify-content: flex-end;
-    margin-bottom: 20px;
-  }
-
-  .rating-input input {
-    display: none;
-  }
-
-  .rating-input label {
-    color: #ddd;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 0 5px;
-  }
-
-  .rating-input input:checked~label,
-  .rating-input input:hover~label {
-    color: #ffc107;
-  }
-
-  .rating-input label:hover,
-  .rating-input label:hover~label {
-    color: #ffc107;
-  }
-
-  .no-comments {
-    text-align: center;
-    padding: 30px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    margin-bottom: 30px;
-  }
-
-  .average-rating {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-
-  .average-rating-number {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin-right: 15px;
-  }
-
-  .rating-count {
-    color: #777;
-    margin-left: 10px;
-  }
-
-  .rating-distribution {
-    margin-top: 20px;
-  }
-
-  .rating-bar {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-
-  .rating-label {
-    width: 80px;
-  }
-
-  .rating-progress {
-    flex-grow: 1;
-    margin: 0 10px;
-  }
-
-  .rating-percent {
-    width: 50px;
-    text-align: right;
-  }
-
-  @media screen and (max-width:992px) {
-    .product-num.gap-md-2.gap-xl-0.mt-3.mb-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      align-items: center;
-    }
-
-    div#thumbnailsContainer {
-      position: absolute;
-      left: 0;
-    }
-  }
-</style>

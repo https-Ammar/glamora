@@ -1,20 +1,7 @@
-<!--  -->
 <?php
 require('../config/db.php');
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  // Sanitize the search term
-  $search = isset($_POST['search']) ? trim($_POST['search']) : '';
-
-  // Prevent SQL injection by sanitizing input
-  $search = mysqli_real_escape_string($conn, $search);
-
-  // Check for connection errors
-  if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-  }
-}
+$base_url = 'http://' . $_SERVER['HTTP_HOST'] . '/';
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -22,180 +9,91 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GLAMORA</title>
-  <link rel="stylesheet" type="text/css" href="./style/main.css" />
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../style/main.css">
-  <link rel="stylesheet" href="../style/viwe.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
+  <title>GLAMORA - Search Results</title>
+  <?php require('../includes/link.php'); ?>
 
 </head>
 
 <body>
-
-  <?php require('./header.php') ?>
-
-
   <main>
-
-
-
-
-
-
-
-
     <section>
       <div class="container-fluid">
         <div class="row">
-
-
-          <div class="product-grid ">
-
+          <div class="product-grid">
             <?php
-            require('db.php'); // Ensure this file sets up the $conn variable properly
-            
-            // Check if 'search' parameter is set and sanitize it
             $search = isset($_POST['search']) ? trim($_POST['search']) : '';
 
             if (!empty($search)) {
-              // Prepare the SQL query to search for products containing the search term
               $stmt = $conn->prepare("SELECT * FROM products WHERE name LIKE ?");
-              $likeTerm = "%" . $search . "%"; // Add % for partial matching
-              $stmt->bind_param("s", $likeTerm); // Bind the search term to prevent SQL injection
-            
-              // Execute the query
+              $likeTerm = "%" . $search . "%";
+              $stmt->bind_param("s", $likeTerm);
               $stmt->execute();
               $result = $stmt->get_result();
 
-              // Check if any results are found
               if ($result->num_rows > 0) {
-                // Output the results in a loop
                 while ($fetchproducts = $result->fetch_assoc()) {
                   $productName = htmlspecialchars($fetchproducts['name']);
-                  $productImage = './dashboard/dashboard_shop-main/' . htmlspecialchars($fetchproducts['img']); // Ensure the correct image path
-                  $productfinalprice = htmlspecialchars($fetchproducts['total_final_price']);
-                  $productDiscount = htmlspecialchars($fetchproducts['discount']);
-                  $productId = htmlspecialchars($fetchproducts['id']); // Fetch the product ID
-            
+                  $productId = htmlspecialchars($fetchproducts['id']);
+
+                  $productImage = '';
+                  if (!empty($fetchproducts['img'])) {
+                    if (strpos($fetchproducts['img'], 'http') === 0) {
+                      $productImage = $fetchproducts['img'];
+                    } else {
+                      $imagePath = ltrim($fetchproducts['img'], './');
+                      $productImage = $base_url . 'dashboard/dashboard_shop-main/' . $imagePath;
+                    }
+                  } else {
+                    $productImage = $base_url . 'assets/images/default.jpg';
+                  }
+
+                  $productPrice = (float) $fetchproducts['price'];
+                  $productSale = isset($fetchproducts['sale_price']) ? (float) $fetchproducts['sale_price'] : null;
+                  $onSale = !empty($fetchproducts['on_sale']) && $productSale;
+                  $finalPrice = $onSale ? $productSale : $productPrice;
+                  $discount = $onSale ? round((($productPrice - $productSale) / $productPrice) * 100) : 0;
+
                   echo '
-                          
-                          
-                          
-                                    <div class="product-item swiper-slide">
-                                    
-                                    
-<a href="view.php?id=' . $productId . '" title="' . $productName . '">
-                    <figure class="bg_img" style="background-image: url(\'' . $productImage . '\');">
-                     
-                     
-                        <span class="badge bg-success  text">-' . $productDiscount . '%</span>
-                 
-
-                    </figure>
-                  </a>
-                                    
-                                    
-                          
-                          
-                          
-                                       <span class="snize-attribute"><span class="snize-attribute-title"></span> Source Beauty</span>
-                  <span class="snize-title" style="max-height: 2.8em;-webkit-line-clamp: 2;">' . $productName . '</span>
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-<div class="flex_pric">
-
-
-           
-
-                    <button class="d-flex align-items-center nav-link click"  onclick="addcart(' . $productId . ')"> Add to Cart</button>
-                    <div class="block_P">
-                      <span class="price text">' . $productfinalprice . ' </span>
-                      <span>EGP</span>
+                  <div class="product-item swiper-slide">
+                    <a href="view.php?id=' . $productId . '" title="' . $productName . '">
+                      <figure class="bg_img" style="background-image: url(\'' . $productImage . '\');">
+                        ' . ($discount > 0 ? '<span class="badge bg-success">' . $discount . '%</span>' : '') . '
+                      </figure>
+                    </a>
+                    <span class="snize-attribute"><span class="snize-attribute-title"></span> Source Beauty</span>
+                    <span class="snize-title">' . $productName . '</span>
+                    <div class="flex_pric">
+                      <button class="d-flex align-items-center nav-link click" onclick="addcart(' . $productId . ')">Add to Cart</button>
+                      <div class="block_P">
+                        <span class="price text">' . number_format($finalPrice, 2) . '</span>
+                        <span>EGP</span>
+                      </div>
                     </div>
-                  </div>
-                          
-          
-
-                   
-            
-
-          
-                  <div class="input-group product-qty" style="display: none;">
-                                  <button type="button" class="quantity-left-minus btn btn-danger btn-number" data-type="minus">
-                                        
-                                        _
-                                        </button>
-                                    <input type="text" id="quantity" name="quantity" class="form-control input-number quantity' . $productId . '" value="1">
-                             
-                             
-                                        <button type="button" class="quantity-right-plus btn btn-success btn-number" data-type="plus">
-                                      +
-                                        </button>
-                                </div>
-       
-       
-                  </div>
-                  
-                  
-                  
-                  
-                  
-                  ';
+                    <div class="input-group product-qty" style="display: none;">
+                      <button type="button" class="quantity-left-minus btn btn-danger btn-number" data-type="minus">_</button>
+                      <input type="text" id="quantity" name="quantity" class="form-control input-number quantity' . $productId . '" value="1">
+                      <button type="button" class="quantity-right-plus btn btn-success btn-number" data-type="plus">+</button>
+                    </div>
+                  </div>';
                 }
               } else {
-                echo "<p>No results found.</p>";
+                echo '<div class="col-12 text-center py-5"><h4>No products found matching your search</h4></div>';
               }
-
-              // Close the statement and connection
               $stmt->close();
             } else {
-              echo "<p>Please enter a search term.</p>";
+              echo '<div class="col-12 text-center py-5"><h4>Please enter a search term</h4></div>';
             }
-
             $conn->close();
             ?>
-
-
-
-
-
-
-
-
-
-
-
           </div>
-          <!---->
-
         </div>
       </div>
     </section>
-
-
-
-
   </main>
 
   <script src="./js/plugins.js"></script>
   <script src="./js/script.js"></script>
-
-
-
-
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
   <script>
     function loadCart() {
@@ -211,21 +109,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       });
     }
 
-    // Load the cart initially
-    loadCart();
-
     function addcart(productid) {
-      var quantity = $('.quantity' + productid).val(); // Get the quantity value
+      var quantity = $('.quantity' + productid).val();
 
       $.ajax({
         type: "POST",
         url: "./add_cart.php",
         data: {
           productid: productid,
-          qty: quantity // Pass the quantity value correctly
+          qty: quantity
         },
         success: function (response) {
-          loadCart()
+          loadCart();
         },
         error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
@@ -241,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
           id: id,
         },
         success: function (response) {
-          loadCart()
+          loadCart();
         },
         error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
@@ -257,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
           id: id,
         },
         success: function (response) {
-          loadCart()
+          loadCart();
         },
         error: function (xhr, status, error) {
           console.error("AJAX Error:", status, error);
@@ -273,95 +168,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
           id: id,
         },
         success: function (response) {
-          loadCart()
-        },
-        error: function (xhr, status, error) {
-          console.error("AJAX Error:", status, error);
-        }
-      });
-    }
-  </script>
-
-
-
-
-
-  <script>
-    function loadCart() {
-      $.ajax({
-        type: "GET",
-        url: "show_cart.php",
-        success: function (response) {
-          $('#offcanvasCart').html(response);
-        },
-        error: function (xhr, status, error) {
-          console.error("AJAX Error:", status, error);
-        }
-      });
-    }
-
-    // Load the cart initially
-    loadCart();
-
-    function addcart(productid) {
-      var quantity = $('.quantity' + productid).val(); // Get the quantity value
-
-      $.ajax({
-        type: "POST",
-        url: "add_cart.php",
-        data: {
-          productid: productid,
-          qty: quantity // Pass the quantity value correctly
-        },
-        success: function (response) {
-          loadCart();
-        },
-        error: function (xhr, status, error) {
-          console.error("AJAX Error:", status, error);
-        }
-      });
-    }
-
-    function addmoreone(id) {
-      $.ajax({
-        type: "POST",
-        url: "add_more_one.php",
-        data: {
-          id: id,
-        },
-        success: function (response) {
-          loadCart();
-        },
-        error: function (xhr, status, error) {
-          console.error("AJAX Error:", status, error);
-        }
-      });
-    }
-
-    function removemoreone(id) {
-      $.ajax({
-        type: "POST",
-        url: "remove_more_one.php",
-        data: {
-          id: id,
-        },
-        success: function (response) {
-          loadCart();
-        },
-        error: function (xhr, status, error) {
-          console.error("AJAX Error:", status, error);
-        }
-      });
-    }
-
-    function removecart(id) {
-      $.ajax({
-        type: "POST",
-        url: "remove_cart.php",
-        data: {
-          id: id,
-        },
-        success: function (response) {
           loadCart();
         },
         error: function (xhr, status, error) {
@@ -370,15 +176,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       });
     }
   </script>
-
-
-
-
-
-
-
-
-  <?php require('footer.php') ?>
 </body>
 
 </html>

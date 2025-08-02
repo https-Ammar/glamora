@@ -1107,7 +1107,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
           formData.append('color_name', 'Not specified');
         }
 
-        const response = await fetch('add_cart.php', {
+        const response = await fetch('../cart/add_cart.php', {
           method: 'POST',
           body: formData
         });

@@ -240,7 +240,7 @@
             <li>
               <button class="border-0 bg-transparent d-flex flex-column gap-2 lh-1" type="button"
                 data-bs-toggle="offcanvas" data-bs-target="#offcanvasCart" aria-controls="offcanvasCart">
-                <a class="action showcart" href="../pages/Cart.php" data-bind="scope: 'minicart_content'">
+                <a class="action showcart" href="pages/Cart.php" data-bind="scope: 'minicart_content'">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="#fff" xmlns="http://www.w3.org/2000/svg">
                     <path
                       d="M16.6666 5.00008H12.4999V3.33341C12.4999 2.41675 11.7499 1.66675 10.8333 1.66675H9.16658C8.24992 1.66675 7.49992 2.41675 7.49992 3.33341V5.00008H3.33325V18.3334H16.6666V5.00008ZM15.8333 17.5001H4.16659V5.83342H15.8333V17.5001ZM8.33325 3.33341C8.33325 2.87383 8.707 2.50008 9.16658 2.50008H10.8333C11.2928 2.50008 11.6666 2.87383 11.6666 3.33341V5.00008H8.33325V3.33341Z"
@@ -261,7 +261,7 @@
               </svg>
             </li>
             <li>
-              <a href="../auth/profile.php">
+              <a href="auth/profile.php">
                 <svg focusable="false" width="18" height="17" class="icon icon--header-customer" viewBox="0 0 18 17">
                   <circle cx="9" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1.6"
                     stroke-linejoin="round"></circle>
@@ -274,7 +274,7 @@
           </ul>
         </section>
 
-        <form id="search-form" action="../pages/search.php" method="POST" class="search-box">
+        <form id="search-form" action="pages/search.php" method="POST" class="search-box">
           <i class="uil uil-search search-icon" id="searchIcon1"></i>
           <input id="search-input" name="search" type="text" placeholder="Search here..." list="suggestions">
           <datalist id="suggestions"></datalist>
@@ -283,7 +283,7 @@
         <section class="logo_">
           <ul>
             <li>
-              <a href="/index.php" class="a_link">
+              <a href="index.php" class="a_link">
                 <svg width="103" height="40" viewBox="0 0 81 13" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
                     d="M34.5976 12.2996V3.81839C34.5976 3.75781 34.5365 3.75781 34.4753 3.75781L31.0524 4.96942C30.9912 4.96942 30.9912 5.03 31.0524 5.09058L31.7247 5.6358V5.69638V12.2996C31.7247 12.3602 31.7859 12.3602 31.7859 12.3602H34.5365C34.5365 12.3602 34.5976 12.3602 34.5976 12.2996Z"
@@ -364,7 +364,7 @@
     searchinput.oninput = () => {
       $.ajax({
         type: "POST",
-        url: "../pages/searchresult.php",
+        url: "searchresult.php",
         data: { searchinput: searchinput.value },
         success: function (response) {
           $('#suggestions').html(response);
@@ -378,7 +378,7 @@
     function refreshCartCount() {
       $.ajax({
         type: "GET",
-        url: "../cart/count_cart.php", // Adjust the URL to your actual cart count endpoint
+        url: "../pages/count_cart.php", // Adjust the URL to your actual cart count endpoint
         success: function (response) {
           $('.count_cart').html(response);
         },

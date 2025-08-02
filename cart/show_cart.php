@@ -202,7 +202,7 @@ class="total-price"                          <a href="#">
   function addmoreone(id) {
     $.ajax({
       type: "POST",
-      url: "../pages/add_more_one.php",
+      url: "../cart/add_more_one.php",
       data: {
         id: id,
       },
@@ -216,7 +216,7 @@ class="total-price"                          <a href="#">
   function removemoreone(id) {
     $.ajax({
       type: "POST",
-      url: "../pages/remove_more_one.php",
+      url: "../cart/remove_more_one.php",
       data: {
         id: id,
       },
@@ -230,7 +230,7 @@ class="total-price"                          <a href="#">
   function removecart(id) {
     $.ajax({
       type: "POST",
-      url: "./remove_cart.php",
+      url: "../cart/remove_cart.php",
       data: {
         id: id,
       },

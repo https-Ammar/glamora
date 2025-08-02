@@ -174,7 +174,7 @@ $types = str_repeat('i', count($categoryIds));
     function loadCart() {
       $.ajax({
         type: "GET",
-        url: "show_cart.php",
+        url: "../cart/show_cart.php",
         success: function (response) {
           $('#offcanvasCart').html(response);
         }
@@ -185,19 +185,19 @@ $types = str_repeat('i', count($categoryIds));
 
     function addcart(productid) {
       const quantity = $('.quantity' + productid).val();
-      $.post("add_cart.php", { productid: productid, qty: quantity }, loadCart);
+      $.post("../cart/add_cart.php", { productid: productid, qty: quantity }, loadCart);
     }
 
     function addmoreone(id) {
-      $.post("add_more_one.php", { id: id }, loadCart);
+      $.post("../cart/add_more_one.php", { id: id }, loadCart);
     }
 
     function removemoreone(id) {
-      $.post("remove_more_one.php", { id: id }, loadCart);
+      $.post("../cart/remove_more_one.php", { id: id }, loadCart);
     }
 
     function removecart(id) {
-      $.post("remove_cart.php", { id: id }, loadCart);
+      $.post("../cart/remove_cart.php", { id: id }, loadCart);
     }
 
     window.onload = function () {

@@ -138,66 +138,66 @@ if ($conn) {
                     // حساب نسبة الخصم الفعلية
                     $actualDiscount = $salePrice ? round((($price - $salePrice) / $price) * 100) : $discountPercent;
                     ?>
-                    <div class="item">
-                        <a href="./assets/page/view.php?id=<?php echo $productId; ?>" title="<?php echo $productName; ?>">
-                            <figure class="bg_img" style="background-image: url('<?php echo $productImage; ?>');">
-                                <span class="discount-badge">-<?php echo $actualDiscount; ?>%</span>
-                                <?php if (!empty($product['is_featured'])): ?>
-                                    <span class="badge bg-success text">Featured</span>
-                                <?php endif; ?>
-                                <?php if (!empty($product['is_new'])): ?>
-                                    <span class="badge bg-success text">New</span>
-                                <?php endif; ?>
-                            </figure>
-                        </a>
+                            <div class="item">
+                                <a href="./assets/page/view.php?id=<?php echo $productId; ?>" title="<?php echo $productName; ?>">
+                                    <figure class="bg_img" style="background-image: url('<?php echo $productImage; ?>');">
+                                        <span class="discount-badge">-<?php echo $actualDiscount; ?>%</span>
+                                        <?php if (!empty($product['is_featured'])): ?>
+                                                <span class="badge bg-success text">Featured</span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($product['is_new'])): ?>
+                                                <span class="badge bg-success text">New</span>
+                                        <?php endif; ?>
+                                    </figure>
+                                </a>
 
-                        <div class="product-info">
-                            <span class="text-muted small"><?php echo htmlspecialchars($product['brand'] ?? ''); ?></span><br>
-                            <span class="snize-title" style="max-height: 2.8em; -webkit-line-clamp: 2;">
-                                <?php echo $productName; ?>
-                            </span>
-                        </div>
+                                <div class="product-info">
+                                    <span class="text-muted small"><?php echo htmlspecialchars($product['brand'] ?? ''); ?></span><br>
+                                    <span class="snize-title" style="max-height: 2.8em; -webkit-line-clamp: 2;">
+                                        <?php echo $productName; ?>
+                                    </span>
+                                </div>
 
-                        <div class="price-section">
-                            <?php if ($actualDiscount > 0): ?>
-                                <span class="original-price" style="text-decoration: line-through; color: #999;">
-                                    <?php echo number_format($price, 2); ?> EGP
-                                </span>
-                            <?php endif; ?>
-                            <span class="final-price" style="color: #dc3545; font-weight: bold;">
-                                <?php echo number_format($finalPrice, 2); ?> EGP
-                            </span>
-                        </div>
+                                <div class="price-section">
+                                    <?php if ($actualDiscount > 0): ?>
+                                            <span class="original-price" style="text-decoration: line-through; color: #999;">
+                                                <?php echo number_format($price, 2); ?> EGP
+                                            </span>
+                                    <?php endif; ?>
+                                    <span class="final-price" style="color: #dc3545; font-weight: bold;">
+                                        <?php echo number_format($finalPrice, 2); ?> EGP
+                                    </span>
+                                </div>
 
-                        <div class="flex_pric playSound" onclick="addcart(<?php echo $productId; ?>)">
-                            <button class="d-flex align-items-center nav-link click">Add to Cart</button>
-                        </div>
+                                <div class="flex_pric playSound" onclick="addcart(<?php echo $productId; ?>)">
+                                    <button class="d-flex align-items-center nav-link click">Add to Cart</button>
+                                </div>
 
-                        <div class="ptn_" style="display: none;">
-                            <div class="input-group product-qty">
-                                <span class="input-group-btn">
-                                    <button type="button" class="quantity-left-minus btn btn-danger btn-number"
-                                        data-type="minus">
-                                        <svg width="16" height="16" fill="currentColor" class="bi bi-dash">
-                                            <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8" />
-                                        </svg>
-                                    </button>
-                                </span>
-                                <input type="text" name="quantity"
-                                    class="form-control input-number quantity<?php echo $productId; ?>" value="1">
-                                <span class="input-group-btn">
-                                    <button type="button" class="quantity-right-plus btn btn-success btn-number"
-                                        data-type="plus">
-                                        <svg width="16" height="16" fill="currentColor" class="bi bi-plus">
-                                            <path
-                                                d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
-                                        </svg>
-                                    </button>
-                                </span>
+                                <div class="ptn_" style="display: none;">
+                                    <div class="input-group product-qty">
+                                        <span class="input-group-btn">
+                                            <button type="button" class="quantity-left-minus btn btn-danger btn-number"
+                                                data-type="minus">
+                                                <svg width="16" height="16" fill="currentColor" class="bi bi-dash">
+                                                    <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8" />
+                                                </svg>
+                                            </button>
+                                        </span>
+                                        <input type="text" name="quantity"
+                                            class="form-control input-number quantity<?php echo $productId; ?>" value="1">
+                                        <span class="input-group-btn">
+                                            <button type="button" class="quantity-right-plus btn btn-success btn-number"
+                                                data-type="plus">
+                                                <svg width="16" height="16" fill="currentColor" class="bi bi-plus">
+                                                    <path
+                                                        d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+                                                </svg>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <?php
+                            <?php
                 }
 
                 echo '</div>';
@@ -220,7 +220,7 @@ if ($conn) {
         function loadCart() {
             $.ajax({
                 type: "GET",
-                url: "./assets/page/showcart.php",
+                url: "./assets/page/show_cart.php",
                 success: function (response) {
                     $('#offcanvasCart').html(response);
                 },
@@ -236,7 +236,7 @@ if ($conn) {
 
             $.ajax({
                 type: "POST",
-                url: "./assets/page/add_to_cart.php",
+                url: "./assets/page/add_cart.php",
                 data: {
                     product_id: productid,
                     quantity: quantity,

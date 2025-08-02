@@ -1,97 +1,54 @@
 <?php
-require('db.php');
+require('./config/db.php');
 ?>
 
-
-
-
-
-
 <footer class="footer_">
-  <!--<p class="Footer_heading__9RHrL"> Choose from the most requested categories </p>-->
-
-
-  <!---->
-
   <div class="footer_grid">
-
-
-
     <div class="Footer_footer__sub-container_left__EJ4Bh">
-
-      <p class="Footer_footer__heading__bwFl4"> GLAMORA</p>
+      <p class="Footer_footer__heading__bwFl4">GLAMORA</p>
       <p data-testid="" role="" class="label-c Footer_footer__label__NS_7T Footer_footer__sub-heading__Aroae">
         Online store specialized in
         <br />
         selling beauty products and accessories
       </p>
-
     </div>
 
-
-
-
-
-
     <div role="footerLinks" class="Footer_footer-link-div__9a5M_ undefined">
-
-      <p class="style_menu__heading__0WKNN"> Categories</p>
-
+      <p class="style_menu__heading__0WKNN">Categories</p>
       <ul class="style_menu__links__84qJF">
-
-
-
         <?php
         $select = mysqli_query($conn, "SELECT * FROM `categories` LIMIT 5");
         if ($select && mysqli_num_rows($select) > 0) {
           while ($fetch = mysqli_fetch_assoc($select)) {
             $category_id = htmlspecialchars($fetch['id'], ENT_QUOTES, 'UTF-8');
             $category_name = htmlspecialchars($fetch['name'], ENT_QUOTES, 'UTF-8');
-            echo '
-              
-              <li><a class="c-opacity-60"  href="Categories.php?id=' . $category_id . '" >' . $category_name . '</a></li>';
+            echo '<li><a class="c-opacity-60" href="Categories.php?id=' . $category_id . '">' . $category_name . '</a></li>';
           }
         } else {
           echo '<li>No categories found.</li>';
         }
         ?>
-
       </ul>
     </div>
 
-
-
-
-
-
-
-
-
-
     <div role="footerLinks" class="Footer_footer-link-div__9a5M_ undefined">
-
-      <p class="style_menu__heading__0WKNN"> GLAMORA world</p>
-
+      <p class="style_menu__heading__0WKNN">GLAMORA world</p>
       <ul class="style_menu__links__84qJF">
         <li><a class="c-opacity-60" href="/ar-eg/lazurde-investor-relations">Investor Relations</a></li>
         <li><a class="c-opacity-60" href="/ar-eg/lazurde-policies">Terms and Policies</a></li>
       </ul>
     </div>
-    <div role="footerLinks" class="Footer_footer-link-div__9a5M_ undefined">
-      <p class="style_menu__heading__0WKNN"> Customer Service</p>
 
+    <div role="footerLinks" class="Footer_footer-link-div__9a5M_ undefined">
+      <p class="style_menu__heading__0WKNN">Customer Service</p>
       <ul class="style_menu__links__84qJF">
         <li><a class="c-opacity-60" href="/ar-eg/contact-us">Contact Us</a></li>
         <li><a class="c-opacity-60" href="/ar-eg/help-centre/order">Frequently Asked Questions</a></li>
         <li><a class="c-opacity-60" href="/ar-eg/store-locations">Store Locations</a></li>
       </ul>
     </div>
-
-
   </div>
 
-
-  <!---->
   <div class="row mb-4">
     <div class="col-12 pb-4">
       <div class="line"></div>
@@ -121,29 +78,19 @@ require('db.php');
             </svg></a></li>
       </ul>
     </div>
-
   </div>
-
-
 
   <div class="row">
     <div class="col-md-7">
       <p data-testid="" role="" class="label-c Footer_footer__label__NS_7T Footer_footer__sub-heading__Aroae">
         Online store specialized in
-
-        selling beauty products and accessories </p>
+        selling beauty products and accessories
+      </p>
     </div>
   </div>
-
 </footer>
 
-
-
-
-
 <style>
-  .col-12.pb-4 {}
-
   .row.mb-4 {
     border-top: 1px solid rgba(255, 255, 255, 0.2);
     padding: 10px 0;
@@ -164,18 +111,12 @@ require('db.php');
 
   .col-md-6.text-md-right {
     background: red !important;
-    !i;
-    !;
     display: block;
   }
 
   ul.list-unstyled.social.nav-right {
     background: red;
   }
-
-
-
-
 
   .footer_grid {
     display: grid;
@@ -188,16 +129,12 @@ require('db.php');
     padding: 10px;
   }
 
-
   .col-md-6.text-md-left {
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
-</style>
 
-
-<style>
   @media screen and (max-width: 992px) {
     footer.footer_ {
       padding: 25px;
@@ -206,8 +143,6 @@ require('db.php');
     .footer_grid {
       display: block;
     }
-
-    .Footer_footer__sub-container_left__EJ4Bh {}
 
     .Footer_footer-link-div__9a5M_.undefined {
       margin: 3vh 0;
@@ -218,9 +153,3 @@ require('db.php');
     }
   }
 </style>
-
-
-
-
-
-<!-- foooter -->

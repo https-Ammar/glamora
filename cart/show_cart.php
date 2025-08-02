@@ -230,7 +230,7 @@ class="total-price"                          <a href="#">
   function removecart(id) {
     $.ajax({
       type: "POST",
-      url: "../removecart.php",
+      url: "../remove_cart.php",
       data: {
         id: id,
       },

@@ -10,7 +10,7 @@ if (empty($_SESSION['csrf_token'])) {
   $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-require_once('./db.php');
+require_once('./config/db.php');
 $imagePath = './dashboard/';
 $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
@@ -52,35 +52,35 @@ function sanitize_output($data)
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="<?php echo sanitize_output($_SESSION['csrf_token']); ?>">
   <title>GLAMORA</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
     href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
-    rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" />
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
   <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css" />
+    href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"
     integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="./assets/style/main.css" />
+  <link rel="stylesheet" href="./assets/css/main.css">
 </head>
 
 <body>
   <canvas id="message"></canvas>
-  <?php require('./assets/page/loding.php'); ?>
+  <?php require('./includes/loding.php'); ?>
   <div class="_Tiket">
     <p>GLAMORA</p>
   </div>
   <section id="lod_file">
-    <?php require('./header.php'); ?>
+    <?php require('./includes/header.php'); ?>
 
     <div class="slider owl-carousel">
       <?php
@@ -122,7 +122,7 @@ function sanitize_output($data)
         $name = sanitize_output($fetchcat['name'] ?? '');
         $id = (int) $fetchcat['id'];
         echo '<div class="main_cat item">
-                          <a href="./assets/page/categories.php?id=' . $id . '">
+                          <a href="./pages/category.php?id=' . $id . '">
                               <div class="_Categories_img" style="background-image: url(\'' . $imagePath . $image . '\');" onerror="this.style.backgroundImage=\'url(default.jpg)\'"></div>
                               <h2>' . $name . '</h2>
                           </a>
@@ -169,7 +169,7 @@ function sanitize_output($data)
         if ($selectproduct->num_rows > 0) {
           echo '<section class="container__">
                           <div class="row">
-                            <a href="./assets/page/categories.php?id=' . $catidneed . '" class="btn-link text-decoration-none">
+                            <a href="./pages/categories.php?id=' . $catidneed . '" class="btn-link text-decoration-none">
                               <h3 class="title">' . $namecat . '</h3>
                             </a>
                             <div class="slider-container">
@@ -185,7 +185,7 @@ function sanitize_output($data)
             $finalPrice = $salePrice ?? ($price - ($price * $discountPercent / 100));
             ?>
             <div class="item">
-              <a href="./assets/page/view.php?id=<?php echo $productId; ?>" title="<?php echo $productName; ?>">
+              <a href="./pages/view.php?php echo $productId; ?>" title="<?php echo $productName; ?>">
                 <figure class="bg_img" style="background-image: url('<?php echo $productImage; ?>');">
                   <?php if ($discountPercent > 0): ?>
                     <span class="badge bg-success text"><?php echo $discountPercent; ?>%</span>
@@ -245,7 +245,7 @@ function sanitize_output($data)
       }
       ?>
     </main>
-    <?php require('./assets/page/footer.php'); ?>
+    <?php require('./includes/footer.php'); ?>
   </section>
 
 
@@ -284,7 +284,7 @@ function sanitize_output($data)
     });
 
     function loadCart() {
-      fetch("./assets/page/showcart.php")
+      fetch("./pages/show_cart.php")
         .then(response => {
           if (!response.ok) throw new Error('Network error');
           return response.text();
@@ -299,7 +299,7 @@ function sanitize_output($data)
       const quantity = document.querySelector('.quantity' + productid)?.value || 1;
       const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-      fetch("./assets/page/add_to_cart.php", {
+      fetch("./pages/add_cart.php", {
         method: "POST",
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -315,7 +315,7 @@ function sanitize_output($data)
     }
 
     function addmoreone(id) {
-      fetch("./assets/page/addmoreone.php", {
+      fetch("./pages/addmoreone.php", {
         method: "POST",
         body: `id=${id}`
       })
@@ -324,7 +324,7 @@ function sanitize_output($data)
     }
 
     function removemoreone(id) {
-      fetch("./assets/page/removemoreone.php", {
+      fetch("./pages/removemoreone.php", {
         method: "POST",
         body: `id=${id}`
       })
@@ -333,7 +333,7 @@ function sanitize_output($data)
     }
 
     function removecart(id) {
-      fetch("./assets/page/removecart.php", {
+      fetch("./pages/remove_cart.php", {
         method: "POST",
         body: `id=${id}`
       })
@@ -377,29 +377,12 @@ function sanitize_output($data)
       });
     });
   </script>
-
-  <audio id="audio" src="./assets/page/like.mp3"></audio>
+  <audio id="audio" src="./audio/like.mp3"></audio>
   <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
   <style>
-    @media screen and (max-width:992px) {
-      .banner-content.p-5.add_link.main_slider {
-        border-radius: 0;
-        margin: 0;
-        height: 30vh !important;
-      }
-    }
 
-    .banner-content.p-5.add_link.main_slider {
-      border-radius: 0;
-      margin: 0;
-    }
-
-    .main_cat.item {
-      padding: 10px;
-    }
   </style>
-
 </body>
 
 </html>

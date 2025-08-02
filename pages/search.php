@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     function loadCart() {
       $.ajax({
         type: "GET",
-        url: "showcart.php",
+        url: "show_cart.php",
         success: function (response) {
           $('#offcanvasCart').html(response);
         },
@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
       $.ajax({
         type: "POST",
-        url: "./add_to_cart.php",
+        url: "./add_cart.php",
         data: {
           productid: productid,
           qty: quantity // Pass the quantity value correctly
@@ -268,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     function removecart(id) {
       $.ajax({
         type: "POST",
-        url: "./removecart.php",
+        url: "./remove_cart.php",
         data: {
           id: id,
         },
@@ -290,7 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     function loadCart() {
       $.ajax({
         type: "GET",
-        url: "showcart.php",
+        url: "show_cart.php",
         success: function (response) {
           $('#offcanvasCart').html(response);
         },
@@ -308,7 +308,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
       $.ajax({
         type: "POST",
-        url: "add_to_cart.php",
+        url: "add_cart.php",
         data: {
           productid: productid,
           qty: quantity // Pass the quantity value correctly
@@ -357,7 +357,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     function removecart(id) {
       $.ajax({
         type: "POST",
-        url: "removecart.php",
+        url: "remove_cart.php",
         data: {
           id: id,
         },

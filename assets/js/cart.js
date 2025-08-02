@@ -1,7 +1,7 @@
 function loadCart() {
   $.ajax({
     type: "GET",
-    url: "showcart.php",
+    url: "show_cart.php",
     success: (response) => $("#offcanvasCart").html(response),
     error: (xhr, status, error) => console.error("AJAX Error:", status, error),
   });
@@ -11,7 +11,7 @@ function addcart(productid) {
   var quantity = $(".quantity" + productid).val();
   $.ajax({
     type: "POST",
-    url: "add_to_cart.php",
+    url: "add_cart.php",
     data: { productid, qty: quantity },
     success: () => loadCart(),
     error: (xhr, status, error) => console.error("AJAX Error:", status, error),
@@ -41,7 +41,7 @@ function removemoreone(id) {
 function removecart(id) {
   $.ajax({
     type: "POST",
-    url: "removecart.php",
+    url: "remove_cart.php",
     data: { id },
     success: () => loadCart(),
     error: (xhr, status, error) => console.error("AJAX Error:", status, error),

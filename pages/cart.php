@@ -9,7 +9,7 @@ if (empty($_SESSION['csrf_token'])) {
   $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-require('./db.php');
+require('../config/db.php');
 
 $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
 
@@ -44,8 +44,8 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  <link rel="stylesheet" href="../style/main.css">
-  <link rel="stylesheet" href="../style/cart.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/cart.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -260,7 +260,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
 </head>
 
 <body>
-  <?php require('./header.php'); ?>
+  <?php require('../includes/header.php'); ?>
 
   <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -477,7 +477,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
       }
     });
   </script>
-  <?php require('./footer.php'); ?>
+  <?php require('../includes/footer.php'); ?>
 </body>
 
 </html>

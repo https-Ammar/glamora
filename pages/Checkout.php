@@ -231,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     unset($_SESSION['cart']);
     unset($_SESSION['applied_coupon']);
 
-    header("Location: ./order_confirmation.php?id=$orderId");
+    header("Location: ../orders/order_confirmation.php?id=$orderId");
     exit();
 
   } catch (Exception $e) {

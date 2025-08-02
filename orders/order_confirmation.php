@@ -5,321 +5,498 @@ session_start([
     'use_strict_mode' => true
 ]);
 
-require('./db.php');
+require('../config/db.php');
 
-// التحقق من وجود معرف الطلب
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header('Location: ./profile.php');
-    exit();
-}
-
-$order_id = (int) $_GET['id'];
-
-// جلب بيانات الطلب من قاعدة البيانات
-$stmt = $conn->prepare("
-  SELECT o.*, u.email, u.name as user_name 
-  FROM orders o
-  LEFT JOIN users u ON o.user_id = u.id
-  WHERE o.id = ?
-");
-$stmt->bind_param("i", $order_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows === 0) {
-    header('Location: ./profile.php');
-    exit();
-}
-
-$order = $result->fetch_assoc();
-$stmt->close();
-
-// جلب عناصر الطلب
-$items_stmt = $conn->prepare("
-  SELECT oi.*, p.name as product_name, p.image as product_image 
-  FROM order_items oi
-  JOIN products p ON oi.product_id = p.id
-  WHERE oi.order_id = ?
-");
-$items_stmt->bind_param("i", $order_id);
-$items_stmt->execute();
-$items_result = $items_stmt->get_result();
-$order_items = $items_result->fetch_all(MYSQLI_ASSOC);
-$items_stmt->close();
-
-// جلب بيانات القسيمة إذا وجدت
-$coupon_data = null;
-if (!empty($order['coupon_code'])) {
-    $coupon_stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ?");
-    $coupon_stmt->bind_param("s", $order['coupon_code']);
-    $coupon_stmt->execute();
-    $coupon_result = $coupon_stmt->get_result();
-    $coupon_data = $coupon_result->fetch_assoc();
-    $coupon_stmt->close();
-}
-
-// حساب الإجمالي الفرعي
+$order_id = null;
+$order = [];
+$order_items = [];
 $subtotal = 0;
-foreach ($order_items as $item) {
-    $subtotal += $item['total_price'];
+
+if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+    $order_id = (int) $_GET['id'];
+
+    $stmt = $conn->prepare("
+        SELECT o.*, u.email, u.name as user_name 
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.id
+        WHERE o.id = ?
+    ");
+
+    if ($stmt === false) {
+        die('Error preparing order query: ' . htmlspecialchars($conn->error));
+    }
+
+    $stmt->bind_param("i", $order_id);
+    if (!$stmt->execute()) {
+        die('Error executing order query: ' . htmlspecialchars($stmt->error));
+    }
+
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $order = $result->fetch_assoc();
+    }
+    $stmt->close();
+
+    if (!empty($order)) {
+        $items_stmt = $conn->prepare("
+            SELECT oi.*, p.name as product_name, p.image as product_image 
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            WHERE oi.order_id = ?
+        ");
+
+        if ($items_stmt === false) {
+            die('Error preparing order items query: ' . htmlspecialchars($conn->error));
+        }
+
+        $items_stmt->bind_param("i", $order_id);
+        if (!$items_stmt->execute()) {
+            die('Error executing order items query: ' . htmlspecialchars($items_stmt->error));
+        }
+
+        $items_result = $items_stmt->get_result();
+        $order_items = $items_result->fetch_all(MYSQLI_ASSOC);
+        $items_stmt->close();
+
+        foreach ($order_items as $item) {
+            $subtotal += $item['total_price'];
+        }
+    }
+
+    $coupon_data = null;
+    if (!empty($order['coupon_code'])) {
+        $coupon_stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ?");
+        if ($coupon_stmt === false) {
+            die('Error preparing coupon query: ' . htmlspecialchars($conn->error));
+        }
+
+        $coupon_stmt->bind_param("s", $order['coupon_code']);
+        if (!$coupon_stmt->execute()) {
+            die('Error executing coupon query: ' . htmlspecialchars($coupon_stmt->error));
+        }
+
+        $coupon_result = $coupon_stmt->get_result();
+        $coupon_data = $coupon_result->fetch_assoc();
+        $coupon_stmt->close();
+    }
+}
+
+if (empty($order)) {
+    header('Location: ../auth/profile.php');
+    exit();
+}
+
+require './vendor/autoload.php';
+
+$mail = new PHPMailer\PHPMailer\PHPMailer(true);
+
+try {
+    // Server settings
+    $mail->isSMTP();
+    $mail->Host = 'smtp.gmail.com'; // تغيير إلى سيرفر Gmail
+    $mail->SMTPAuth = true;
+    $mail->Username = 'ammar132004@gmail.com'; // إيميل Gmail الخاص بك
+    $mail->Password = 'mflgywgxhhmdkqib'; // كلمة مرور التطبيق
+    $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->Port = 587;
+    $mail->CharSet = 'UTF-8';
+
+    // Enable verbose debug output (يمكنك تعطيله بعد التأكد من عمل الإيميل)
+    // $mail->SMTPDebug = 2;
+
+    // Recipients
+    $mail->setFrom('ammar132004@gmail.com', 'Your Store Name'); // يجب أن يكون نفس إيميل Gmail
+    $mail->addAddress($order['email'], $order['user_name']);
+    $mail->addReplyTo('ammar132004@gmail.com', 'Information'); // إيميل للرد عليه
+
+    // Content
+    $mail->isHTML(true);
+    $mail->Subject = 'تأكيد طلبك #' . $order_id;
+
+    // إنشاء محتوى الإيميل
+    ob_start();
+    ?>
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+
+    <head>
+        <meta charset="UTF-8">
+        <title>تأكيد الطلب #<?php echo $order_id; ?></title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+            }
+
+            .container {
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+
+            .header {
+                background-color: #f8f9fa;
+                padding: 20px;
+                text-align: center;
+            }
+
+            .order-details {
+                margin: 20px 0;
+            }
+
+            .table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .table th,
+            .table td {
+                padding: 8px;
+                text-align: right;
+                border-bottom: 1px solid #ddd;
+            }
+
+            .footer {
+                margin-top: 20px;
+                text-align: center;
+                font-size: 0.9em;
+                color: #777;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>شكراً لطلبك!</h1>
+                <p>رقم الطلب: #<?php echo $order_id; ?></p>
+            </div>
+
+            <div class="order-details">
+                <h2>تفاصيل الطلب</h2>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>المنتج</th>
+                            <th>الكمية</th>
+                            <th>السعر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($order_items as $item): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($item['product_name']); ?></td>
+                                <td><?php echo $item['qty']; ?></td>
+                                <td>$<?php echo number_format($item['price'], 2); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
+                <h3>ملخص الطلب</h3>
+                <p>المجموع الفرعي: $<?php echo number_format($subtotal, 2); ?></p>
+                <?php if (!empty($order['coupon_code'])): ?>
+                    <p>الخصم (<?php echo htmlspecialchars($order['coupon_code']); ?>):
+                        -$<?php echo number_format($order['discount_value'] ?? 0, 2); ?></p>
+                <?php endif; ?>
+                <p>الشحن: $0.00</p>
+                <p><strong>المجموع الكلي: $<?php echo number_format($order['finaltotalprice'] ?? 0, 2); ?></strong></p>
+            </div>
+
+            <div class="footer">
+                <p>شكراً لتسوقك معنا!</p>
+                <p>لأي استفسارات، لا تتردد في التواصل معنا على ammar132004@gmail.com</p>
+            </div>
+        </div>
+    </body>
+
+    </html>
+    <?php
+    $email_content = ob_get_clean();
+
+    $mail->Body = $email_content;
+    $mail->AltBody = "شكراً لطلبك! رقم الطلب: #$order_id\n\nيمكنك مراجعة تفاصيل طلبك في حسابك على موقعنا.";
+
+    $mail->send();
+    // يمكنك إضافة رسالة نجاح هنا إذا أردت
+    // $_SESSION['email_sent'] = true;
+
+} catch (Exception $e) {
+    error_log("فشل إرسال الإيميل: {$mail->ErrorInfo}");
+    // يمكنك إضافة رسالة خطأ هنا إذا أردت
+    // $_SESSION['email_error'] = "فشل إرسال إيميل التأكيد: {$mail->ErrorInfo}";
 }
 ?>
+
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تأكيد الطلب - <?php echo $order_id; ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>Order Confirmation - #<?php echo htmlspecialchars($order_id); ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <style>
         body {
-            font-family: 'Tajawal', sans-serif;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 0;
-            color: #333;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
         }
 
-        .container {
-            max-width: 1000px;
-            margin: 30px auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+        .order-card {
+            border-radius: 15px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+            border: none;
+            overflow: hidden;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
+        .header-section {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+            padding: 2rem 1rem;
+            border-radius: 15px 15px 0 0;
         }
 
-        .header h1 {
-            color: #4CAF50;
-            margin-bottom: 10px;
+        .success-alert {
+            background-color: #d1e7dd;
+            border-color: #badbcc;
+            color: #0f5132;
+            border-radius: 10px;
         }
 
-        .order-info {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            margin-bottom: 30px;
+        .info-card {
+            border-radius: 10px;
+            border: 1px solid #e3e6f0;
+            transition: all 0.3s;
+            height: 100%;
         }
 
-        .info-box {
-            flex: 1;
-            min-width: 250px;
-            margin: 10px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
         }
 
-        .info-box h3 {
-            margin-top: 0;
-            color: #333;
-            border-bottom: 1px solid #ddd;
+        .info-card h3 {
+            color: #4e73df;
+            border-bottom: 2px solid #f8f9fc;
             padding-bottom: 10px;
         }
 
-        .order-items {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
+        .product-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
         }
 
-        .order-items th,
-        .order-items td {
-            padding: 12px 15px;
-            text-align: right;
-            border-bottom: 1px solid #ddd;
+        .summary-card {
+            background-color: #f8f9fc;
+            border-radius: 10px;
+            border: 1px solid #e3e6f0;
         }
 
-        .order-items th {
-            background-color: #f2f2f2;
+        .summary-item {
+            border-bottom: 1px dashed #e3e6f0;
+            padding: 12px 0;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #2e59d9;
+        }
+
+        .btn-primary {
+            background-color: #4e73df;
+            border-color: #4e73df;
+            padding: 10px 25px;
             font-weight: 500;
         }
 
-        .order-items img {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 4px;
+        .btn-primary:hover {
+            background-color: #2e59d9;
+            border-color: #2653d4;
         }
 
-        .order-summary {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
+        .btn-outline-primary {
+            color: #4e73df;
+            border-color: #4e73df;
+            padding: 10px 25px;
+            font-weight: 500;
         }
 
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .summary-row:last-child {
-            border-bottom: none;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-
-        .success-message {
-            text-align: center;
-            padding: 20px;
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            border-radius: 5px;
-            margin-bottom: 30px;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-top: 20px;
-            transition: background-color 0.3s;
-        }
-
-        .btn:hover {
-            background-color: #388E3C;
+        .btn-outline-primary:hover {
+            background-color: #4e73df;
+            border-color: #4e73df;
         }
 
         @media print {
             .no-print {
-                display: none;
+                display: none !important;
             }
 
             body {
-                background-color: white;
+                background-color: white !important;
             }
 
-            .container {
-                box-shadow: none;
+            .order-card {
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            .header-section {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>شكراً لطلبك!</h1>
-            <p>تم استلام طلبك بنجاح وسيتم تجهيزه في أقرب وقت ممكن</p>
-            <p>رقم الطلب: <strong>#<?php echo $order_id; ?></strong></p>
-        </div>
-
-        <div class="success-message">
-            <h2>تم تأكيد الطلب بنجاح</h2>
-            <p>سيتم إرسال تفاصيل الشحن والتتبع إلى بريدك الإلكتروني</p>
-        </div>
-
-        <div class="order-info">
-            <div class="info-box">
-                <h3>معلومات العميل</h3>
-                <p><strong>الاسم:</strong> <?php echo htmlspecialchars($order['name']); ?></p>
-                <p><strong>البريد الإلكتروني:</strong>
-                    <?php echo htmlspecialchars($order['email'] ?? $order['customer_email'] ?? 'غير متوفر'); ?></p>
-                <p><strong>الهاتف:</strong> <?php echo htmlspecialchars($order['phoneone']); ?></p>
+    <div class="container py-5">
+        <div class="order-card bg-white">
+            <div class="header-section text-center">
+                <h1 class="fw-bold mb-3">Thank You For Your Order!</h1>
+                <p class="mb-2">Your order has been received and will be processed shortly</p>
+                <p class="mb-0">Order Number: <strong>#<?php echo htmlspecialchars($order_id); ?></strong></p>
             </div>
 
-            <div class="info-box">
-                <h3>معلومات الشحن</h3>
-                <p><strong>العنوان:</strong> <?php echo htmlspecialchars($order['address']); ?></p>
-                <p><strong>المدينة:</strong> <?php echo htmlspecialchars($order['city']); ?></p>
-                <p><strong>حالة الطلب:</strong>
-                    <?php
-                    $status_map = [
-                        'pending' => 'قيد الانتظار',
-                        'processing' => 'قيد المعالجة',
-                        'shipped' => 'تم الشحن',
-                        'delivered' => 'تم التسليم',
-                        'cancelled' => 'ملغي',
-                        'refunded' => 'تم الاسترجاع'
-                    ];
-                    echo $status_map[$order['orderstate']] ?? $order['orderstate'];
-                    ?>
-                </p>
-            </div>
-
-            <div class="info-box">
-                <h3>معلومات الطلب</h3>
-                <p><strong>تاريخ الطلب:</strong> <?php echo date('Y/m/d H:i', strtotime($order['created_at'])); ?></p>
-                <p><strong>طريقة الدفع:</strong> الدفع عند الاستلام</p>
-                <p><strong>عدد المنتجات:</strong> <?php echo count($order_items); ?></p>
-            </div>
-        </div>
-
-        <h2>تفاصيل الطلب</h2>
-        <table class="order-items">
-            <thead>
-                <tr>
-                    <th>الصورة</th>
-                    <th>المنتج</th>
-                    <th>السعر</th>
-                    <th>الكمية</th>
-                    <th>المجموع</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($order_items as $item): ?>
-                    <tr>
-                        <td>
-                            <?php if (!empty($item['product_image'])): ?>
-                                <img src="<?php echo htmlspecialchars($item['product_image']); ?>"
-                                    alt="<?php echo htmlspecialchars($item['product_name']); ?>">
-                            <?php else: ?>
-                                <img src="images/no-image.jpg" alt="لا توجد صورة">
-                            <?php endif; ?>
-                        </td>
-                        <td><?php echo htmlspecialchars($item['product_name']); ?></td>
-                        <td><?php echo number_format($item['price'], 2); ?> ر.س</td>
-                        <td><?php echo $item['qty']; ?></td>
-                        <td><?php echo number_format($item['total_price'], 2); ?> ر.س</td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-
-        <div class="order-summary">
-            <h3>ملخص الطلب</h3>
-            <div class="summary-row">
-                <span>الإجمالي الفرعي:</span>
-                <span><?php echo number_format($subtotal, 2); ?> ر.س</span>
-            </div>
-
-            <?php if (!empty($order['coupon_code'])): ?>
-                <div class="summary-row">
-                    <span>كود الخصم (<?php echo htmlspecialchars($order['coupon_code']); ?>):</span>
-                    <span>-<?php echo number_format($order['discount_value'], 2); ?> ر.س</span>
+            <div class="p-4">
+                <div class="alert success-alert text-center mb-4">
+                    <h2 class="h4 fw-bold mb-2">Order Confirmed Successfully</h2>
+                    <p class="mb-0">Shipping details and tracking information will be sent to your email</p>
                 </div>
-            <?php endif; ?>
 
-            <div class="summary-row">
-                <span>تكلفة الشحن:</span>
-                <span>0.00 ر.س</span>
+                <div class="row g-4 mb-4">
+                    <div class="col-md-4">
+                        <div class="info-card p-3 h-100">
+                            <h3 class="h5 fw-bold mb-3">Customer Information</h3>
+                            <p><strong>Name:</strong> <?php echo htmlspecialchars($order['name'] ?? 'N/A'); ?></p>
+                            <p><strong>Email:</strong>
+                                <?php echo htmlspecialchars($order['email'] ?? $order['customer_email'] ?? 'N/A'); ?>
+                            </p>
+                            <p><strong>Phone:</strong> <?php echo htmlspecialchars($order['phoneone'] ?? 'N/A'); ?></p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="info-card p-3 h-100">
+                            <h3 class="h5 fw-bold mb-3">Shipping Information</h3>
+                            <p><strong>Address:</strong> <?php echo htmlspecialchars($order['address'] ?? 'N/A'); ?></p>
+                            <p><strong>City:</strong> <?php echo htmlspecialchars($order['city'] ?? 'N/A'); ?></p>
+                            <p><strong>Status:</strong>
+                                <?php
+                                $status_map = [
+                                    'pending' => 'Pending',
+                                    'processing' => 'Processing',
+                                    'shipped' => 'Shipped',
+                                    'delivered' => 'Delivered',
+                                    'cancelled' => 'Cancelled',
+                                    'refunded' => 'Refunded'
+                                ];
+
+                                echo $status_map[$order['orderstate'] ?? ''] ?? 'N/A';
+                                ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="info-card p-3 h-100">
+                            <h3 class="h5 fw-bold mb-3">Order Information</h3>
+                            <p><strong>Order Date:</strong>
+                                <?php
+                                if (!empty($order['created_at'])) {
+                                    echo date('M d, Y H:i', strtotime($order['created_at']));
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </p>
+                            <p><strong>Payment Method:</strong> Cash on Delivery</p>
+                            <p><strong>Items:</strong> <?php echo count($order_items); ?></p>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="h4 fw-bold mb-3">Order Details</h2>
+                <div class="table-responsive mb-4">
+                    <table class="table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Image</th>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($order_items)): ?>
+                                <?php foreach ($order_items as $item): ?>
+                                    <tr>
+                                        <td>
+                                            <?php if (!empty($item['product_image'])): ?>
+                                                <img src="<?php echo htmlspecialchars($item['product_image']); ?>"
+                                                    alt="<?php echo htmlspecialchars($item['product_name']); ?>"
+                                                    class="product-img">
+                                            <?php else: ?>
+                                                <img src="images/no-image.jpg" alt="No image" class="product-img">
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($item['product_name']); ?></td>
+                                        <td>$<?php echo number_format($item['price'], 2); ?></td>
+                                        <td><?php echo $item['qty']; ?></td>
+                                        <td>$<?php echo number_format($item['total_price'], 2); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" class="text-center">No items found in this order</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="summary-card p-4 mb-4">
+                    <h3 class="h5 fw-bold mb-3">Order Summary</h3>
+                    <div class="summary-item d-flex justify-content-between">
+                        <span>Subtotal:</span>
+                        <span>$<?php echo number_format($subtotal, 2); ?></span>
+                    </div>
+
+                    <?php if (!empty($order['coupon_code'])): ?>
+                        <div class="summary-item d-flex justify-content-between">
+                            <span>Discount (<?php echo htmlspecialchars($order['coupon_code']); ?>):</span>
+                            <span>-$<?php echo number_format($order['discount_value'] ?? 0, 2); ?></span>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="summary-item d-flex justify-content-between">
+                        <span>Shipping:</span>
+                        <span>$0.00</span>
+                    </div>
+
+                    <div class="summary-item d-flex justify-content-between">
+                        <span>Grand Total:</span>
+                        <span>$<?php echo number_format($order['finaltotalprice'] ?? 0, 2); ?></span>
+                    </div>
+                </div>
+
+                <div class="no-print text-center py-3">
+                    <a href="./profile.php" class="btn btn-primary me-2">View All Orders</a>
+                    <button onclick="window.print()" class="btn btn-outline-primary">Print Invoice</button>
+                </div>
             </div>
-
-            <div class="summary-row">
-                <span>الإجمالي النهائي:</span>
-                <span><?php echo number_format($order['finaltotalprice'], 2); ?> ر.س</span>
-            </div>
-        </div>
-
-        <div class="no-print" style="text-align: center; margin-top: 30px;">
-            <a href="./profile.php" class="btn">عرض جميع الطلبات</a>
-            <button onclick="window.print()" class="btn">طباعة الفاتورة</button>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

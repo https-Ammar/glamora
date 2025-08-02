@@ -1677,7 +1677,7 @@ button#applyRedeemableButton {
   }
 
   .banner-content.p-5.add_link {
-    height: 20vh !important;
+    height: 15vh !important;
   }
 
   .bg_img {
@@ -1996,7 +1996,7 @@ form#search-form {
     .Categories_ads {
 
       gap: 10px;
-      margin-top: 5vh;
+      margin-top: 3vh;
     }
   }
  
@@ -2011,4 +2011,23 @@ a h2 {
     color: black;
     font-weight: normal;
     margin-top: 1vh;
+}
+
+span.text-muted.small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block; /* أو block لو العنصر div */
+  max-width: 100%; /* أو قيمة ثابتة زي 200px لو عايز */
+}
+
+.owl-item.active {
+    margin: 0;
+    padding: 0;
+}
+
+
+
+nav.nav_bar.nav {
+    display: block;
 }

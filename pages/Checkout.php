@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_coupon'])) {
     }
     $usage_stmt->close();
   } else {
-    $coupon_error = "Invalid or expired coupon code";
+    $coupon_error = "<span style='color:red'>Invalid or expired coupon code</span>";
   }
   $stmt->close();
 }
@@ -276,12 +276,27 @@ if ($coupon) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Checkout</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: #fff;
-      font-family: system-ui, sans-serif;
-    }
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="../style/main.css">
+  <link rel="stylesheet" href="../style/cart.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" />
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+    integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
 
+
+  <style>
     .form-section {
       padding: 30px;
     }
@@ -311,7 +326,7 @@ if ($coupon) {
       background-size: cover;
       background-position: center;
       border-radius: 8px;
-      background-color: red;
+      background-color: white;
     }
 
     .product-qty {
@@ -386,29 +401,17 @@ if ($coupon) {
 </head>
 
 <body>
+
+  <?php require('./header.php'); ?>
+
+
+
   <div class="container-fluid">
     <div class="row min-vh-100 d-flex">
       <div class="col-md-5 form-section border-end">
         <form id="checkout-form" method="POST">
-          <div class="row">
-            <div class="col-md-4 mb-3">
-              <label for="country" class="form-label">Country*</label>
-              <select class="form-select" id="country" name="country" required>
-                <option value="">Select...</option>
-                <option value="Egypt" <?= isset($userData['country']) && $userData['country'] == 'Egypt' ? 'selected' : '' ?>>Egypt</option>
-                <option value="Saudi Arabia" <?= isset($userData['country']) && $userData['country'] == 'Saudi Arabia' ? 'selected' : '' ?>>Saudi Arabia</option>
-                <option value="UAE" <?= isset($userData['country']) && $userData['country'] == 'UAE' ? 'selected' : '' ?>>
-                  UAE</option>
-              </select>
-            </div>
-            <div class="col-md-4 mb-3">
-              <label for="city" class="form-label">City*</label>
-              <input type="text" class="form-control" id="city" name="city" required
-                value="<?= htmlspecialchars($userData['city'] ?? '') ?>">
-            </div>
-          </div>
 
-          <button type="submit" name="place_order" class="btn btn-checkout mt-3">Confirm Order</button>
+
 
           <h5>Contact</h5>
           <input type="email" class="form-control mb-3" id="email" name="email"
@@ -421,54 +424,61 @@ if ($coupon) {
           <h5>Delivery</h5>
           <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
           <div class="mb-3">
-            <select class="form-select">
-              <option selected>Egypt</option>
+            <select class="form-select" id="country" name="country" required>
+              <option value="">Select...</option>
+              <option value="Egypt" <?= isset($userData['country']) && $userData['country'] == 'Egypt' ? 'selected' : '' ?>>Egypt</option>
+              <option value="Saudi Arabia" <?= isset($userData['country']) && $userData['country'] == 'Saudi Arabia' ? 'selected' : '' ?>>Saudi Arabia</option>
+              <option value="UAE" <?= isset($userData['country']) && $userData['country'] == 'UAE' ? 'selected' : '' ?>>
+                UAE</option>
             </select>
           </div>
 
           <div class="row mb-3">
-            <div class="col">
+            <div class="col-12">
               <input type="text" class="form-control" id="full_name" name="full_name" required
                 value="<?= htmlspecialchars($userData['name'] ?? '') ?>" placeholder="Full Name" />
             </div>
-            <div class="col">
-              <input type="text" class="form-control" placeholder="Last name">
-            </div>
           </div>
-          <div class="mb-3">
-            <input type="tel" class="form-control" id="phone" name="phone" required
-              value="<?= htmlspecialchars($userData['phone'] ?? '') ?>" placeholder="Phone">
-          </div>
+
           <div class="mb-3">
             <input type="text" class="form-control" id="address" name="address" required
               value="<?= htmlspecialchars($userData['address'] ?? '') ?>" placeholder="Address">
           </div>
           <div class="row mb-3">
             <div class="col">
-              <input type="text" class="form-control" placeholder="City">
+              <input type="text" class="form-control" id="city" name="city" required
+                value="<?= htmlspecialchars($userData['city'] ?? '') ?>">
             </div>
-            <div class="col">
-              <select class="form-select">
-                <option selected>Sohag</option>
-              </select>
-            </div>
+
             <div class="col">
               <input type="text" class="form-control" placeholder="Postal code (optional)" id="postal_code"
                 name="postal_code" value="<?= htmlspecialchars($userData['postal_code'] ?? '') ?>">
             </div>
           </div>
           <div class="mb-3">
-            <input type="text" class="form-control" placeholder="Mobile Number (e.g: 0123 xxx xxxx)">
+
+
+            <input type="tel" class="form-control" id="phone" name="phone" required
+              value="<?= htmlspecialchars($userData['phone'] ?? '') ?>"
+              placeholder="Mobile Number (e.g: 0123 xxx xxxx)">
+
           </div>
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="saveInfo">
             <label class="form-check-label" for="saveInfo">Save this information for next time</label>
           </div>
+
+
+
+          <button type="submit" name="place_order" class="btn btn-dark w-100 mt-3 py-2">checkout now</button>
+
+
+
         </form>
       </div>
 
       <div class="col-md-5 p-0">
-        <div class="order-summary h-100">
+        <div class="order-summary h-100 pt-5">
           <div class="card-body">
             <?php foreach ($_SESSION['cart'] as $item): ?>
               <div class="product-box">
@@ -488,8 +498,9 @@ if ($coupon) {
                     <?php endif; ?>
                   </span>
                 </div>
-                <div class="ms-auto fw-bold">EGP
+                <div class="ms-auto fw-bold">
                   <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?>
+                  <sub>EGP</sub>
                 </div>
               </div>
             <?php endforeach; ?>
@@ -515,48 +526,106 @@ if ($coupon) {
 
             <div class="summary-item">
               <span>Subtotal</span>
-              <span>EGP <?= formatPrice($total) ?></span>
+              <span> <?= formatPrice($total) ?> <sub>EGP</sub></span>
             </div>
             <div class="summary-item">
               <span>Discount</span>
-              <span>-EGP <?= formatPrice($discount_amount) ?></span>
+              <span>- <?= formatPrice($discount_amount) ?> <sub>EGP</sub></span>
             </div>
             <hr>
             <div class="summary-item summary-total">
               <span>Total</span>
-              <span>EGP <?= formatPrice($final_total) ?></span>
+              <span> <?= formatPrice($final_total) ?> <sub>EGP</sub></span>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
+  <?php require('./footer.php'); ?>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-      document.getElementById('checkout-form').addEventListener('submit', function (e) {
-        let isValid = true;
 
-        this.querySelectorAll('[required]').forEach(function (field) {
-          if (!field.value.trim()) {
-            field.classList.add('is-invalid');
-            isValid = false;
-          } else {
-            field.classList.remove('is-invalid');
-          }
-        });
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.getElementById('checkout-form').addEventListener('submit', function (e) {
+      let isValid = true;
 
-        const emailField = document.getElementById('email');
-        if (emailField.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value)) {
-          emailField.classList.add('is-invalid');
+      this.querySelectorAll('[required]').forEach(function (field) {
+        if (!field.value.trim()) {
+          field.classList.add('is-invalid');
           isValid = false;
-        }
-
-        if (!isValid) {
-          e.preventDefault();
-          alert('Please fill all required fields correctly');
+        } else {
+          field.classList.remove('is-invalid');
         }
       });
-    </script>
+
+      const emailField = document.getElementById('email');
+      if (emailField.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value)) {
+        emailField.classList.add('is-invalid');
+        isValid = false;
+      }
+
+      if (!isValid) {
+        e.preventDefault();
+        alert('Please fill all required fields correctly');
+      }
+    });
+  </script>
+
+
+  <style>
+    input#offers,
+    input#saveInfo {
+      padding: 0;
+    }
+
+    button.btn.btn-dark.w-100.mt-3.py-2 {
+      padding: 15px !important;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 6px;
+      padding: 25px;
+    }
+
+    select#country {
+      padding: 15px;
+    }
+
+
+    @media screen and (max-width:992px) {
+
+      .order-summary.h-100.pt-5 {
+        display: none;
+      }
+
+      .col-md-5.form-section.border-end {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      button.btn.btn-dark.w-100.mt-3.py-2 {
+        padding: 15px !important;
+      }
+
+      .form-control,
+      .form-select {
+        border-radius: 6px;
+        padding: 25px;
+      }
+
+      select#country {
+        padding: 15px;
+      }
+
+      .col-md-5.p-0 {
+        display: none;
+      }
+    }
+  </style>
+
 </body>
 
 </html>

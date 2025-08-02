@@ -350,7 +350,7 @@ function sanitize_output($data)
         margin: 10,
         nav: categoriesItems > 1,
         responsive: {
-          0: { items: Math.min(2, categoriesItems) },
+          0: { items: Math.min(3, categoriesItems) },
           600: { items: Math.min(3, categoriesItems) },
           1000: { items: Math.min(5, categoriesItems) }
         }
@@ -364,7 +364,7 @@ function sanitize_output($data)
         autoplayTimeout: 3000,
         responsive: {
           0: { items: 2 },
-          600: { items: 2 },
+          600: { items: 3 },
           1000: { items: 5 }
         }
       });
@@ -386,7 +386,7 @@ function sanitize_output($data)
       .banner-content.p-5.add_link.main_slider {
         border-radius: 0;
         margin: 0;
-        height: 45vh !important;
+        height: 30vh !important;
       }
     }
 

@@ -1,5 +1,5 @@
 <?php
-require('./db.php');
+require('../config/db.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
@@ -33,21 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Login | ARTSY</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="../style/main.css">
-    <link rel="stylesheet" href="../style/register.css">
-
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
-
+    <?php require('../includes/link.php'); ?>
 </head>
 
 <body>
 
-    <?php require('./header.php'); ?>
+    <?php require('../includes/header.php'); ?>
 
 
     <main class="main-content">
@@ -67,12 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="email">E-mail</label>
                     </div>
 
-                    <div class="floating-label-group text-start input-group-custom">
-                        <input type="password" id="password" name="password" class="form-control" placeholder=" "
-                            required />
-                        <label for="password">Password</label>
-                        <i class="fa-solid fa-eye input-icon" id="togglePassword"></i>
-                    </div>
 
                     <div class="floating-label-group text-start">
                         <input name="phone" type="text" id="phone" class="form-control" placeholder=" " />
@@ -99,6 +84,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="profile_image">Profile Image</label>
                     </div>
 
+                    <div class="floating-label-group text-start input-group-custom">
+                        <input type="password" id="password" name="password" class="form-control" placeholder=" "
+                            required />
+                        <label for="password">Password</label>
+                        <i class="fa-solid fa-eye input-icon" id="togglePassword"></i>
+                    </div>
+
+
                     <button type="submit" class="btn btn-login w-100 mt-3">Register</button>
 
                     <div class="create-account mt-3">
@@ -111,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
 
 
-    <?php require('footer.php'); ?>
+    <?php require('../includes/footer.php'); ?>
 
     <script>
         const togglePassword = document.getElementById("togglePassword");

@@ -6,7 +6,7 @@ session_start([
     'use_strict_mode' => true
 ]);
 
-require('./db.php');
+require('../config/db.php');
 
 if (isset($_SESSION['user_id'])) {
     header('Location: profile.php');
@@ -51,18 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Login | ARTSY</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="../style/main.css">
-    <link rel="stylesheet" href="../style/register.css">
-
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <?php require('../includes/link.php'); ?>
 </head>
 
 <body>
-    <?php require('./header.php'); ?>
+    <?php require('../includes/header.php'); ?>
     <main class="main-content">
         <div class="container">
             <div class="login-container text-center">
@@ -99,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </main>
-    <?php require('footer.php'); ?>
+    <?php require('../includes/footer.php'); ?>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const togglePassword = document.getElementById("togglePassword");

@@ -185,7 +185,8 @@ function sanitize_output($data)
             $finalPrice = $salePrice ?? ($price - ($price * $discountPercent / 100));
             ?>
             <div class="item">
-              <a href="./pages/view.php?php echo $productId; ?>" title="<?php echo $productName; ?>">
+              <a href="./pages/view.php?id=<?php echo $productId; ?>" title="<?php echo htmlspecialchars($productName); ?>">
+
                 <figure class="bg_img" style="background-image: url('<?php echo $productImage; ?>');">
                   <?php if ($discountPercent > 0): ?>
                     <span class="badge bg-success text"><?php echo $discountPercent; ?>%</span>

@@ -6,7 +6,7 @@ session_start([
   'cookie_samesite' => 'Lax'
 ]);
 
-require('./db.php');
+require('../config/db.php');
 
 $base_url = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https://" : "http://");
 $base_url .= htmlspecialchars($_SERVER['HTTP_HOST'], ENT_QUOTES, 'UTF-8') . "/glamora/";
@@ -422,19 +422,12 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $name ?> | GLAMORA</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../style/main.css">
-  <link rel="stylesheet" href="../style/viwe.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css">
+  <?php require('../includes/link.php'); ?>
 </head>
 
 <body>
-  <?php require('./header.php'); ?>
+  <?php require('../includes/header.php'); ?>
   <div class="container py-5">
     <div class="d-sm-flex justify-content-between container-fluid py-3">
       <nav aria-label="breadcrumb" class="breadcrumb-row">
@@ -912,7 +905,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
   </div>
 
 
-  <?php require('./footer.php'); ?>
+  <?php require('../includes/footer.php'); ?>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

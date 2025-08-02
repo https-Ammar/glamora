@@ -422,6 +422,8 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
 <html lang="en">
 
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $name ?> | GLAMORA</title>
   <?php require('../includes/link.php'); ?>
 </head>
@@ -672,6 +674,9 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
           </div>
         </div>
       </div>
+
+
+
       <div class="comment-section" id="reviews">
         <div class="row">
           <div class="col-lg-12">
@@ -843,6 +848,8 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
           </div>
         </div>
       </div>
+
+
       <div class="row">
         <section class="py-5">
           <div class="_con">
@@ -901,7 +908,14 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
           </div>
         </section>
       </div>
+
+
+
+
     </div>
+
+
+
   </div>
 
 
@@ -1147,6 +1161,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
       toast.style.transition = 'all 0.3s ease';
       toast.textContent = message;
       document.body.appendChild(toast);
+
       setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);

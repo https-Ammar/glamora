@@ -316,7 +316,7 @@ $stmtOrderItems = $conn->prepare("
         </nav>
 
         <div id="addressesDiv" style="display: none;">
-            <div class="container py-5">
+            <div class="container py-5 mt-5">
                 <div class="table-responsive">
                     <div>
                         <h2 class="text-center mb-4">Addresses</h2>
@@ -360,7 +360,7 @@ $stmtOrderItems = $conn->prepare("
             <?php endif; ?>
         </div>
 
-        <div class="container py-5">
+        <div class="container py-5 mt-5">
             <div class="table-responsive">
                 <div id="ordersDiv">
                     <h2 class="text-center mb-4">Orders <span class="badge bg-dark"><?= $orders->num_rows ?></span></h2>

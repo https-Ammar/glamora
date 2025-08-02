@@ -1,5 +1,5 @@
 <?php
-require('./config/db.php');
+require('db.php');
 ?>
 
 <footer class="footer_">

@@ -1,5 +1,5 @@
 <?php
-require('db.php');
+require('../config/db.php');
 if (isset($_COOKIE['userid'])) {
   $userid = $_COOKIE['userid'];
 

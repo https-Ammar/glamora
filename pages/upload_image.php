@@ -1,6 +1,6 @@
 <?php
 session_start();
-require('./db.php');
+require('../config/db.php');
 
 if (!isset($_SESSION['userId'])) {
     header("Location: login.php");

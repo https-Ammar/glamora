@@ -111,7 +111,7 @@ function sanitize_output($data)
       ?>
     </div>
 
-    <div class="Categories_ads owl-carousel">
+    <div class="Categories_list">
       <?php
       $sqlcat = $conn->prepare("SELECT * FROM categories WHERE parent_id = 0 OR parent_id IS NULL LIMIT 8");
       $sqlcat->execute();
@@ -121,12 +121,12 @@ function sanitize_output($data)
         $image = sanitize_output($fetchcat['image'] ?? 'default.jpg');
         $name = sanitize_output($fetchcat['name'] ?? '');
         $id = (int) $fetchcat['id'];
-        echo '<div class="main_cat item">
-                          <a href="./pages/category.php?id=' . $id . '">
-                              <div class="_Categories_img" style="background-image: url(\'' . $imagePath . $image . '\');" onerror="this.style.backgroundImage=\'url(default.jpg)\'"></div>
-                              <h2>' . $name . '</h2>
-                          </a>
-                        </div>';
+        echo '<div class="main_cat">
+                <a href="./pages/category.php?id=' . $id . '">
+                    <div class="_Categories_img" style="background-image: url(\'' . $imagePath . $image . '\');" onerror="this.style.backgroundImage=\'url(default.jpg)\'"></div>
+                    <h2>' . $name . '</h2>
+                </a>
+              </div>';
       }
       $sqlcat->close();
       ?>
@@ -285,7 +285,7 @@ function sanitize_output($data)
     });
 
     function loadCart() {
-      fetch("./pages/show_cart.php")
+      fetch("./cart/show_cart.php")
         .then(response => {
           if (!response.ok) throw new Error('Network error');
           return response.text();
@@ -300,7 +300,7 @@ function sanitize_output($data)
       const quantity = document.querySelector('.quantity' + productid)?.value || 1;
       const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-      fetch("./pages/add_cart.php", {
+      fetch("./cart/add_cart.php", {
         method: "POST",
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -316,7 +316,7 @@ function sanitize_output($data)
     }
 
     function addmoreone(id) {
-      fetch("./pages/addmoreone.php", {
+      fetch("./cart/add_more_one.php", {
         method: "POST",
         body: `id=${id}`
       })
@@ -325,7 +325,7 @@ function sanitize_output($data)
     }
 
     function removemoreone(id) {
-      fetch("./pages/removemoreone.php", {
+      fetch("./cart/remove_more_one.php", {
         method: "POST",
         body: `id=${id}`
       })
@@ -334,7 +334,7 @@ function sanitize_output($data)
     }
 
     function removecart(id) {
-      fetch("./pages/remove_cart.php", {
+      fetch("./cart/remove_cart.php", {
         method: "POST",
         body: `id=${id}`
       })
@@ -382,7 +382,19 @@ function sanitize_output($data)
   <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
   <style>
+    .Categories_list {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 35px;
+      margin-top: 8vh;
+    }
 
+    @media screen and (max-width:992px) {
+      .Categories_list {
+        margin-top: 5vh;
+      }
+    }
   </style>
 </body>
 

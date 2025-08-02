@@ -1,7 +1,6 @@
 <?php
-require('./db.php');
+require('../config/db.php');
 
-// التحقق من رقم التصنيف
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
   header('Location: ./categories.php');
   exit();
@@ -9,7 +8,6 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 
 $id = intval($_GET['id']);
 
-// جلب بيانات التصنيف
 $stmtCat = $conn->prepare("SELECT * FROM categories WHERE id = ?");
 $stmtCat->bind_param("i", $id);
 $stmtCat->execute();
@@ -21,7 +19,6 @@ if (!$category) {
   exit();
 }
 
-// إذا كان التصنيف أساسي، اجلب منتجات التصنيفات الفرعية أيضًا
 $categoryIds = [$id];
 if ((int) $category['parent_id'] === 0) {
   $stmtSubs = $conn->prepare("SELECT id FROM categories WHERE parent_id = ?");
@@ -40,23 +37,17 @@ $types = str_repeat('i', count($categoryIds));
 <html lang="ar">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GLAMORA | <?php echo htmlspecialchars($category['name']); ?></title>
-  <link rel="stylesheet" href="../style/main.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <?php require('../includes/link.php'); ?>
 </head>
 
 <body>
-  <?php require('./loding.php'); ?>
+  <?php require('../includes/loding.php'); ?>
 
   <section id="lod_file">
-    <?php require('./header.php'); ?>
+    <?php require('../includes/header.php'); ?>
 
     <main>
-      <!-- عرض الإعلانات -->
       <section class="container_" style="display:none">
         <div class="container-fluid_">
           <div class="row">
@@ -80,7 +71,6 @@ $types = str_repeat('i', count($categoryIds));
         </div>
       </section>
 
-      <!-- عنوان القسم -->
       <section>
         <div class="codntainer_-flui_ swiper-wrapper_">
           <div class="row">
@@ -97,7 +87,6 @@ $types = str_repeat('i', count($categoryIds));
             </div>
           </div>
 
-          <!-- عرض قائمة التصنيفات -->
           <div class="row">
             <div class="col-md-12">
               <div class="Menu_list">
@@ -106,7 +95,7 @@ $types = str_repeat('i', count($categoryIds));
                   $allCats = $conn->query("SELECT * FROM categories");
                   while ($cat = $allCats->fetch_assoc()) {
                     echo '<li class="link">
-                      <a href="./Categories.php?id=' . intval($cat['id']) . '" class="nav-link">'
+                      <a href="./category.php?id=' . intval($cat['id']) . '" class="nav-link">'
                       . htmlspecialchars($cat['name']) . '</a>
                     </li>';
                   }
@@ -114,7 +103,6 @@ $types = str_repeat('i', count($categoryIds));
                 </ul>
               </div>
 
-              <!-- عرض المنتجات -->
               <div class="product-grid">
                 <?php
                 $stmtProducts = $conn->prepare("SELECT * FROM products WHERE category_id IN ($placeholders)");
@@ -166,13 +154,13 @@ $types = str_repeat('i', count($categoryIds));
       </section>
     </main>
 
-    <?php require('footer.php'); ?>
+    <?php require('../includes/footer.php'); ?>
   </section>
 
   <audio id="audio" src="./like.mp3"></audio>
 
-  <script src="./js/plugins.js"></script>
-  <script src="./js/script.js"></script>
+  <script src="../assets/js/plugins.js"></script>
+  <script src="../assets/js/script.js"></script>
   <script>
     document.querySelectorAll(".playSound").forEach(button => {
       button.addEventListener("click", () => {
@@ -201,11 +189,11 @@ $types = str_repeat('i', count($categoryIds));
     }
 
     function addmoreone(id) {
-      $.post("addmoreone.php", { id: id }, loadCart);
+      $.post("add_more_one.php", { id: id }, loadCart);
     }
 
     function removemoreone(id) {
-      $.post("removemoreone.php", { id: id }, loadCart);
+      $.post("remove_more_one.php", { id: id }, loadCart);
     }
 
     function removecart(id) {

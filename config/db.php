@@ -1,15 +1,15 @@
 <?php
-$servername = "localhost";  // Database server (usually localhost)
-$username = "root";         // Database username
-$password = "root";             // Database password
-$dbname = "shop";    // Name of the database
+$servername = "localhost";
+$username = "root";
+$password = "root";
+$dbname = "shop";
 
-// Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    header("HTTP/1.1 500 Internal Server Error");
+    exit("Database connection error");
 }
 
+$conn->set_charset("utf8mb4");
 ?>

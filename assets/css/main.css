@@ -535,7 +535,7 @@ span.snize-attribute {
 
 .product-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr ;
   gap: 10px;
 }
 
@@ -1976,7 +1976,7 @@ form#search-form {
     background-size: cover;
     background-repeat: no-repeat;
     border: 10px solid #ffffff;
-    outline: 5px solid black;
+    outline: 5px solid #ffc1c7;
   }
 
   .main_cat h2 {

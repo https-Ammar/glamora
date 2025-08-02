@@ -1,5 +1,5 @@
 <?php
-require('../db.php');
+require('../config/db.php');
 
 // Initialize variables
 $i = 0;
@@ -191,7 +191,7 @@ class="total-price"                          <a href="#">
     </div>
     <?php
     if ($i > 0) {
-      echo '<button onclick="window.location.href=\'page/Checkout.php\';" class="w-100 btn btn-primary btn-lg" type="button">Continue to checkout</button>';
+      echo '<button onclick="window.location.href=\'page/checkout.php\';" class="w-100 btn btn-primary btn-lg" type="button">Continue to checkout</button>';
     }
     ?>
 
@@ -202,7 +202,7 @@ class="total-price"                          <a href="#">
   function addmoreone(id) {
     $.ajax({
       type: "POST",
-      url: "../addmoreone.php",
+      url: "../pages/add_more_one.php",
       data: {
         id: id,
       },
@@ -216,7 +216,7 @@ class="total-price"                          <a href="#">
   function removemoreone(id) {
     $.ajax({
       type: "POST",
-      url: "../removemoreone.php",
+      url: "../pages/remove_more_one.php",
       data: {
         id: id,
       },
@@ -230,7 +230,7 @@ class="total-price"                          <a href="#">
   function removecart(id) {
     $.ajax({
       type: "POST",
-      url: "../remove_cart.php",
+      url: "./remove_cart.php",
       data: {
         id: id,
       },

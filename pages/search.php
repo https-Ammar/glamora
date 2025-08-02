@@ -1,6 +1,6 @@
 <!--  -->
 <?php
-require('db.php');
+require('../config/db.php');
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   // Sanitize the search term
   $search = isset($_POST['search']) ? trim($_POST['search']) : '';
@@ -236,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     function addmoreone(id) {
       $.ajax({
         type: "POST",
-        url: "./addmoreone.php",
+        url: "./add_more_one.php",
         data: {
           id: id,
         },
@@ -252,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     function removemoreone(id) {
       $.ajax({
         type: "POST",
-        url: "./removemoreone.php",
+        url: "./remove_more_one.php",
         data: {
           id: id,
         },
@@ -325,7 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     function addmoreone(id) {
       $.ajax({
         type: "POST",
-        url: "addmoreone.php",
+        url: "add_more_one.php",
         data: {
           id: id,
         },
@@ -341,7 +341,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     function removemoreone(id) {
       $.ajax({
         type: "POST",
-        url: "removemoreone.php",
+        url: "remove_more_one.php",
         data: {
           id: id,
         },

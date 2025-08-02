@@ -21,7 +21,7 @@ function addcart(productid) {
 function addmoreone(id) {
   $.ajax({
     type: "POST",
-    url: "addmoreone.php",
+    url: "add_more_one.php",
     data: { id },
     success: () => loadCart(),
     error: (xhr, status, error) => console.error("AJAX Error:", status, error),
@@ -31,7 +31,7 @@ function addmoreone(id) {
 function removemoreone(id) {
   $.ajax({
     type: "POST",
-    url: "removemoreone.php",
+    url: "remove_more_one.php",
     data: { id },
     success: () => loadCart(),
     error: (xhr, status, error) => console.error("AJAX Error:", status, error),

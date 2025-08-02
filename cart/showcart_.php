@@ -1,5 +1,5 @@
 <?php
-require('db.php');
+require('../config/db.php');
 
 // Initialize variables
 $i = 0;
@@ -124,7 +124,8 @@ if (isset($_COOKIE['userid'])) {
                         <p>Product numbers <span>( <?php echo htmlspecialchars($i); ?> )</span></p>
                         <p>Total <span><?php echo htmlspecialchars($finalproducttotal); ?> EGP</span></p>
                         <div class="d-grid gap-2">
-                          <button onclick="window.location.href='Checkout.php';" class="btn btn-danger m-t-xs" type="button">Print Invoice</button>
+                          <button onclick="window.location.href='checkout.php';" class="btn btn-danger m-t-xs"
+                            type="button">Print Invoice</button>
                         </div>
                       </div>
                     </div>
@@ -165,7 +166,7 @@ if (isset($_COOKIE['userid'])) {
 
 
 <script>
-  window.onload = function() {
+  window.onload = function () {
     // Select all elements with the class 'text' (you can customize the selector)
     let elements = document.querySelectorAll('.text');
 

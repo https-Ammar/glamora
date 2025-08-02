@@ -5,7 +5,7 @@ session_start([
     'use_strict_mode' => true
 ]);
 
-require('./db.php');
+require('../config/db.php');
 header('Content-Type: application/json');
 
 $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";

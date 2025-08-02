@@ -11,7 +11,7 @@ if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST[
     exit;
 }
 
-require('./db.php');
+require('../config/db.php');
 
 $key = $_POST['key'] ?? null;
 $quantity = (int) ($_POST['quantity'] ?? 0);

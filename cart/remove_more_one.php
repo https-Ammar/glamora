@@ -1,5 +1,5 @@
 <?php
-require('./db.php');
+require('../config/db.php');
 
 if (isset($_POST['id'])) {
     $id = intval($_POST['id']); // Sanitizing the id

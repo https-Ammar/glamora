@@ -2048,3 +2048,24 @@ nav.nav_bar.nav {
     .main_cat.item {
       padding: 10px;
     }
+
+
+
+
+.container_flex li {
+    border: none !important;
+}
+
+    .Categories_list {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 35px;
+      margin-top: 8vh;
+    }
+
+    @media screen and (max-width:992px) {
+      .Categories_list {
+        margin-top: 5vh;
+      }
+    }

@@ -221,11 +221,13 @@
 
         <li>
           <?php
-          $sqlcat = mysqli_query($conn, "SELECT * FROM categories");
+          $sqlcat = mysqli_query($conn, "SELECT * FROM categories WHERE parent_id IS NULL LIMIT 8");
+          $count = 0;
           while ($fetchcat = mysqli_fetch_assoc($sqlcat)) {
-            echo '<li>
-              <a href="../pages/category.php?id=' . $fetchcat['id'] . '" class="nav-link">' . $fetchcat['name'] . '</a>
-            </li>';
+            if ($count >= 8)
+              break;
+            echo '<li><a href="../pages/category.php?id=' . $fetchcat['id'] . '" class="nav-link">' . $fetchcat['name'] . '</a></li>';
+            $count++;
           }
           ?>
         </li>

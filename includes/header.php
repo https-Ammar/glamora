@@ -364,7 +364,7 @@
     searchinput.oninput = () => {
       $.ajax({
         type: "POST",
-        url: "../pages/searchresult.php",
+        url: "../pages/search_text.php",
         data: { searchinput: searchinput.value },
         success: function (response) {
           $('#suggestions').html(response);

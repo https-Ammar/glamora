@@ -1,5 +1,5 @@
 <?php
-require('../config/db.php'); // Make sure db.php correctly sets up $conn
+require('db.php'); // Make sure db.php correctly sets up $conn
 
 // Check if the 'searchinput' parameter is set
 if (isset($_POST['searchinput'])) {

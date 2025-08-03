@@ -9,7 +9,7 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-require_once('./config/db.php');
+require_once('../config/db.php');
 $imagePath = './dashboard/';
 $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 

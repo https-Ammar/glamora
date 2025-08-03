@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Skeleton Loader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background-color: #f9f9f9;
+        }
+
+        .card {
+            width: 300px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        .skeleton-img {
+            width: 100%;
+            height: 200px;
+        }
+
+        .skeleton-title {
+            height: 20px;
+            margin: 16px;
+            border-radius: 5px;
+        }
+
+        .content {
+            display: none;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .real-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .real-title {
+            padding: 16px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <!-- Skeleton -->
+        <div id="skeleton" class="skeleton-wrapper">
+            <div class="skeleton skeleton-img"></div>
+            <div class="skeleton skeleton-title" style="width: 70%;"></div>
+            <div class="skeleton skeleton-title" style="width: 40%;"></div>
+        </div>
+
+        <!-- Real Content -->
+        <div id="content" class="content">
+            <img src="https://via.placeholder.com/300x200.png?text=Product" class="real-img" alt="Product">
+            <div class="real-title">New Black T-Shirt</div>
+        </div>
+    </div>
+
+    <script>
+        setTimeout(() => {
+            document.getElementById('skeleton').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        }, 2000); // تقدر تغير المدة حسب سرعة التحميل الحقيقية
+    </script>
+
+</body>
+
+</html>

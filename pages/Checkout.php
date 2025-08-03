@@ -42,20 +42,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_coupon'])) {
 
     if ($usage_data['usage_count'] < $coupon['max_uses']) {
       $_SESSION['applied_coupon'] = $coupon['code'];
+      echo json_encode(['success' => true, 'coupon_code' => $coupon['code']]);
+      exit();
     } else {
-      $coupon_error = "This coupon has reached its maximum usage limit";
-      $coupon = null;
+      echo json_encode(['error' => "This coupon has reached its maximum usage limit"]);
+      exit();
     }
     $usage_stmt->close();
   } else {
-    $coupon_error = "<span style='color:red'>Invalid or expired coupon code</span>";
+    echo json_encode(['error' => "Invalid or expired coupon code"]);
+    exit();
   }
   $stmt->close();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_coupon'])) {
   unset($_SESSION['applied_coupon']);
-  $coupon = null;
+  echo json_encode(['success' => true]);
+  exit();
+}
+
+if (isset($_SESSION['coupon_error'])) {
+  $coupon_error = $_SESSION['coupon_error'];
+  unset($_SESSION['coupon_error']);
 }
 
 if (isset($_SESSION['applied_coupon'])) {
@@ -276,8 +285,7 @@ if ($coupon) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Checkout</title>
   <?php require('../includes/link.php'); ?>
-
-
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <style>
     .form-section {
       padding: 30px;
@@ -379,6 +387,140 @@ if ($coupon) {
     .row.min-vh-100.d-flex {
       justify-content: center;
     }
+
+    .coupon-error {
+      color: red;
+      margin-top: 5px;
+      animation: fadeOut 2s forwards;
+      animation-delay: 2s;
+    }
+
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+        height: 0;
+        margin: 0;
+        padding: 0;
+      }
+    }
+
+    .summary-accordion .accordion-button:not(.collapsed),
+    .summary-accordion .accordion-button {
+      background-color: transparent !important;
+      color: inherit !important;
+    }
+
+    .summary-accordion .accordion-button::after {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23212529'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+      transition: transform 0.2s ease-in-out;
+      margin-left: 0.5rem;
+      position: static;
+    }
+
+    .summary-accordion .accordion-button {
+      padding: 0.75rem 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .summary-accordion .accordion-button:focus {
+      box-shadow: none;
+    }
+
+    .summary-accordion .accordion-body {
+      padding: 1rem 0;
+    }
+
+    .summary-accordion {
+      display: none;
+    }
+
+    form.coupon-form.input-group.mb-3 {
+      gap: 10px;
+    }
+
+    form.coupon-form.input-group.mb-3 input {
+      border-radius: 10px !important;
+    }
+
+    button.btn.btn-outline-secondary {
+      border-radius: 10px !important;
+      background: #000000;
+      color: white;
+      border: navajowhite;
+    }
+
+    @media (max-width: 991.98px) {
+      .summary-accordion {
+        display: block;
+      }
+
+      button.accordion-button.px-0.collapsed {
+        background: #f6f6f6 !important;
+      }
+
+      .container.mt-3 {
+        padding: 0;
+        margin: 0 !important;
+        padding: 10px;
+        background: #f6f6f6;
+        border-top: 1px solid #e8e8e8;
+        border-bottom: 1px solid #e8e8e8;
+      }
+
+      button.accordion-button.px-0.collapsed {
+        padding: 0;
+      }
+    }
+
+    input#offers,
+    input#saveInfo {
+      padding: 0;
+    }
+
+    button.btn.btn-dark.w-100.mt-3.py-2 {
+      padding: 15px !important;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 6px;
+      padding: 25px;
+    }
+
+    select#country {
+      padding: 15px;
+    }
+
+    @media screen and (max-width:992px) {
+      .order-summary.h-100.pt-5 {
+        display: none;
+      }
+
+      .col-md-5.form-section.border-end {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      button.btn.btn-dark.w-100.mt-3.py-2 {
+        padding: 15px !important;
+      }
+
+      .form-control,
+      .form-select {
+        border-radius: 6px;
+        padding: 25px;
+      }
+
+      select#country {
+        padding: 15px;
+      }
+
+      .col-md-5.p-0 {
+        display: none;
+      }
+    }
   </style>
 </head>
 
@@ -386,15 +528,94 @@ if ($coupon) {
 
   <?php require('../includes/header.php'); ?>
 
-
-
   <div class="container-fluid">
+    <div class="container mt-3">
+      <div class="accordion summary-accordion" id="orderAccordion">
+        <div class="accordion-item border-0">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed px-0" type="button" data-bs-toggle="collapse"
+              data-bs-target="#collapseOrder">
+              <div class="w-100 d-flex justify-content-between align-items-center">
+                <div class="fw-bold d-flex align-items-center">
+                  Order summary
+                </div>
+                <div class="text-end">
+                  <small class="text-decoration-line-through text-muted d-block"
+                    style="font-size:11px;">£2,139.50</small>
+                  <span class="fw-bold" style="font-size:18px;">£ <?= formatPrice($final_total) ?> </span>
+                </div>
+              </div>
+            </button>
+          </h2>
+          <div id="collapseOrder" class="accordion-collapse collapse" data-bs-parent="#orderAccordion">
+            <div class="accordion-body px-0">
+              <div class="card-body">
+                <?php foreach ($_SESSION['cart'] as $item): ?>
+                  <div class="product-box">
+                    <div class="product-image-wrapper">
+                      <span class="product-qty"><?= $item['quantity'] ?></span>
+                      <div class="product-image"
+                        style="background-image: url('<?= htmlspecialchars($item['image']) ?>');">
+                      </div>
+                    </div>
+                    <div class="product-info">
+                      <p class="m-0"><?= htmlspecialchars($item['name']) ?></p>
+                      <span>
+                        <?php if (!empty($item['color_name'])): ?>
+                          <?= htmlspecialchars($item['color_name']) ?>
+                        <?php endif; ?>
+                        <?php if (!empty($item['size_name'])): ?>
+                          / <?= htmlspecialchars($item['size_name']) ?>
+                        <?php endif; ?>
+                      </span>
+                    </div>
+                    <div class="ms-auto fw-bold">
+                      <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?>
+                      <sub>EGP</sub>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+
+                <div class="mt-3 mb-3">
+                  <?php if (isset($coupon) && $coupon): ?>
+                    <div class="coupon-success">
+                      <span>Coupon Code: <?= htmlspecialchars($coupon['code']) ?></span>
+                      <button type="button" id="remove-coupon-mobile"
+                        class="btn btn-sm btn-outline-danger">Remove</button>
+                    </div>
+                  <?php else: ?>
+                    <form id="coupon-form-mobile" class="coupon-form input-group mb-3">
+                      <input type="text" id="coupon_code_mobile" name="coupon_code" class="form-control"
+                        placeholder="Coupon Code" required>
+                      <button type="submit" id="apply-coupon-mobile" class="btn btn-outline-secondary">Apply</button>
+                    </form>
+                    <div id="coupon-message-mobile" class="coupon-error"></div>
+                  <?php endif; ?>
+                </div>
+
+                <div class="summary-item">
+                  <span>Subtotal</span>
+                  <span> <?= formatPrice($total) ?> <sub>EGP</sub></span>
+                </div>
+                <div class="summary-item">
+                  <span>Discount</span>
+                  <span class="text-success"> - <?= formatPrice($discount_amount) ?> <sub>EGP</sub></span>
+                </div>
+                <hr>
+                <div class="summary-item summary-total">
+                  <span>Total</span>
+                  <span> <?= formatPrice($final_total) ?> <sub>EGP</sub></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="row min-vh-100 d-flex">
       <div class="col-md-5 form-section border-end">
         <form id="checkout-form" method="POST">
-
-
-
           <h5>Contact</h5>
           <input type="email" class="form-control mb-3" id="email" name="email"
             value="<?= htmlspecialchars($userData['email'] ?? '') ?>" required />
@@ -438,24 +659,16 @@ if ($coupon) {
             </div>
           </div>
           <div class="mb-3">
-
-
             <input type="tel" class="form-control" id="phone" name="phone" required
               value="<?= htmlspecialchars($userData['phone'] ?? '') ?>"
               placeholder="Mobile Number (e.g: 0123 xxx xxxx)">
-
           </div>
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="saveInfo">
             <label class="form-check-label" for="saveInfo">Save this information for next time</label>
           </div>
 
-
-
           <button type="submit" name="place_order" class="btn btn-dark w-100 mt-3 py-2">checkout now</button>
-
-
-
         </form>
       </div>
 
@@ -491,18 +704,15 @@ if ($coupon) {
               <?php if (isset($coupon) && $coupon): ?>
                 <div class="coupon-success">
                   <span>Coupon Code: <?= htmlspecialchars($coupon['code']) ?></span>
-                  <form method="POST" style="display:inline;">
-                    <button type="submit" name="remove_coupon" class="btn btn-sm btn-outline-danger">Remove</button>
-                  </form>
+                  <button type="button" id="remove-coupon" class="btn btn-sm btn-outline-danger">Remove</button>
                 </div>
               <?php else: ?>
-                <form method="POST" class="coupon-form input-group mb-3">
-                  <input type="text" name="coupon_code" class="form-control" placeholder="Coupon Code" required>
-                  <button type="submit" name="apply_coupon" class="btn btn-outline-secondary">Apply</button>
+                <form id="coupon-form" class="coupon-form input-group mb-3">
+                  <input type="text" id="coupon_code" name="coupon_code" class="form-control" placeholder="Coupon Code"
+                    required>
+                  <button type="submit" id="apply-coupon" class="btn btn-outline-secondary">Apply</button>
                 </form>
-                <?php if ($coupon_error): ?>
-                  <div class="coupon-error"><?= $coupon_error ?></div>
-                <?php endif; ?>
+                <div id="coupon-message" class="coupon-error"></div>
               <?php endif; ?>
             </div>
 
@@ -526,88 +736,106 @@ if ($coupon) {
   </div>
   <?php require('../includes/footer.php'); ?>
 
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    document.getElementById('checkout-form').addEventListener('submit', function (e) {
-      let isValid = true;
+    $(document).ready(function () {
+      function handleCouponForm(formId, inputId, buttonId, messageId) {
+        $(formId).on('submit', function (e) {
+          e.preventDefault();
+          const couponCode = $(inputId).val().trim();
 
-      this.querySelectorAll('[required]').forEach(function (field) {
-        if (!field.value.trim()) {
-          field.classList.add('is-invalid');
+          if (!couponCode) {
+            $(messageId).text('Please enter a coupon code').show();
+            return;
+          }
+
+          $.ajax({
+            url: window.location.href,
+            type: 'POST',
+            data: {
+              apply_coupon: true,
+              coupon_code: couponCode
+            },
+            dataType: 'json',
+            success: function (response) {
+              if (response.success) {
+                location.reload();
+              } else if (response.error) {
+                $(messageId).text(response.error).show();
+                setTimeout(function () {
+                  $(messageId).fadeOut();
+                }, 4000);
+              }
+            },
+            error: function () {
+              $(messageId).text('An error occurred. Please try again.').show();
+              setTimeout(function () {
+                $(messageId).fadeOut();
+              }, 4000);
+            }
+          });
+        });
+      }
+
+      function handleCouponRemoval(buttonId) {
+        $(buttonId).on('click', function () {
+          $.ajax({
+            url: window.location.href,
+            type: 'POST',
+            data: {
+              remove_coupon: true
+            },
+            dataType: 'json',
+            success: function (response) {
+              if (response.success) {
+                location.reload();
+              }
+            },
+            error: function () {
+              alert('An error occurred. Please try again.');
+            }
+          });
+        });
+      }
+
+      handleCouponForm('#coupon-form', '#coupon_code', '#apply-coupon', '#coupon-message');
+      handleCouponForm('#coupon-form-mobile', '#coupon_code_mobile', '#apply-coupon-mobile', '#coupon-message-mobile');
+
+      handleCouponRemoval('#remove-coupon');
+      handleCouponRemoval('#remove-coupon-mobile');
+
+      document.getElementById('checkout-form').addEventListener('submit', function (e) {
+        let isValid = true;
+
+        this.querySelectorAll('[required]').forEach(function (field) {
+          if (!field.value.trim()) {
+            field.classList.add('is-invalid');
+            isValid = false;
+          } else {
+            field.classList.remove('is-invalid');
+          }
+        });
+
+        const emailField = document.getElementById('email');
+        if (emailField.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value)) {
+          emailField.classList.add('is-invalid');
           isValid = false;
-        } else {
-          field.classList.remove('is-invalid');
+        }
+
+        if (!isValid) {
+          e.preventDefault();
+          alert('Please fill all required fields correctly');
         }
       });
 
-      const emailField = document.getElementById('email');
-      if (emailField.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value)) {
-        emailField.classList.add('is-invalid');
-        isValid = false;
-      }
-
-      if (!isValid) {
-        e.preventDefault();
-        alert('Please fill all required fields correctly');
-      }
+      setTimeout(function () {
+        const errorElements = document.querySelectorAll('.coupon-error');
+        errorElements.forEach(function (el) {
+          el.style.display = 'none';
+        });
+      }, 4000);
     });
   </script>
-
-
-  <style>
-    input#offers,
-    input#saveInfo {
-      padding: 0;
-    }
-
-    button.btn.btn-dark.w-100.mt-3.py-2 {
-      padding: 15px !important;
-    }
-
-    .form-control,
-    .form-select {
-      border-radius: 6px;
-      padding: 25px;
-    }
-
-    select#country {
-      padding: 15px;
-    }
-
-
-    @media screen and (max-width:992px) {
-
-      .order-summary.h-100.pt-5 {
-        display: none;
-      }
-
-      .col-md-5.form-section.border-end {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      button.btn.btn-dark.w-100.mt-3.py-2 {
-        padding: 15px !important;
-      }
-
-      .form-control,
-      .form-select {
-        border-radius: 6px;
-        padding: 25px;
-      }
-
-      select#country {
-        padding: 15px;
-      }
-
-      .col-md-5.p-0 {
-        display: none;
-      }
-    }
-  </style>
-
 </body>
 
 </html>

@@ -372,9 +372,17 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
 
                   .remove-item {
                     position: absolute;
-                    top: 0;
-                    left: 0;
+                           top: -10px;
+        left: -5px;
                   }
+
+                  a.btn.btn-dark.w-100.py-2 {
+    padding: 12px !important;
+}
+
+a.btn.btn-outline-dark.w-100.mt-2.py-2 {
+    padding: 12px !important;
+}
                 }
               </style>
                 <style>
@@ -444,6 +452,9 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
     height: 25px;
     border-radius: 30px !important;
 }
+
+
+
   </style>
   <?php require('../includes/footer.php'); ?>
 </body>

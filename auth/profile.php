@@ -76,451 +76,320 @@ $stmtOrderItems = $conn->prepare("
 <head>
     <?php require('../includes/link.php'); ?>
     <style>
-        body {
-            font-family: system-ui, sans-serif;
-            background-color: #fff;
+        .order-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
         }
-
-        .container.py-5 {
-            max-width: 1200px;
-        }
-
-        .nav-link.active {
-            border-bottom: 2px solid black;
-        }
-
-        h2.text-center.mb-4 {
-            line-height: 1.1666666667;
-            font-size: 22px;
-        }
-
-        .order-table th {
-            font-weight: normal;
-            color: #555;
-            font-size: 11px;
-            text-transform: uppercase;
-            line-height: 1.466666666;
-            letter-spacing: 1px;
-            color: #000000b3;
-            text-align: left;
-            font-weight: 600;
-        }
-
-        td {
-            font-weight: normal;
-            color: #555;
-            font-size: 14px;
-            line-height: 1.466666666;
-            letter-spacing: 1px;
-            color: #000000b3;
-            text-align: left;
-            vertical-align: middle;
-        }
-
-        .order-table td {
-            padding-top: 12px;
-        }
-
-        .bg-dark {
-            border-radius: 50%;
-        }
-
-        span.order-status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-
+        
         .status-inprogress {
             background-color: #fff3cd !important;
             color: #856404;
         }
-
+        
         .status-accepted {
             background-color: #d4edda !important;
             color: #155724;
         }
-
+        
         .status-rejected {
             background-color: #f8d7da !important;
             color: #721c24;
         }
-
+        
         .status-delivered {
             background-color: #cce5ff !important;
             color: #004085;
         }
-
-        .btn-cancel {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-
-        .btn-cancel:hover {
-            background-color: #f5c6cb;
-        }
-
-        .order-details-popup {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            padding: 20px;
-            overflow-y: auto;
-        }
-
-        .popup-content {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            max-width: 800px;
-            margin: 20px auto;
-        }
-
-        .popup-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .close-popup {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-        .order-item {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .order-item img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            margin-right: 15px;
-        }
-
-        .order-summary {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 5px;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-
-        .total-row {
+        
+        .product-qty {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: black;
+            color: white;
+            font-size: x-small;
             font-weight: bold;
-            font-size: 18px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
         }
-
-        .discount-row {
-            color: #28a745;
-        }
-
+        
         .highlight-order {
-            background-color: #f8f9fa;
+            background-color: rgba(0, 0, 0, 0.05);
         }
-
+        
         @media (max-width: 768px) {
-            .order-table thead {
+            .table-responsive table thead {
                 display: none;
             }
-
-            .order-table tr {
+            
+            .table-responsive table tr {
                 display: block;
-                margin-bottom: 20px;
+                margin-bottom: 1rem;
                 border: 1px solid #dee2e6;
-                border-radius: 5px;
-                padding: 10px;
+                border-radius: 0.25rem;
             }
-
-            .order-table td {
+            
+            .table-responsive table td {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 8px 0;
+                padding: 0.75rem;
                 border-bottom: 1px solid #eee;
             }
-
-            .order-table td:before {
+            
+            .table-responsive table td::before {
                 content: attr(data-label);
                 font-weight: bold;
-                margin-right: 10px;
+                margin-right: 1rem;
                 color: #000;
             }
-
-            .order-table td:last-child {
+            
+            .table-responsive table td:last-child {
                 border-bottom: none;
-            }
-
-            .popup-content {
-                width: 95%;
-                padding: 15px;
-            }
-
-            .order-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .order-item img {
-                margin-bottom: 10px;
             }
         }
     </style>
 </head>
 
 <body>
+    <?php require('../includes/header.php'); ?>
 
+    <nav class="d-flex justify-content-center py-3 border-bottom">
+        <ul class="nav nav-pills">
+            <li class="nav-item">
+                <a class="nav-link active" href="#" id="ordersTab">Orders</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="addressesTab">Addresses</a>
+            </li>
+            <li class="nav-item">
+                <form method="POST" class="d-grid">
+                    <button type="submit" name="logout" class="nav-link text-dark bg-transparent border-0">Logout</button>
+                </form>
+            </li>
+        </ul>
+    </nav>
 
-
-    <body>
-
-        <?php require('../includes/header.php'); ?>
-
-
-
-
-        <nav class="d-flex justify-content-center py-3 border-bottom">
-            <ul class="nav">
-                <li class="nav-item">
-                    <a class="nav-link active text-dark" href="#" onclick="showDiv('ordersDiv')">Orders</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-dark" href="#" onclick="showDiv('addressesDiv')">Addresses</a>
-                </li>
-                <li class="nav-item">
-                    <form method="POST" class="d-grid">
-                        <button type="submit" name="logout" class="nav-link text-dark">Logout</button>
-                    </form>
-                </li>
-            </ul>
-        </nav>
-
-        <div id="addressesDiv" style="display: none;">
-            <div class="container py-5 mt-5">
-                <div class="table-responsive">
-                    <div>
-                        <h2 class="text-center mb-4">Addresses</h2>
-                        <table class="table order-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
-                                    <th>Address</th>
-                                    <th>City</th>
-                                    <th>Country</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><?= htmlspecialchars($user['name'] ?? $user['email']) ?></td>
-                                    <td><?= htmlspecialchars($user['email']) ?></td>
-                                    <td><?= htmlspecialchars($user['phone'] ?? 'Not available') ?></td>
-                                    <td><?= htmlspecialchars($user['address'] ?? 'Not available') ?></td>
-                                    <td><?= htmlspecialchars($user['city'] ?? 'Not available') ?></td>
-                                    <td><?= htmlspecialchars($user['country'] ?? 'Not available') ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
+    <div class="container py-5">
+        <div id="addressesSection" class="d-none">
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-8 text-center">
+                    <h2 class="mb-4">Addresses</h2>
+                    <?php if (!empty($user['profile_image'])): ?>
+                        <img src="<?= htmlspecialchars($user['profile_image']) ?>" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
+                    <?php else: ?>
+                        <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 100px; height: 100px;">
+                            <i class="bi bi-person text-white fs-1"></i>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Name</th>
+                                            <td><?= htmlspecialchars($user['name'] ?? $user['email']) ?></td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Email</th>
+                                            <td><?= htmlspecialchars($user['email']) ?></td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Phone</th>
+                                            <td><?= htmlspecialchars($user['phone'] ?? 'Not available') ?></td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Address</th>
+                                            <td><?= htmlspecialchars($user['address'] ?? 'Not available') ?></td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">City</th>
+                                            <td><?= htmlspecialchars($user['city'] ?? 'Not available') ?></td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Country</th>
+                                            <td><?= htmlspecialchars($user['country'] ?? 'Not available') ?></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <?php if (!empty($user['profile_image'])): ?>
-                <div class="container text-center mb-4">
-                    <img src="<?= htmlspecialchars($user['profile_image']) ?>" class="profile-img rounded-circle"
-                        style="width: 100px; height: 100px; object-fit: cover;">
-                </div>
-            <?php else: ?>
-                <div class="container text-center mb-4">
-                    <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center mx-auto"
-                        style="width: 100px; height: 100px;">
-                        <i class="bi bi-person text-white" style="font-size: 40px;"></i>
-                    </div>
-                </div>
-            <?php endif; ?>
         </div>
 
-        <div class="container py-5 mt-5">
-            <div class="table-responsive">
-                <div id="ordersDiv">
+        <div id="ordersSection">
+            <div class="row justify-content-center">
+                <div class="col-md-10">
                     <h2 class="text-center mb-4">Orders <span class="badge bg-dark"><?= $orders->num_rows ?></span></h2>
+                    
                     <?php if ($orders->num_rows > 0): ?>
-                        <table class="table order-table">
-                            <thead>
-                                <tr>
-                                    <th>View</th>
-                                    <th>Order Number</th>
-                                    <th>Date</th>
-                                    <th>Payment Status</th>
-                                    <th>Fulfillment Status</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php while ($order = $orders->fetch_assoc()): ?>
-                                    <?php
-                                    $finalPrice = (float) $order['finaltotalprice'];
-                                    $discountValue = (float) $order['discount_value'];
-                                    $discountType = $order['discount_type'];
-                                    $priceBeforeDiscount = $finalPrice;
-                                    $discountAmount = 0;
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>View</th>
+                                        <th>Order Number</th>
+                                        <th>Date & Time</th>
+                                        <th>Fulfillment Status</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while ($order = $orders->fetch_assoc()): ?>
+                                        <?php
+                                        $finalPrice = (float) $order['finaltotalprice'];
+                                        $discountValue = (float) $order['discount_value'];
+                                        $discountType = $order['discount_type'];
+                                        $priceBeforeDiscount = $finalPrice;
+                                        $discountAmount = 0;
 
-                                    if (!empty($order['coupon_code']) && $discountValue > 0) {
-                                        if ($discountType === 'percentage') {
-                                            $priceBeforeDiscount = $finalPrice / (1 - ($discountValue / 100));
-                                            $discountAmount = $priceBeforeDiscount - $finalPrice;
-                                        } else {
-                                            $priceBeforeDiscount = $finalPrice + $discountValue;
-                                            $discountAmount = $discountValue;
+                                        if (!empty($order['coupon_code']) && $discountValue > 0) {
+                                            if ($discountType === 'percentage') {
+                                                $priceBeforeDiscount = $finalPrice / (1 - ($discountValue / 100));
+                                                $discountAmount = $priceBeforeDiscount - $finalPrice;
+                                            } else {
+                                                $priceBeforeDiscount = $finalPrice + $discountValue;
+                                                $discountAmount = $discountValue;
+                                            }
                                         }
-                                    }
 
-                                    $stmtOrderItems->bind_param("i", $order['id']);
-                                    $stmtOrderItems->execute();
-                                    $orderItems = $stmtOrderItems->get_result();
-                                    ?>
+                                        $stmtOrderItems->bind_param("i", $order['id']);
+                                        $stmtOrderItems->execute();
+                                        $orderItems = $stmtOrderItems->get_result();
+                                        ?>
 
-                                    <div class="order-details-popup" id="orderPopup<?= $order['id'] ?>">
-                                        <div class="popup-content">
-                                            <div class="popup-header">
-                                                <h3>Order Details #<?= $order['id'] ?></h3>
-                                                <button class="close-popup"
-                                                    onclick="document.getElementById('orderPopup<?= $order['id'] ?>').style.display='none'">×</button>
-                                            </div>
-
-                                            <div class="order-items">
-                                                <?php while ($item = $orderItems->fetch_assoc()): ?>
-                                                    <div class="order-item">
-                                                        <img src="<?= htmlspecialchars($item['product_image']) ?>">
-                                                        <div style="flex-grow:1;">
-                                                            <h5><?= htmlspecialchars($item['product_name']) ?></h5>
-                                                            <div style="display:flex; gap:15px; flex-wrap: wrap;">
-                                                                <span><strong>Qty:</strong> <?= $item['qty'] ?></span>
-                                                                <span><strong>Price:</strong>
-                                                                    <?= number_format($item['product_price'], 2) ?> EGP</span>
-                                                                <span><strong>Total:</strong>
-                                                                    <?= number_format($item['total_price'], 2) ?> EGP</span>
+                                        <div class="modal fade" id="orderModal<?= $order['id'] ?>" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Order Details #<?= $order['id'] ?></h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="row">
+                                                            <?php while ($item = $orderItems->fetch_assoc()): ?>
+                                                                <div class="col-12 mb-3">
+                                                                    <div class="card">
+                                                                        <div class="card-body">
+                                                                            <div class="d-flex align-items-center">
+                                                                                <div class="position-relative me-3" style="width: 80px; height: 80px;">
+                                                                                    <span class="product-qty"><?= $item['qty'] ?></span>
+                                                                                    <img src="http://localhost:8888/glamora/dashboard/<?= htmlspecialchars($item['product_image']) ?>" class="img-fluid rounded border" alt="<?= htmlspecialchars($item['product_name']) ?>">
+                                                                                </div>
+                                                                                <div class="flex-grow-1">
+                                                                                    <h6 class="mb-1"><?= htmlspecialchars($item['product_name']) ?></h6>
+                                                                                    <p class="mb-1 text-muted small">
+                                                                                        <?php if (!empty($item['color']) && $item['color'] !== 'Not specified'): ?>
+                                                                                            <?= htmlspecialchars($item['color']) ?>
+                                                                                        <?php endif; ?>
+                                                                                        <?php if (!empty($item['size']) && $item['size'] !== 'Not specified'): ?>
+                                                                                            <?= htmlspecialchars($item['size']) ?>
+                                                                                        <?php endif; ?>
+                                                                                    </p>
+                                                                                </div>
+                                                                                <div class="fw-bold">
+                                                                                    <?= number_format($item['total_price'], 2) ?> <small>EGP</small>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            <?php endwhile; ?>
+                                                            
+                                                            <div class="col-12 mt-3">
+                                                                <div class="card">
+                                                                    <div class="card-body">
+                                                                        <?php if ($discountAmount > 0): ?>
+                                                                            <div class="d-flex justify-content-between mb-2">
+                                                                                <span>Subtotal</span>
+                                                                                <span><?= number_format($priceBeforeDiscount, 2) ?> <small>EGP</small></span>
+                                                                            </div>
+                                                                            <div class="d-flex justify-content-between mb-2 text-success">
+                                                                                <span>Discount</span>
+                                                                                <span>- <?= number_format($discountAmount, 2) ?> <small>EGP</small></span>
+                                                                            </div>
+                                                                        <?php endif; ?>
+                                                                        <div class="d-flex justify-content-between fw-bold fs-5">
+                                                                            <span>Total</span>
+                                                                            <span><?= number_format($finalPrice, 2) ?> <small>EGP</small></span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <?php if (!empty($item['color']) && $item['color'] !== 'Not specified'): ?>
-                                                                <span
-                                                                    style="background:#f1f1f1;padding:2px 5px;border-radius:3px;margin-right:5px;">Color:
-                                                                    <?= htmlspecialchars($item['color']) ?></span>
-                                                            <?php endif; ?>
-                                                            <?php if (!empty($item['size']) && $item['size'] !== 'Not specified'): ?>
-                                                                <span
-                                                                    style="background:#f1f1f1;padding:2px 5px;border-radius:3px;">Size:
-                                                                    <?= htmlspecialchars($item['size']) ?></span>
-                                                            <?php endif; ?>
                                                         </div>
                                                     </div>
-                                                <?php endwhile; ?>
-                                            </div>
-
-                                            <div class="order-summary">
-                                                <div class="summary-row">
-                                                    <span>Subtotal:</span>
-                                                    <span><?= number_format($priceBeforeDiscount, 2) ?> EGP</span>
-                                                </div>
-                                                <?php if ($discountAmount > 0): ?>
-                                                    <div class="summary-row discount-row">
-                                                        <span>Discount:</span>
-                                                        <span>-<?= number_format($discountAmount, 2) ?> EGP</span>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                                     </div>
-                                                <?php endif; ?>
-                                                <div class="summary-row total-row">
-                                                    <span>Total:</span>
-                                                    <span><?= number_format($finalPrice, 2) ?> EGP</span>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <tr <?= ($order['id'] == $orderId) ? 'class="highlight-order"' : '' ?>>
-                                        <td data-label="View">
-                                            <button
-                                                onclick="document.getElementById('orderPopup<?= $order['id'] ?>').style.display='block'"
-                                                style="background:none;border:none;color:#0d6efd;cursor:pointer;">
-                                                <i class="bi bi-eye"></i> View
-                                            </button>
-                                        </td>
-                                        <td data-label="Order Number"><?= $order['id'] ?></td>
-                                        <td data-label="Date"><?= date('M j, Y', strtotime($order['created_at'])) ?></td>
-                                        <td data-label="Payment Status">
-                                            <span class="order-status 
-                                            <?php
-                                            switch ($order['orderstate']) {
-                                                case 'inprogress':
-                                                    echo 'status-inprogress';
-                                                    break;
-                                                case 'accepted':
-                                                    echo 'status-accepted';
-                                                    break;
-                                                case 'rejected':
-                                                    echo 'status-rejected';
-                                                    break;
-                                                case 'delivered':
-                                                    echo 'status-delivered';
-                                                    break;
-                                                default:
-                                                    echo 'bg-secondary';
-                                            }
-                                            ?>">
+                                        <tr <?= ($order['id'] == $orderId) ? 'class="highlight-order"' : '' ?>>
+                                            <td data-label="View">
+                                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#orderModal<?= $order['id'] ?>">
+                                                    <i class="bi bi-eye"></i> View
+                                                </button>
+                                            </td>
+                                            <td data-label="Order Number"><?= $order['id'] ?></td>
+                                            <td data-label="Date"><?= date('M j, Y H:i', strtotime($order['created_at'])) ?></td>
+                                            <td data-label="Fulfillment Status">
+                                                <span class="order-status 
                                                 <?php
                                                 switch ($order['orderstate']) {
                                                     case 'inprogress':
-                                                        echo 'Processing';
+                                                        echo 'status-inprogress';
                                                         break;
                                                     case 'accepted':
-                                                        echo 'Accepted';
+                                                        echo 'status-accepted';
                                                         break;
                                                     case 'rejected':
-                                                        echo 'Rejected';
+                                                        echo 'status-rejected';
                                                         break;
                                                     case 'delivered':
-                                                        echo 'Delivered';
+                                                        echo 'status-delivered';
                                                         break;
                                                     default:
-                                                        echo htmlspecialchars($order['orderstate']);
+                                                        echo 'bg-secondary';
                                                 }
-                                                ?>
-                                            </span>
-                                        </td>
-                                        <td data-label="Actions">
-                                            <?php if ($order['orderstate'] === 'inprogress'): ?>
-                                                <form method="POST" action="cancel_order.php"
-                                                    onsubmit="return confirm('Are you sure you want to cancel this order?');">
-                                                    <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
-                                                    <button type="submit" class="btn btn-sm btn-cancel" title="Cancel Order">
-                                                        <i class="bi bi-x-circle"></i> Cancel
-                                                    </button>
-                                                </form>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td data-label="Total"><?= number_format($finalPrice, 2) ?> EGP</td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            </tbody>
-                        </table>
+                                                ?>">
+                                                    <?php
+                                                    switch ($order['orderstate']) {
+                                                        case 'inprogress':
+                                                            echo 'Processing';
+                                                            break;
+                                                        case 'accepted':
+                                                            echo 'Accepted';
+                                                            break;
+                                                        case 'rejected':
+                                                            echo 'Rejected';
+                                                            break;
+                                                        case 'delivered':
+                                                            echo 'Delivered';
+                                                            break;
+                                                        default:
+                                                            echo htmlspecialchars($order['orderstate']);
+                                                    }
+                                                    ?>
+                                                </span>
+                                            </td>
+                                            <td data-label="Total"><?= number_format($finalPrice, 2) ?> EGP</td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     <?php else: ?>
                         <div class="alert alert-info text-center">
                             No orders yet. <a href="products.php" class="alert-link">Browse products</a>
@@ -529,40 +398,56 @@ $stmtOrderItems = $conn->prepare("
                 </div>
             </div>
         </div>
+    </div>
 
-        <?php require('../includes/footer.php'); ?>
+    <?php require('../includes/footer.php'); ?>
 
-
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-            function showDiv(divId) {
-                document.querySelectorAll('div[id$="Div"]').forEach(div => {
-                    div.style.display = 'none';
-                });
-                document.getElementById(divId).style.display = 'block';
-
-                // Update active nav link
-                document.querySelectorAll('.nav-link').forEach(link => {
-                    link.classList.remove('active');
-                });
-                event.target.classList.add('active');
-
-                event.preventDefault();
-            }
-
-            // Show orders div by default
-            document.addEventListener('DOMContentLoaded', function () {
-                document.getElementById('ordersDiv').style.display = 'block';
-
-                <?php if ($orderId > 0): ?>
-                    const orderElement = document.querySelector('.highlight-order');
-                    if (orderElement) {
-                        orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                <?php endif; ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const activeTab = localStorage.getItem('activeTab') || 'orders';
+            
+            showTab(activeTab);
+            
+            document.getElementById('ordersTab').addEventListener('click', function(e) {
+                e.preventDefault();
+                showTab('orders');
             });
-        </script>
-        <?php $stmtOrderItems->close(); ?>
-    </body>
+            
+            document.getElementById('addressesTab').addEventListener('click', function(e) {
+                e.preventDefault();
+                showTab('addresses');
+            });
+            
+            <?php if ($orderId > 0): ?>
+                const orderElement = document.querySelector('.highlight-order');
+                if (orderElement) {
+                    orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    const modalId = '#orderModal<?= $orderId ?>';
+                    const modal = new bootstrap.Modal(document.querySelector(modalId));
+                    modal.show();
+                }
+            <?php endif; ?>
+        });
+        
+        function showTab(tabName) {
+            if (tabName === 'orders') {
+                document.getElementById('ordersSection').classList.remove('d-none');
+                document.getElementById('addressesSection').classList.add('d-none');
+                document.getElementById('ordersTab').classList.add('active');
+                document.getElementById('addressesTab').classList.remove('active');
+            } else {
+                document.getElementById('ordersSection').classList.add('d-none');
+                document.getElementById('addressesSection').classList.remove('d-none');
+                document.getElementById('ordersTab').classList.remove('active');
+                document.getElementById('addressesTab').classList.add('active');
+            }
+            
+            localStorage.setItem('activeTab', tabName);
+        }
+    </script>
+    <?php $stmtOrderItems->close(); ?>
+</body>
 
 </html>

@@ -8,8 +8,9 @@ session_start([
 
 require('../config/db.php');
 
-$base_url = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https://" : "http://");
+$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://");
 $base_url .= htmlspecialchars($_SERVER['HTTP_HOST'], ENT_QUOTES, 'UTF-8') . "/glamora/";
+
 
 if (empty($_SESSION['csrf_token'])) {
   $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -66,14 +67,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
       $check_stmt = $conn->prepare("
         SELECT user_id FROM product_comments 
-        WHERE id = ? AND (user_id = ? OR ? IN (SELECT id FROM users WHERE is_admin = 1))
+        WHERE id = ? AND user_id = ?
       ");
       $user_id = $_SESSION['user_id'];
-      $check_stmt->bind_param("iii", $comment_id, $user_id, $user_id);
+      $check_stmt->bind_param("ii", $comment_id, $user_id);
       $check_stmt->execute();
       $check_result = $check_stmt->get_result();
 
-      if ($check_result->num_rows > 0) {
+      if ($check_result->num_rows > 0 || ($_SESSION['is_admin'] ?? false)) {
         $delete_stmt = $conn->prepare("DELETE FROM product_comments WHERE id = ?");
         $delete_stmt->bind_param("i", $comment_id);
         if ($delete_stmt->execute()) {
@@ -128,21 +129,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       die("Error fetching user details");
     }
 
-    if (empty($comment) || !$rating) {
-      $comment_error = "Please fill all required fields and provide a valid rating.";
+    if (empty($comment)) {
+      $comment_error = "Please write your comment.";
     } elseif (strlen($comment) > 1000) {
       $comment_error = "Comment is too long. Maximum 1000 characters allowed.";
     } else {
       try {
-        $stmt = $conn->prepare("
-          INSERT INTO product_comments 
-          (product_id, user_id, name, email, comment, rating, status) 
-          VALUES (?, ?, ?, ?, ?, ?, 'pending')
-        ");
-        $stmt->bind_param("iissii", $id, $user_id, $name, $email, $comment, $rating);
+        $status = ($_SESSION['is_admin'] ?? false) ? 'approved' : 'pending';
+
+        if ($rating) {
+          $stmt = $conn->prepare("
+            INSERT INTO product_comments 
+            (product_id, user_id, name, email, comment, rating, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          ");
+          $stmt->bind_param("iissiis", $id, $user_id, $name, $email, $comment, $rating, $status);
+        } else {
+          $stmt = $conn->prepare("
+            INSERT INTO product_comments 
+            (product_id, user_id, name, email, comment, status) 
+            VALUES (?, ?, ?, ?, ?, ?)
+          ");
+          $stmt->bind_param("iissss", $id, $user_id, $name, $email, $comment, $status);
+        }
 
         if ($stmt->execute()) {
-          $comment_success = "Thank you for your comment! It will be reviewed before publishing.";
+          $comment_success = "Thank you for your comment!" . ($status === 'pending' ? " It will be reviewed before publishing." : "");
         } else {
           $comment_error = "Error submitting your comment. Please try again.";
         }
@@ -151,45 +163,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $comment_error = "A system error occurred. Please try again later.";
       }
     }
-  }
-
-  if (isset($_POST['submit_reply'])) {
-    if (!isset($_SESSION['user_id'])) {
-      die("You must be logged in to post a reply");
-    }
-
-    $csrf_token = $_POST['csrf_token'] ?? '';
-    if (!hash_equals($_SESSION['csrf_token'], $csrf_token)) {
-      die("Invalid CSRF token");
-    }
-
-    $comment_id = filter_input(INPUT_POST, 'comment_id', FILTER_VALIDATE_INT);
-    $reply_text = trim(htmlspecialchars($_POST['reply_text'] ?? '', ENT_QUOTES, 'UTF-8'));
-
-    if (!$comment_id || empty($reply_text)) {
-      die("Invalid input");
-    }
-
-    try {
-      $stmt = $conn->prepare("
-        INSERT INTO comment_replies 
-        (comment_id, user_id, reply_text, status) 
-        VALUES (?, ?, ?, 'pending')
-      ");
-      $stmt->bind_param("iis", $comment_id, $_SESSION['user_id'], $reply_text);
-
-      if ($stmt->execute()) {
-        $_SESSION['message'] = "Reply submitted successfully! It will be reviewed before publishing.";
-      } else {
-        $_SESSION['error'] = "Error submitting your reply.";
-      }
-    } catch (Exception $e) {
-      error_log("Reply submission error: " . $e->getMessage());
-      $_SESSION['error'] = "A system error occurred. Please try again later.";
-    }
-
-    header("Location: " . $_SERVER['HTTP_REFERER']);
-    exit();
   }
 
   if (isset($_POST['like_comment'])) {
@@ -269,18 +242,6 @@ try {
     } else {
       $comment['user_liked'] = false;
     }
-
-    $replies_stmt = $conn->prepare("
-      SELECT cr.*, u.name, u.profile_image 
-      FROM comment_replies cr
-      JOIN users u ON cr.user_id = u.id
-      WHERE cr.comment_id = ? AND cr.status = 'approved'
-      ORDER BY cr.created_at ASC
-    ");
-    $replies_stmt->bind_param("i", $comment_id);
-    $replies_stmt->execute();
-    $replies_result = $replies_stmt->get_result();
-    $comment['replies'] = $replies_result->fetch_all(MYSQLI_ASSOC);
   }
 } catch (Exception $e) {
   error_log("Comments fetch error: " . $e->getMessage());
@@ -291,7 +252,7 @@ try {
   $avg_rating_stmt = $conn->prepare("
     SELECT AVG(rating) as avg_rating, COUNT(*) as total_reviews 
     FROM product_comments 
-    WHERE product_id = ? AND status = 'approved'
+    WHERE product_id = ? AND status = 'approved' AND rating IS NOT NULL
   ");
   $avg_rating_stmt->bind_param("i", $id);
   $avg_rating_stmt->execute();
@@ -317,6 +278,9 @@ function formatPrice($price)
 
 function renderStars($rating)
 {
+  if ($rating === null)
+    return '';
+
   $rating = min(5, max(0, $rating));
   $full_stars = floor($rating);
   $half_star = ($rating - $full_stars) >= 0.5 ? 1 : 0;
@@ -683,15 +647,17 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
               <i class="bi bi-clock"></i> <?= date('h:i A') ?>
             </div>
 
-            <div class="average-rating mb-5">
-              <div class="average-rating-number"><?= number_format($average_rating, 1) ?></div>
-              <div>
-                <div class="comment-rating">
-                  <?= renderStars($average_rating) ?>
+            <?php if ($total_reviews > 0): ?>
+              <div class="average-rating mb-5">
+                <div class="average-rating-number"><?= number_format($average_rating, 1) ?></div>
+                <div>
+                  <div class="comment-rating">
+                    <?= renderStars($average_rating) ?>
+                  </div>
+                  <div class="rating-count">Based on <?= $total_reviews ?> reviews</div>
                 </div>
-                <div class="rating-count">Based on <?= $total_reviews ?> reviews</div>
               </div>
-            </div>
+            <?php endif; ?>
 
             <?php if ($total_reviews > 0): ?>
               <?php foreach ($comments as $comment): ?>
@@ -708,11 +674,14 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                       <div class="comment-author"><?= htmlspecialchars($comment['name']) ?></div>
                       <div class="comment-date"><?= date('F j, Y \a\t h:i A', strtotime($comment['created_at'])) ?></div>
                     </div>
+                  </div>
 
-                  </div>
-                  <div class="comment-rating">
-                    <?= renderStars($comment['rating']) ?>
-                  </div>
+                  <?php if ($comment['rating']): ?>
+                    <div class="comment-rating">
+                      <?= renderStars($comment['rating']) ?>
+                    </div>
+                  <?php endif; ?>
+
                   <div class="comment-body">
                     <p><?= nl2br(htmlspecialchars($comment['comment'])) ?></p>
                   </div>
@@ -722,10 +691,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                       <i class="bi bi-hand-thumbs-up<?= $comment['user_liked'] ? '-fill text-primary' : '' ?>"></i>
                       <span class="like-count"><?= $comment['like_count'] ?></span>
                     </button>
-                    <button class="btn btn-sm btn-outline-secondary reply-btn" data-comment-id="<?= $comment['id'] ?>">
-                      <i class="bi bi-reply"></i> Reply
-                    </button>
-                    <?php if (isset($_SESSION['user_id']) && ($_SESSION['user_id'] == $comment['user_id'] || ($_SESSION['is_admin'] ?? false))): ?>
+                    <?php if (isset($_SESSION['user_id']) && ($_SESSION['user_id'] == $comment['user_id'] || ($_SESSION['is_admin'] ?? false))) { ?>
                       <form method="POST" class="d-inline">
                         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                         <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
@@ -733,55 +699,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                           <i class="bi bi-trash"></i>
                         </button>
                       </form>
-                    <?php endif; ?>
-
-                  </div>
-
-                  <?php if (!empty($comment['replies'])): ?>
-                    <div class="replies-container mt-3 ps-4 border-start">
-                      <?php foreach ($comment['replies'] as $reply): ?>
-                        <div class="reply-card mb-3">
-                          <div class="comment-header">
-                            <div class="comment-avatar">
-                              <?php if (!empty($reply['profile_image'])): ?>
-                                <img src="<?= htmlspecialchars($reply['profile_image']) ?>" alt="User Avatar">
-                              <?php else: ?>
-                                <i class="bi bi-person-fill" style="font-size: 20px;"></i>
-                              <?php endif; ?>
-                            </div>
-                            <div>
-                              <div class="comment-author"><?= htmlspecialchars($reply['name']) ?></div>
-                              <div class="comment-date"><?= date('F j, Y \a\t h:i A', strtotime($reply['created_at'])) ?></div>
-                            </div>
-                          </div>
-                          <div class="comment-body">
-                            <p><?= nl2br(htmlspecialchars($reply['reply_text'])) ?></p>
-                          </div>
-                        </div>
-                      <?php endforeach; ?>
-                    </div>
-                  <?php endif; ?>
-
-                  <div class="reply-form-container mt-3" id="reply-form-<?= $comment['id'] ?>" style="display: none;">
-                    <?php if (isset($_SESSION['user_id'])): ?>
-                      <form method="post" action="#comment-<?= $comment['id'] ?>">
-                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                        <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
-                        <div class="mb-3">
-                          <textarea class="form-control" name="reply_text" rows="3" required maxlength="500"
-                            placeholder="Write your reply..."></textarea>
-                          <div class="form-text">Maximum 500 characters</div>
-                        </div>
-                        <div class="d-flex justify-content-end gap-2">
-                          <button type="button" class="btn btn-outline-secondary cancel-reply-btn">Cancel</button>
-                          <button type="submit" name="submit_reply" class="btn btn-dark">Post Reply</button>
-                        </div>
-                      </form>
-                    <?php else: ?>
-                      <div class="alert alert-info py-2">
-                        You must <a href="<?= $base_url ?>login.php" class="alert-link">login</a> to reply to this comment.
-                      </div>
-                    <?php endif; ?>
+                    <?php } ?>
                   </div>
                 </div>
               <?php endforeach; ?>
@@ -810,9 +728,9 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                   <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
 
                   <div class="mb-3">
-                    <label for="rating" class="form-label">Your Rating</label>
+                    <label for="rating" class="form-label">Your Rating (optional)</label>
                     <div class="rating-input">
-                      <input type="radio" id="star5" name="rating" value="5" required>
+                      <input type="radio" id="star5" name="rating" value="5">
                       <label for="star5" title="5 stars"><i class="bi bi-star-fill"></i></label>
                       <input type="radio" id="star4" name="rating" value="4">
                       <label for="star4" title="4 stars"><i class="bi bi-star-fill"></i></label>
@@ -905,7 +823,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
     </div>
   </div>
 
-
   <?php require('../includes/footer.php'); ?>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
@@ -950,37 +867,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                 window.location.href = '<?= $base_url ?>login.php';
               }
             });
-        });
-      });
-
-      document.querySelectorAll('.reply-btn').forEach(button => {
-        button.addEventListener('click', function () {
-          const commentId = this.dataset.commentId;
-          const replyForm = document.getElementById(`reply-form-${commentId}`);
-
-          if (!<?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>) {
-            window.location.href = '<?= $base_url ?>login.php';
-            return;
-          }
-
-          document.querySelectorAll('.reply-form-container').forEach(form => {
-            if (form.id !== `reply-form-${commentId}`) {
-              form.style.display = 'none';
-            }
-          });
-
-          if (replyForm.style.display === 'none') {
-            replyForm.style.display = 'block';
-            replyForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          } else {
-            replyForm.style.display = 'none';
-          }
-        });
-      });
-
-      document.querySelectorAll('.cancel-reply-btn').forEach(button => {
-        button.addEventListener('click', function () {
-          this.closest('.reply-form-container').style.display = 'none';
         });
       });
 

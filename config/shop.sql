@@ -276,24 +276,6 @@ CREATE TABLE IF NOT EXISTS `site_visits` (
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `notifications` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT,
-    `user_id` INT(11) NOT NULL,
-    `message` TEXT NOT NULL,
-    `type` ENUM(
-        'order',
-        'product',
-        'promotion',
-        'system'
-    ) DEFAULT 'system',
-    `related_id` INT(11),
-    `is_read` TINYINT(1) DEFAULT 0,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-    INDEX (`user_id`, `is_read`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
-
 CREATE TABLE IF NOT EXISTS `order_status_logs` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,
     `order_id` INT(11) NOT NULL,

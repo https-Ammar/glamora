@@ -381,7 +381,7 @@ function sanitize_output($data)
   <audio id="audio" src="./audio/like.mp3"></audio>
   <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
-  
+
 </body>
 
 </html>

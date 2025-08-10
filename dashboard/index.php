@@ -11,12 +11,14 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 // }
 
 // Get user data
-$userid = $_SESSION['userId'];
-$select = $conn->prepare("SELECT * FROM usersadmin WHERE id = ?");
-$select->bind_param("i", $userid);
-$select->execute();
-$fetchname = $select->get_result()->fetch_assoc();
-$select->close();
+$userid = $_SESSION['userId'] ?? null;
+if ($userid) {
+    $select = $conn->prepare("SELECT * FROM usersadmin WHERE id = ?");
+    $select->bind_param("i", $userid);
+    $select->execute();
+    $fetchname = $select->get_result()->fetch_assoc();
+    $select->close();
+}
 
 // Delete product
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
@@ -41,6 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'], $_POST['status'])) {
     $orderId = intval($_POST['order_id']);
     $status = $_POST['status'];
+
+    // Allowed statuses
+    $allowedStatuses = ['pending', 'done', 'cancelled', 'inprogress'];
+    if (!in_array($status, $allowedStatuses)) {
+        $status = 'pending';
+    }
 
     $stmt = $conn->prepare("UPDATE orders SET orderstate = ? WHERE id = ?");
     $stmt->bind_param("si", $status, $orderId);
@@ -155,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'], $_FILES['imag
     }
 }
 
-// Add discount coupon (with maximum discount limit)
+// Add discount coupon
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_coupon'])) {
     $code = trim($_POST['coupon_code']);
     $discountType = $_POST['discount_type'];
@@ -165,7 +173,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_coupon'])) {
     $expiresAt = $_POST['expires_at'];
 
     if (!empty($code) && in_array($discountType, ['percentage', 'fixed']) && $discountValue > 0 && $maxUses > 0 && !empty($expiresAt)) {
-        // Check for duplicate coupon code
         $check = $conn->prepare("SELECT id FROM coupons WHERE code = ?");
         $check->bind_param("s", $code);
         $check->execute();

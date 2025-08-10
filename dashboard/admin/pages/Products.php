@@ -2,6 +2,11 @@
 session_start();
 require('../config/db.php');
 
+if (!isset($_SESSION['userId'])) {
+    header('Location: ../auth/signin.php');
+    exit();
+}
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
@@ -39,7 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
          darkMode = JSON.parse(localStorage.getItem('darkMode'));
          $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
     :class="{'dark bg-gray-900': darkMode === true}">
+
     <main>
+
 
 
         <div class="mx-auto max-w-(--breakpoint-2xl) px-5 py-4 md:p-6">

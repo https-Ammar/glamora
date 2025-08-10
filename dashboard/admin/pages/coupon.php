@@ -2,7 +2,38 @@
 session_start();
 require('../config/db.php');
 
+if (!isset($_SESSION['userId'])) {
+    header('Location: ../auth/signin.php');
+    exit();
+}
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+function isCouponUsed($couponId, $userId) {
+    global $conn;
+    $stmt = $conn->prepare("SELECT id FROM coupon_usage WHERE coupon_id = ? AND user_id = ?");
+    $stmt->bind_param("ii", $couponId, $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $stmt->close();
+    return $result->num_rows > 0;
+}
+
+function applyCouponToOrder($couponId, $userId, $orderId) {
+    global $conn;
+    if (isCouponUsed($couponId, $userId)) {
+        return false;
+    }
+    $stmt = $conn->prepare("INSERT INTO coupon_usage (coupon_id, user_id, order_id) VALUES (?, ?, ?)");
+    $stmt->bind_param("iii", $couponId, $userId, $orderId);
+    $stmt->execute();
+    $stmt->close();
+    $update = $conn->prepare("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?");
+    $update->bind_param("i", $couponId);
+    $update->execute();
+    $update->close();
+    return true;
+}
 
 $userid = $_SESSION['userId'];
 $select = $conn->prepare("SELECT * FROM usersadmin WHERE id = ?");
@@ -41,6 +72,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_coupon'])) {
 
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
+    $deleteUsage = $conn->prepare("DELETE FROM coupon_usage WHERE coupon_id = ?");
+    $deleteUsage->bind_param("i", $id);
+    $deleteUsage->execute();
+    $deleteUsage->close();
     $stmt = $conn->prepare("DELETE FROM coupons WHERE id = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
@@ -85,11 +120,22 @@ if (isset($_GET['delete'])) {
 
 
 <body
-    x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-data="{ 
+        page: 'ecommerce', 
+        loaded: true, 
+        darkMode: false, 
+        stickyMenu: false, 
+        sidebarToggle: false, 
+        scrollTop: false,
+        isTaskModalModal: false 
+    }"
     x-init="
-         darkMode = JSON.parse(localStorage.getItem('darkMode'));
-         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
-    :class="{'dark bg-gray-900': darkMode === true}">
+        darkMode = JSON.parse(localStorage.getItem('darkMode'));
+        $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))
+    "
+    :class="{'dark bg-gray-900': darkMode === true}"
+>
+
     
     <?php if (isset($error)): ?>
         <div class="alert alert-danger"><?php echo $error; ?></div>
@@ -350,9 +396,9 @@ if (isset($_GET['delete'])) {
                                         <td class="px-5 py-3 whitespace-nowrap">
                                             <span
                                                 class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-theme-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
-                                                <?= $coupon['used_count'] ?> / <?= $coupon['max_uses'] ?>
-                                                <?php if ($is_fully_used): ?>
-                                                    <span class="ml-1 text-red-500">(Used)</span>
+                                                <?= $coupon['used_count'] ?> / <?= $coupon['max_uses'] ?> 
+                                                <?php if ($is_fully_used): ?> 
+                                                    <span class="ml-1 text-red-500"> ( Used ) </span>
                                                 <?php endif; ?>
                                             </span>
                                         </td>

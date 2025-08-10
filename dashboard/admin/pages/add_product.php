@@ -1,6 +1,7 @@
 <?php
 session_start();
 require('../config/db.php');
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 header("X-Frame-Options: DENY");
@@ -38,9 +39,6 @@ function uploadFile($file, $subdir, $index = null)
         return null;
     }
 
-    $newFileName = uniqid($subdir . '_', true) . '.' . $ext;
-    $targetPath = $targetDir . $newFileName;
-
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime = finfo_file($finfo, $fileTmp);
     finfo_close($finfo);
@@ -50,6 +48,9 @@ function uploadFile($file, $subdir, $index = null)
     if (!in_array($mime, $allowedMimes)) {
         return null;
     }
+
+    $newFileName = uniqid($subdir . '_', true) . '.' . $ext;
+    $targetPath = $targetDir . $newFileName;
 
     if (move_uploaded_file($fileTmp, $targetPath)) {
         return $targetPath;
@@ -212,6 +213,7 @@ $categories = $conn->query("SELECT c1.id, c1.name AS child_name, c2.name AS pare
                           WHERE c1.parent_id IS NOT NULL
                           ORDER BY c2.name, c1.name");
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 

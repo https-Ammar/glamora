@@ -2,6 +2,8 @@ CREATE DATABASE IF NOT EXISTS `shop`;
 
 USE `shop`;
 
+SET FOREIGN_KEY_CHECKS = 0;
+
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 
 SET time_zone = "+00:00";
@@ -28,6 +30,12 @@ CREATE TABLE IF NOT EXISTS `users` (
     `profile_image` VARCHAR(255),
     `reset_token` VARCHAR(255),
     `reset_token_expiry` DATETIME,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `status` ENUM(
+        'active',
+        'suspended',
+        'deleted'
+    ) DEFAULT 'active',
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
@@ -311,3 +319,5 @@ ON DUPLICATE KEY UPDATE
     name = VALUES(name);
 
 COMMIT;
+
+SET FOREIGN_KEY_CHECKS = 1;

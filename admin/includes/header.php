@@ -2,7 +2,7 @@
     class="sidebar fixed top-0 left-0 z-9999 flex h-screen w-[290px] flex-col overflow-y-auto border-r border-gray-200 bg-white px-5 transition-all duration-300 xl:static xl:translate-x-0 dark:border-gray-800 dark:bg-black"
     @click.outside="sidebarToggle = false">
     <div class="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear mt-8">
-        <nav x-data="{selected: $persist('Dashboard')}">
+        <nav x-data="{selected: $persist('admin')}">
             <div>
                 <h3 class="mb-4 text-xs leading-[20px] text-gray-400 uppercase">
                     <span class="menu-group-title" :class="sidebarToggle ? 'xl:hidden' : ''">
@@ -13,22 +13,22 @@
 
                 <ul class="mb-6 flex flex-col gap-1">
                     <li>
-                        <a href="#" @click.prevent="selected = (selected === 'Dashboard' ? '':'Dashboard')"
+                        <a href="#" @click.prevent="selected = (selected === 'admin' ? '':'admin')"
                             class="menu-item group"
-                            :class=" (selected === 'Dashboard') || (page === 'ecommerce' || page === 'analytics' || page === 'marketing' || page === 'crm' || page === 'stocks' || page === 'saas' || page === 'logistics') ? 'menu-item-active' : 'menu-item-inactive'">
+                            :class=" (selected === 'admin') || (page === 'ecommerce' || page === 'analytics' || page === 'marketing' || page === 'crm' || page === 'stocks' || page === 'saas' || page === 'logistics') ? 'menu-item-active' : 'menu-item-inactive'">
                             <i
-                                :class="(selected === 'Dashboard') || (page === 'ecommerce' || page === 'analytics' || page === 'marketing' || page === 'crm' || page === 'stocks') ? 'menu-item-icon-active bi bi-grid' :'menu-item-icon-inactive bi bi-grid'"></i>
+                                :class="(selected === 'admin') || (page === 'ecommerce' || page === 'analytics' || page === 'marketing' || page === 'crm' || page === 'stocks') ? 'menu-item-icon-active bi bi-grid' :'menu-item-icon-inactive bi bi-grid'"></i>
 
                             <span class="menu-item-text" :class="sidebarToggle ? 'xl:hidden' : ''">
-                                Dashboard
+                                admin
                             </span>
 
                             <i class="menu-item-arrow bi bi-chevron-down"
-                                :class="[(selected === 'Dashboard') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive', sidebarToggle ? 'xl:hidden' : '' ]"></i>
+                                :class="[(selected === 'admin') ? 'menu-item-arrow-active' : 'menu-item-arrow-inactive', sidebarToggle ? 'xl:hidden' : '' ]"></i>
                         </a>
 
                         <div class="translate transform overflow-hidden"
-                            :class="(selected === 'Dashboard') ? 'block' :'hidden'">
+                            :class="(selected === 'admin') ? 'block' :'hidden'">
                             <ul :class="sidebarToggle ? 'xl:hidden' : 'flex'"
                                 class="menu-dropdown mt-2 flex flex-col gap-1 pl-9">
                                 <li>

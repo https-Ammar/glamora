@@ -1,4 +1,5 @@
 <?php
+
 session_start([
   'cookie_httponly' => true,
   'cookie_secure' => true,
@@ -8,9 +9,7 @@ session_start([
 
 require('../config/db.php');
 
-$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://");
-$base_url .= htmlspecialchars($_SERVER['HTTP_HOST'], ENT_QUOTES, 'UTF-8') . "/glamora/";
-
+$imagePath = '../admin/';
 
 if (empty($_SESSION['csrf_token'])) {
   $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -43,7 +42,6 @@ try {
     exit();
   }
 } catch (Exception $e) {
-  error_log("Database error: " . $e->getMessage());
   header('Location: ./error.php');
   exit();
 }
@@ -86,7 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die("You don't have permission to delete this comment");
       }
     } catch (Exception $e) {
-      error_log("Comment deletion error: " . $e->getMessage());
       $_SESSION['error'] = "A system error occurred";
     }
 
@@ -125,7 +122,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $name = $user['name'];
       $email = $user['email'];
     } catch (Exception $e) {
-      error_log("User fetch error: " . $e->getMessage());
       die("Error fetching user details");
     }
 
@@ -159,7 +155,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $comment_error = "Error submitting your comment. Please try again.";
         }
       } catch (Exception $e) {
-        error_log("Comment submission error: " . $e->getMessage());
         $comment_error = "A system error occurred. Please try again later.";
       }
     }
@@ -211,7 +206,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       ]);
       exit();
     } catch (Exception $e) {
-      error_log("Like error: " . $e->getMessage());
       die(json_encode(['status' => 'error', 'message' => 'System error']));
     }
   }
@@ -244,7 +238,6 @@ try {
     }
   }
 } catch (Exception $e) {
-  error_log("Comments fetch error: " . $e->getMessage());
   $comments = [];
 }
 
@@ -259,7 +252,6 @@ try {
   $avg_rating_result = $avg_rating_stmt->get_result();
   $rating_data = $avg_rating_result->fetch_assoc();
 } catch (Exception $e) {
-  error_log("Rating calculation error: " . $e->getMessage());
   $rating_data = ['avg_rating' => 0, 'total_reviews' => 0];
 }
 
@@ -314,26 +306,25 @@ $on_sale = !empty($product['on_sale']) && $sale_price !== null && $sale_price < 
 $final_price = $on_sale ? $sale_price : $price;
 $discount = $on_sale ? round((($price - $sale_price) / $price) * 100) : 0;
 
-function validateImageUrl($url, $base_url)
+function validateImageUrl($url, $imagePath)
 {
   if (empty($url))
-    return $base_url . 'assets/images/default.jpg';
+    return $imagePath . 'assets/images/default.jpg';
   if (str_starts_with($url, 'http'))
-    return filter_var($url, FILTER_VALIDATE_URL) ? $url : $base_url . 'assets/images/default.jpg';
-  return $base_url . 'dashboard/' . ltrim($url, './');
+    return filter_var($url, FILTER_VALIDATE_URL) ? $url : $imagePath . 'assets/images/default.jpg';
+  return $imagePath . ltrim($url, './');
 }
 
-$image_path = validateImageUrl($product['image'] ?? '', $base_url);
+$image_path = validateImageUrl($product['image'] ?? '', $imagePath);
 
 $gallery = [];
 if (!empty($product['gallery'])) {
   try {
     $gallery = json_decode($product['gallery'], true) ?? [];
     foreach ($gallery as &$img) {
-      $img = validateImageUrl($img, $base_url);
+      $img = validateImageUrl($img, $imagePath);
     }
   } catch (Exception $e) {
-    error_log("Gallery processing error: " . $e->getMessage());
     $gallery = [];
   }
 }
@@ -345,7 +336,6 @@ if (!empty($product['sizes'])) {
   try {
     $sizes = json_decode($product['sizes'], true) ?? [];
   } catch (Exception $e) {
-    error_log("Sizes processing error: " . $e->getMessage());
   }
 }
 
@@ -353,7 +343,6 @@ if (!empty($product['colors'])) {
   try {
     $colors = json_decode($product['colors'], true) ?? [];
   } catch (Exception $e) {
-    error_log("Colors processing error: " . $e->getMessage());
   }
 }
 
@@ -375,13 +364,14 @@ foreach ($colors as $color) {
 
 $current_color = !empty($colors) ? strtolower(str_replace('#', '', $colors[0]['hex'] ?? '')) : '';
 $current_images = $color_images[$current_color] ?? $gallery;
-$current_color_image = !empty($colors[0]['image']) ? validateImageUrl($colors[0]['image'], $base_url) : $image_path;
+$current_color_image = !empty($colors[0]['image']) ? validateImageUrl($colors[0]['image'], $imagePath) : $image_path;
 
 $stock_status = safe($product['stock_status'] ?? 'Out of Stock');
 $is_new = !empty($product['is_new']) ? 'Yes' : 'No';
 $is_featured = !empty($product['is_featured']) ? 'Yes' : 'No';
 $quantity = max(0, (int) ($product['quantity'] ?? 0));
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -420,31 +410,44 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
         </div>
       </div>
       <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-          <div class="modal-content bg-transparent border-0">
-            <div class="modal-body p-0">
+        <div class="modal-dialog modal-fullscreen">
+          <div class="modal-content bg-white border-0">
+            <div class="modal-header border-0 pb-0">
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 position-relative">
               <div id="carouselImages" class="carousel slide" data-bs-ride="carousel">
                 <div class="carousel-inner">
                   <?php foreach ($all_images as $index => $img): ?>
                     <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
-                      <img src="<?php echo htmlspecialchars($img); ?>" class="d-block w-100" alt="Product Image">
+                      <div
+                        style="background-image: url('<?php echo htmlspecialchars($img); ?>'); background-size: contain; background-repeat: no-repeat; background-position: center; height: 100vh; width: 100%;">
+                      </div>
                     </div>
                   <?php endforeach; ?>
                 </div>
                 <button class="carousel-control-prev" type="button" data-bs-target="#carouselImages"
                   data-bs-slide="prev">
-                  <span class="carousel-control-prev-icon"></span>
+                  <span class="carousel-control-prev-icon" style="filter: invert(100%);"></span>
                 </button>
                 <button class="carousel-control-next" type="button" data-bs-target="#carouselImages"
                   data-bs-slide="next">
-                  <span class="carousel-control-next-icon"></span>
+                  <span class="carousel-control-next-icon" style="filter: invert(100%);"></span>
                 </button>
+                <div class="carousel-indicators position-static py-3">
+                  <?php foreach ($all_images as $index => $img): ?>
+                    <div data-bs-target="#carouselImages" data-bs-slide-to="<?php echo $index; ?>"
+                      class="mx-1 rounded <?php echo $index === 0 ? 'active' : ''; ?>"
+                      style="width:80px; height:60px; background-image: url('<?php echo htmlspecialchars($img); ?>'); background-size: cover; background-position: center; cursor:pointer; border: 1px solid #ccc;">
+                    </div>
+                  <?php endforeach; ?>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="col-lg-6 ">
+      <div class="col-lg-6 " style="padding-left: 50px;">
         <div class="social-media">
           <ul>
             <li><a href="#">Instagram</a></li>
@@ -521,7 +524,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                   $color_name = isset($color['name']) ? htmlspecialchars($color['name']) : '';
                   $color_image = '';
                   if (!empty($color['image'])) {
-                    $color_image = (strpos($color['image'], 'http') === 0) ? $color['image'] : $base_url . 'dashboard/' . ltrim($color['image'], '/');
+                    $color_image = (strpos($color['image'], 'http') === 0) ? $color['image'] : $imagePath . ltrim($color['image'], '/');
                   }
                   ?>
                   <div class="color-option" style="cursor: pointer;" title="<?php echo $color_name; ?>">
@@ -755,7 +758,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
               <?php else: ?>
                 <div class="alert alert-info">
                   You must <a href="./login.php" class="alert-link">login</a> to write a review.
-                  Don't have an account? <a href="<?= $base_url ?>register.php" class="alert-link">Register here</a>.
+                  Don't have an account? <a href="<?= $imagePath ?>register.php" class="alert-link">Register here</a>.
                 </div>
               <?php endif; ?>
             </div>
@@ -788,8 +791,8 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                 $simImage = !empty($sim['image']) ?
                   (str_starts_with($sim['image'], 'http') ?
                     $sim['image']
-                    : $base_url . 'dashboard/' . ltrim($sim['image'], './')) :
-                  $base_url . 'assets/images/default.jpg';
+                    : $imagePath . ltrim($sim['image'], './')) :
+                  $imagePath . 'assets/images/default.jpg';
 
                 $simPrice = (float) $sim['price'];
                 $simSale = isset($sim['sale_price']) ? (float) $sim['sale_price'] : null;
@@ -827,7 +830,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       document.querySelectorAll('.like-btn').forEach(button => {
@@ -837,19 +839,17 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
           const likeCount = this.querySelector('.like-count');
 
           if (!<?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>) {
-            window.location.href = '<?= $base_url ?>login.php';
+            window.location.href = '<?= $imagePath ?>login.php';
             return;
           }
 
           fetch('', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
               like_comment: '1',
               comment_id: commentId,
-              csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>'
+              csrf_token: <?= json_encode($_SESSION['csrf_token'] ?? '') ?>
             })
           })
             .then(response => response.json())
@@ -864,7 +864,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                   likeIcon.classList.add('bi-hand-thumbs-up');
                 }
               } else if (data.message === 'Login required') {
-                window.location.href = '<?= $base_url ?>login.php';
+                window.location.href = '<?= $imagePath ?>login.php';
               }
             });
         });
@@ -874,6 +874,11 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
       initColorSelection();
       initQuantityControls();
     });
+
+    function fixPath(path) {
+      if (!path) return path;
+      return path.replace(/(\.\.\/admin)\/\.\.\//g, '$1/').replace(/\/+/g, '/');
+    }
 
     function initProductCarousel() {
       const owl = $('.js-home-products');
@@ -897,7 +902,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
     function initColorSelection() {
       const colorOptions = document.querySelectorAll('.color-option');
       const mainImageContainer = document.getElementById('mainImageContainer');
-      const originalImage = '<?php echo $image_path; ?>';
+      const originalImage = <?= json_encode($image_path) ?>;
       let selectedColor = null;
 
       colorOptions.forEach(option => {
@@ -910,7 +915,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
           if (selectedColor === colorCode) {
             colorWrapper?.classList.remove('active');
             colorCircle?.classList.remove('active');
-            mainImageContainer.style.backgroundImage = `url('${originalImage}')`;
+            mainImageContainer.style.backgroundImage = `url('${fixPath(originalImage)}')`;
             selectedColor = null;
             return;
           }
@@ -921,7 +926,8 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
 
           colorWrapper?.classList.add('active');
           colorCircle?.classList.add('active');
-          mainImageContainer.style.backgroundImage = `url('${colorImage || originalImage}')`;
+          const imgToUse = colorImage || originalImage;
+          mainImageContainer.style.backgroundImage = `url('${fixPath(imgToUse)}')`;
           selectedColor = colorCode;
         });
       });
@@ -946,7 +952,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
     }
 
     function changeMainImage(el, imgUrl) {
-      document.getElementById('mainImageContainer').style.backgroundImage = `url('${imgUrl}')`;
+      document.getElementById('mainImageContainer').style.backgroundImage = `url('${fixPath(imgUrl)}')`;
       document.querySelectorAll('.thumbnail-item').forEach(thumb => {
         thumb.classList.remove('active');
       });
@@ -956,12 +962,12 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
     async function addToCart(id, quickAdd = false) {
       try {
         const formData = new FormData();
-        formData.append('csrf_token', '<?= $_SESSION["csrf_token"] ?? "" ?>');
+        formData.append('csrf_token', <?= json_encode($_SESSION['csrf_token'] ?? '') ?>);
         formData.append('product_id', id);
-        formData.append('product_name', '<?= $name ?>');
-        formData.append('product_price', '<?= $price ?>');
-        formData.append('product_sale_price', '<?= $on_sale ? $sale_price : 0 ?>');
-        formData.append('product_image', '<?= $image_path ?>');
+        formData.append('product_name', <?= json_encode($name) ?>);
+        formData.append('product_price', <?= json_encode($price) ?>);
+        formData.append('product_sale_price', <?= json_encode($on_sale ? $sale_price : 0) ?>);
+        formData.append('product_image', fixPath(<?= json_encode($image_path) ?>));
 
         if (!quickAdd) {
           const qty = parseInt(document.getElementById('quantity').value) || 1;
@@ -1010,7 +1016,6 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
           showToast('error', data.message || 'فشل إضافة المنتج إلى السلة');
         }
       } catch (error) {
-        console.error('Error:', error);
         showToast('error', error.message || 'حدث خطأ في الاتصال');
       }
     }
@@ -1040,6 +1045,18 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
       }, 3000);
     }
   </script>
+
+  <style>
+    div#imageModal {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background: white !important;
+      z-index: 99999999999999999;
+    }
+  </style>
 </body>
 
 </html>

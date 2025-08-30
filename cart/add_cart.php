@@ -8,8 +8,7 @@ session_start([
 require('../config/db.php');
 header('Content-Type: application/json');
 
-$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http")
-    . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
+$imagePath = '../admin/';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
@@ -55,13 +54,13 @@ if (!$product) {
 if (!empty($color_image)) {
     $image_url = str_starts_with($color_image, 'http')
         ? $color_image
-        : $base_url . 'dashboard/' . ltrim($color_image, './');
+        : $imagePath . ltrim($color_image, './');
 } elseif (!empty($product['image'])) {
     $image_url = str_starts_with($product['image'], 'http')
         ? $product['image']
-        : $base_url . 'dashboard/' . ltrim($product['image'], './');
+        : $imagePath . ltrim($product['image'], './');
 } else {
-    $image_url = $base_url . 'assets/images/default.jpg';
+    $image_url = './assets/images/default.jpg';
 }
 
 $on_sale = $product['on_sale'] && $product['sale_price'] > 0;
@@ -82,19 +81,18 @@ $cart_item = [
     'color_name' => $color_name,
     'color_hex' => $color_hex,
     'color_image' => $image_url,
-    'product_url' => $base_url . 'product.php?id=' . $product_id,
+    'product_url' => './product.php?id=' . $product_id,
     'category_name' => $product['category_name'] ?? '',
-    'unique_id' => uniqid() // Add a unique identifier for each cart item
+    'unique_id' => uniqid()
 ];
 
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
-// Always add as new item (don't check for existing combinations)
 $_SESSION['cart'][] = $cart_item;
 
-$total_count = count($_SESSION['cart']); // Count of distinct items
+$total_count = count($_SESSION['cart']);
 $total_quantity = array_reduce($_SESSION['cart'], function ($carry, $item) {
     return $carry + $item['quantity'];
 }, 0);
@@ -106,7 +104,7 @@ $subtotal = array_reduce($_SESSION['cart'], function ($carry, $item) {
 $response = [
     'success' => true,
     'message' => 'Product added to cart successfully',
-    'cart_count' => $total_quantity, // Or use $total_count if you want to count distinct items
+    'cart_count' => $total_quantity,
     'subtotal' => number_format($subtotal, 2),
     'cart_items' => $_SESSION['cart'],
     'is_empty' => $total_count === 0

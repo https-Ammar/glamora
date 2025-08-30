@@ -41,7 +41,7 @@ $base_url = 'http://' . $_SERVER['HTTP_HOST'] . '/';
                       $productImage = $fetchproducts['img'];
                     } else {
                       $imagePath = ltrim($fetchproducts['img'], './');
-                      $productImage = $base_url . 'dashboard/dashboard_shop-main/' . $imagePath;
+                      $productImage = $base_url . 'admin/admin_shop-main/' . $imagePath;
                     }
                   } else {
                     $productImage = $base_url . 'assets/images/default.jpg';

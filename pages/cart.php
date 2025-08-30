@@ -1,4 +1,5 @@
 <?php
+
 session_start([
   'cookie_httponly' => true,
   'cookie_secure' => true,
@@ -10,8 +11,6 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 require('../config/db.php');
-
-$base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/glamora/";
 
 function formatPrice($price) {
   return number_format((float) $price, 2, '.', '');
@@ -88,8 +87,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                         class="img-thumbnail me-3" style="width: 60px; height: 60px; object-fit: cover;">
                       <div class="flex-grow-1">
                         <h6 class="mb-1"><?= htmlspecialchars($item['name']) ?></h6>
-                                                <small class="text-muted d-block">SKU: <?= $item['id'] ?? 'N/A' ?></small>
-
+                        <small class="text-muted d-block">SKU: <?= $item['id'] ?? 'N/A' ?></small>
                         
                         <div class="d-block d-md-none w-100 mt-2">
                           <?php if (!empty($item['color_name']) || !empty($item['size_name'])): ?>
@@ -216,6 +214,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
       </div>
     <?php endif; ?>
   </div>
+
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

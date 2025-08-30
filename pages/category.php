@@ -31,6 +31,7 @@ if ((int) $category['parent_id'] === 0) {
 }
 $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
 $types = str_repeat('i', count($categoryIds));
+$imagePath = '/admin/';
 ?>
 
 <!DOCTYPE html>
@@ -58,7 +59,7 @@ $types = str_repeat('i', count($categoryIds));
             $adsResult = $stmtAds->get_result();
             while ($ad = $adsResult->fetch_assoc()) {
               $adLink = htmlspecialchars($ad['linkaddress']);
-              $adImage = htmlspecialchars('./dashboard/dashboard_shop-main/' . ltrim($ad['photo'], './'));
+              $adImage = htmlspecialchars('/admin/' . $ad['photo']);
               echo '
               <div class="col-md-6_">
                 <a href="' . $adLink . '">
@@ -112,7 +113,7 @@ $types = str_repeat('i', count($categoryIds));
 
                 while ($product = $productsResult->fetch_assoc()) {
                   $productName = htmlspecialchars($product['name']);
-                  $productImage = 'http://localhost:8888/glamora/dashboard/' . htmlspecialchars($product['image']);
+                  $productImage = htmlspecialchars($imagePath . $product['image']);
                   $productPrice = number_format($product['price'], 2);
                   $productDiscount = (int) $product['discount_percent'];
                   $finalPrice = $product['sale_price'] ?? $product['price'];

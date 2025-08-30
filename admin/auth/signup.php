@@ -118,7 +118,7 @@ $conn->close();
                             <path d="M12.7083 5L7.5 10.2083L12.7083 15.4167" stroke="" stroke-width="1.5"
                                 stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
-                        Back to dashboard
+                        Back to admin
                     </a>
                 </div>
                 <div class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
@@ -253,7 +253,7 @@ $conn->close();
 
                     <div class="flex max-w-xs flex-col items-center">
                         <p class="text-center text-gray-400 dark:text-white/60">Free and Open-Source Tailwind CSS Admin
-                            Dashboard Template</p>
+                            admin Template</p>
                     </div>
                 </div>
             </div>

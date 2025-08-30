@@ -326,7 +326,7 @@ if (empty($_SESSION['csrf_token'])) {
                     <small>
                         عرض <?= count($comments) ?> من <?= count($comments) ?> تعليق
                     </small>
-                    <a href="dashboard.php" class="btn btn-outline-primary btn-sm">
+                    <a href="admin.php" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-arrow-left"></i> العودة للوحة التحكم
                     </a>
                 </div>

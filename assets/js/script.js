@@ -31,8 +31,8 @@ setInterval(function () {
 }, 1000);
 // end script 00
 
-// Discount Dashboard
-// categories Dashboard
+// Discount admin
+// categories admin
 document.addEventListener("DOMContentLoaded", function () {
   var forms = document.querySelectorAll(".discount-form");
 

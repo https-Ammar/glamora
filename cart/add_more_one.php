@@ -4,7 +4,6 @@ require('../config/db.php');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
     $id = intval($_POST['id']);
 
-    // تحقق من وجود العنصر في السلة
     $stmt = $conn->prepare("SELECT qty FROM cart WHERE id = ?");
     if ($stmt) {
         $stmt->bind_param("i", $id);

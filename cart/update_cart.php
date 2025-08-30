@@ -27,10 +27,13 @@ if ($quantity <= 0) {
     $_SESSION['cart'][$key]['quantity'] = $quantity;
 }
 
-$cart_count = count($_SESSION['cart'] ?? []);
+$total_quantity = array_reduce($_SESSION['cart'] ?? [], function ($carry, $item) {
+    return $carry + $item['quantity'];
+}, 0);
 
 echo json_encode([
     'success' => true,
-    'cart_count' => $cart_count
+    'cart_count' => $total_quantity,
+    'is_empty' => $total_quantity === 0
 ]);
 ?>

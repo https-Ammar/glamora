@@ -64,7 +64,7 @@ if (isset($_COOKIE['userid'])) {
                       <td scope="row" class="py-4">
                         <div class="cart-info d-flex flex-wrap align-items-center">
                           <div class="col-lg-3">
-                            <div class="card-image" style="background-image: url(\'../dashboard/dashboard_shop-main/' . htmlspecialchars($fetchproduct['img']) . '\');">
+                            <div class="card-image" style="background-image: url(\'../admin/admin_shop-main/' . htmlspecialchars($fetchproduct['img']) . '\');">
                             </div>
                           </div>
                           <div class="col-lg-9">

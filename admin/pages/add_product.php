@@ -8,9 +8,9 @@ header("X-Frame-Options: DENY");
 header("X-Content-Type-Options: nosniff");
 header("X-XSS-Protection: 1; mode=block");
 
-define('UPLOAD_DIR', 'uploads/');
-define('MAX_FILE_SIZE', 2 * 1024 * 1024);
-define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'gif']);
+define('UPLOAD_DIR', '../uploads/');
+define('MAX_FILE_SIZE', 5 * 1024 * 1024);
+define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']);
 
 function uploadFile($file, $subdir, $index = null)
 {
@@ -43,8 +43,7 @@ function uploadFile($file, $subdir, $index = null)
     $mime = finfo_file($finfo, $fileTmp);
     finfo_close($finfo);
 
-    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif'];
-
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
     if (!in_array($mime, $allowedMimes)) {
         return null;
     }
@@ -149,11 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
 
     if ($imagePath) {
         try {
-            $stmt = $conn->prepare("INSERT INTO products (
-                name, slug, brand, description, tags, price, sale_price, discount_percent,
-                quantity, stock_status, is_new, on_sale, is_featured, barcode,
-                expiry_date, category_id, image, gallery, sizes, colors, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO products (name, slug, brand, description, tags, price, sale_price, discount_percent, quantity, stock_status, is_new, on_sale, is_featured, barcode, expiry_date, category_id, image, gallery, sizes, colors, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             $stmt->bind_param(
                 "sssssddddsiiisssssssi",
@@ -207,13 +202,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
 
 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
-$categories = $conn->query("SELECT c1.id, c1.name AS child_name, c2.name AS parent_name 
-                          FROM categories c1
-                          LEFT JOIN categories c2 ON c1.parent_id = c2.id
-                          WHERE c1.parent_id IS NOT NULL
-                          ORDER BY c2.name, c1.name");
+$categories = $conn->query("SELECT c1.id, c1.name AS child_name, c2.name AS parent_name FROM categories c1 LEFT JOIN categories c2 ON c1.parent_id = c2.id WHERE c1.parent_id IS NOT NULL ORDER BY c2.name, c1.name");
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -274,6 +264,9 @@ $categories = $conn->query("SELECT c1.id, c1.name AS child_name, c2.name AS pare
 
             <div class="space-y-6">
                 <form method="POST" enctype="multipart/form-data" id="productForm">
+                    <input type="hidden" name="csrf_token"
+                        value="<?php echo isset($_SESSION['csrf_token']) ? $_SESSION['csrf_token'] : ''; ?>">
+
                     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] ">
                         <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
                             <h2 class="text-lg font-medium text-gray-800 dark:text-white">

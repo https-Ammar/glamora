@@ -281,7 +281,7 @@ span.product-qty {
                                                                                 <div class="card">
                                                                                     <div class="card-body">
                                                                                         <div class="d-flex align-items-center">
-                                                                                            <div class="position-relative me-3 rounded border" style="width: 80px; height: 80px; background-image: url('http://localhost:8888/glamora/dashboard/<?= htmlspecialchars($item['product_image']) ?>');" >
+                                                                                            <div class="position-relative me-3 rounded border" style="width: 80px; height: 80px; background-image: url('http://localhost:8888/glamora/admin/<?= htmlspecialchars($item['product_image']) ?>');" >
                                                                                                 <span class="product-qty"><?= $item['qty'] ?></span>
 
                                                                                     

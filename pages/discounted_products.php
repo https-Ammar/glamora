@@ -10,7 +10,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 require_once('../config/db.php');
-$imagePath = './dashboard/';
+$imagePath = './admin/';
 $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
 // نفس كود تتبع الزيارات كما في الصفحة الرئيسية

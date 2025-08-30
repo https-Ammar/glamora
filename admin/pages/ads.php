@@ -189,9 +189,9 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
                                                 $categories = $conn->query("SELECT id, name FROM categories WHERE parent_id IS NULL ORDER BY name ASC");
                                                 while ($category = $categories->fetch_assoc()):
                                                     ?>
-                                                        <option value="<?= $category['id'] ?>">
-                                                            <?= htmlspecialchars($category['name']) ?>
-                                                        </option>
+                                                    <option value="<?= $category['id'] ?>">
+                                                        <?= htmlspecialchars($category['name']) ?>
+                                                    </option>
                                                 <?php endwhile; ?>
                                             </select>
                                         </div>
@@ -255,37 +255,37 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
                                     ");
                                     while ($ad = $ads->fetch_assoc()):
                                         ?>
-                                            <tr>
-                                                <td><?= $ad['id'] ?></td>
-                                                <td><?= htmlspecialchars($ad['category_name']) ?></td>
-                                                <td>
-                                                    <img src="<?= htmlspecialchars($ad['photo']) ?>" class="ad-image">
-                                                </td>
-                                                <td>
-                                                    <a href="<?= htmlspecialchars($ad['linkaddress']) ?>" target="_blank">
-                                                        <?= strlen($ad['linkaddress']) > 30 ? substr($ad['linkaddress'], 0, 30) . '...' : $ad['linkaddress'] ?>
-                                                    </a>
-                                                </td>
-                                                <td>
-                                                    <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal"
-                                                        data-bs-target="#editModal" data-id="<?= $ad['id'] ?>"
-                                                        data-category="<?= htmlspecialchars($ad['category_name']) ?>"
-                                                        data-categoryid="<?= $conn->query("SELECT categoryid FROM ads WHERE id = " . $ad['id'])->fetch_assoc()['categoryid'] ?>"
-                                                        data-photo="<?= htmlspecialchars($ad['photo']) ?>"
-                                                        data-linkaddress="<?= htmlspecialchars($ad['linkaddress']) ?>">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <a href="?delete=<?= $ad['id'] ?>" class="btn btn-sm btn-outline-danger"
-                                                        onclick="return confirm('Are you sure you want to delete this ad?')">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
+                                        <tr>
+                                            <td><?= $ad['id'] ?></td>
+                                            <td><?= htmlspecialchars($ad['category_name']) ?></td>
+                                            <td>
+                                                <img src="<?= htmlspecialchars($ad['photo']) ?>" class="ad-image">
+                                            </td>
+                                            <td>
+                                                <a href="<?= htmlspecialchars($ad['linkaddress']) ?>" target="_blank">
+                                                    <?= strlen($ad['linkaddress']) > 30 ? substr($ad['linkaddress'], 0, 30) . '...' : $ad['linkaddress'] ?>
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal"
+                                                    data-bs-target="#editModal" data-id="<?= $ad['id'] ?>"
+                                                    data-category="<?= htmlspecialchars($ad['category_name']) ?>"
+                                                    data-categoryid="<?= $conn->query("SELECT categoryid FROM ads WHERE id = " . $ad['id'])->fetch_assoc()['categoryid'] ?>"
+                                                    data-photo="<?= htmlspecialchars($ad['photo']) ?>"
+                                                    data-linkaddress="<?= htmlspecialchars($ad['linkaddress']) ?>">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <a href="?delete=<?= $ad['id'] ?>" class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Are you sure you want to delete this ad?')">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
                                     <?php endwhile; ?>
                                     <?php if ($ads->num_rows === 0): ?>
-                                            <tr>
-                                                <td colspan="5">No ads available.</td>
-                                            </tr>
+                                        <tr>
+                                            <td colspan="5">No ads available.</td>
+                                        </tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -351,37 +351,37 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
                                     $sliders = $conn->query("SELECT * FROM sliders ORDER BY id DESC");
                                     while ($slider = $sliders->fetch_assoc()):
                                         ?>
-                                            <tr>
-                                                <td><?= $slider['id'] ?></td>
-                                                <td>
-                                                    <img src="<?= htmlspecialchars($slider['image_url']) ?>"
-                                                        class="slider-image">
-                                                </td>
-                                                <td>
-                                                    <a href="<?= htmlspecialchars($slider['link_url']) ?>" target="_blank">
-                                                        <?= strlen($slider['link_url']) > 30 ? substr($slider['link_url'], 0, 30) . '...' : $slider['link_url'] ?>
-                                                    </a>
-                                                </td>
-                                                <td><?= $slider['created_at'] ?></td>
-                                                <td>
-                                                    <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal"
-                                                        data-bs-target="#editSliderModal" data-id="<?= $slider['id'] ?>"
-                                                        data-image="<?= htmlspecialchars($slider['image_url']) ?>"
-                                                        data-link="<?= htmlspecialchars($slider['link_url']) ?>">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <a href="?delete_slider=<?= $slider['id'] ?>"
-                                                        class="btn btn-sm btn-outline-danger"
-                                                        onclick="return confirm('Are you sure you want to delete this slider?')">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
+                                        <tr>
+                                            <td><?= $slider['id'] ?></td>
+                                            <td>
+                                                <img src="<?= htmlspecialchars($slider['image_url']) ?>"
+                                                    class="slider-image">
+                                            </td>
+                                            <td>
+                                                <a href="<?= htmlspecialchars($slider['link_url']) ?>" target="_blank">
+                                                    <?= strlen($slider['link_url']) > 30 ? substr($slider['link_url'], 0, 30) . '...' : $slider['link_url'] ?>
+                                                </a>
+                                            </td>
+                                            <td><?= $slider['created_at'] ?></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal"
+                                                    data-bs-target="#editSliderModal" data-id="<?= $slider['id'] ?>"
+                                                    data-image="<?= htmlspecialchars($slider['image_url']) ?>"
+                                                    data-link="<?= htmlspecialchars($slider['link_url']) ?>">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <a href="?delete_slider=<?= $slider['id'] ?>"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Are you sure you want to delete this slider?')">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
                                     <?php endwhile; ?>
                                     <?php if ($sliders->num_rows === 0): ?>
-                                            <tr>
-                                                <td colspan="5">No sliders available.</td>
-                                            </tr>
+                                        <tr>
+                                            <td colspan="5">No sliders available.</td>
+                                        </tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -411,8 +411,8 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
                                 $categories = $conn->query("SELECT id, name FROM categories WHERE parent_id IS NULL ORDER BY name ASC");
                                 while ($category = $categories->fetch_assoc()):
                                     ?>
-                                        <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?>
-                                        </option>
+                                    <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?>
+                                    </option>
                                 <?php endwhile; ?>
                             </select>
                         </div>

@@ -757,7 +757,7 @@ $quantity = max(0, (int) ($product['quantity'] ?? 0));
                 </form>
               <?php else: ?>
                 <div class="alert alert-info">
-                  You must <a href="./login.php" class="alert-link">login</a> to write a review.
+                  You must <a href="../auth/login.php" class="alert-link">login</a> to write a review.
                   Don't have an account? <a href="<?= $imagePath ?>register.php" class="alert-link">Register here</a>.
                 </div>
               <?php endif; ?>

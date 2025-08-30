@@ -31,7 +31,7 @@ if ((int) $category['parent_id'] === 0) {
 }
 $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
 $types = str_repeat('i', count($categoryIds));
-$imagePath = '/admin/';
+$imagePath = '../admin/';
 ?>
 
 <!DOCTYPE html>

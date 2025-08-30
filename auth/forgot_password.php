@@ -1,6 +1,6 @@
 <?php
 session_start();
-require '../config/db.php';
+require('../config/db.php');
 require './phpmailer/src/Exception.php';
 require './phpmailer/src/PHPMailer.php';
 require './phpmailer/src/SMTP.php';
@@ -60,19 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Login | ARTSY</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="../style/main.css">
-    <link rel="stylesheet" href="../style/register.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
+    <?php require('../includes/link.php'); ?>
 </head>
 
 <body>
 
-    <?php require('./header.php'); ?>
+    <?php require('../includes/header.php'); ?>
 
 
     <main class="main-content">
@@ -98,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
 
 
-    <?php require('footer.php'); ?>
+    <?php require('../includes/footer.php'); ?>
 
 </body>
 

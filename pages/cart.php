@@ -1,5 +1,4 @@
 <?php
-
 session_start([
   'cookie_httponly' => true,
   'cookie_secure' => true,
@@ -12,7 +11,8 @@ if (empty($_SESSION['csrf_token'])) {
 
 require('../config/db.php');
 
-function formatPrice($price) {
+function formatPrice($price)
+{
   return number_format((float) $price, 2, '.', '');
 }
 
@@ -44,7 +44,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
 
 <body>
   <?php require('../includes/header.php'); ?>
-  
+
   <div class="container py-5 mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2 class="mb-0">Your Shopping Cart</h2>
@@ -81,14 +81,15 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                   $item_quantity = $item['quantity'] ?? 1;
                   $item_total = $item_price * $item_quantity;
                   ?>
-                  <div class="border-bottom py-3 row align-items-center text-center text-md-start g-2">
+                  <div class="border-bottom py-3 row align-items-center text-center text-md-start g-2 cart-item">
                     <div class="col-12 col-md-3 d-flex align-items-center position-relative">
-                      <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>"
-                        class="img-thumbnail me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                      <img src="../admin/<?= htmlspecialchars($item['image']) ?>"
+                        alt="<?= htmlspecialchars($item['name']) ?>" class="img-thumbnail me-3"
+                        style="width: 60px; height: 60px; object-fit: cover;">
                       <div class="flex-grow-1">
                         <h6 class="mb-1"><?= htmlspecialchars($item['name']) ?></h6>
                         <small class="text-muted d-block">SKU: <?= $item['id'] ?? 'N/A' ?></small>
-                        
+
                         <div class="d-block d-md-none w-100 mt-2">
                           <?php if (!empty($item['color_name']) || !empty($item['size_name'])): ?>
                             <div class="text-muted small mb-1">
@@ -108,7 +109,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                             <div class="input-group" style="width: 120px">
                               <button class="btn btn-outline-secondary update-quantity" type="button" data-action="decrease"
                                 data-key="<?= $key ?>">-</button>
-                              <input type="text" class="form-control text-center"
+                              <input type="text" class="form-control text-center quantity-input"
                                 value="<?= $item_quantity ?>" data-key="<?= $key ?>">
                               <button class="btn btn-outline-secondary update-quantity" type="button" data-action="increase"
                                 data-key="<?= $key ?>">+</button>
@@ -162,7 +163,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                       <div class="input-group" style="max-width: 120px">
                         <button class="btn btn-outline-secondary update-quantity" type="button" data-action="decrease"
                           data-key="<?= $key ?>">-</button>
-                        <input type="text" class="form-control text-center" value="<?= $item_quantity ?>"
+                        <input type="text" class="form-control text-center quantity-input" value="<?= $item_quantity ?>"
                           data-key="<?= $key ?>">
                         <button class="btn btn-outline-secondary update-quantity" type="button" data-action="increase"
                           data-key="<?= $key ?>">+</button>
@@ -215,13 +216,12 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
     <?php endif; ?>
   </div>
 
-
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    $(document).ready(function() {
-      $('.update-quantity').click(function() {
+    $(document).ready(function () {
+      $('.update-quantity').click(function () {
         const key = $(this).data('key');
         const action = $(this).data('action');
         const input = $(`.quantity-input[data-key="${key}"]`);
@@ -237,7 +237,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
         updateCartItem(key, quantity);
       });
 
-      $('.quantity-input').on('change', function() {
+      $('.quantity-input').on('change', function () {
         const key = $(this).data('key');
         let quantity = parseInt($(this).val()) || 1;
         if (quantity < 1) quantity = 1;
@@ -245,7 +245,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
         updateCartItem(key, quantity);
       });
 
-      $('.remove-item').click(function() {
+      $('.remove-item').click(function () {
         const key = $(this).data('key');
         if (confirm('Are you sure you want to remove this item from your cart?')) {
           updateCartItem(key, 0);
@@ -262,7 +262,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
             key: key,
             quantity: quantity
           },
-          success: function(response) {
+          success: function (response) {
             if (response.success) {
               window.location.reload();
             } else {
@@ -270,7 +270,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
               window.location.reload();
             }
           },
-          error: function(xhr, status, error) {
+          error: function (xhr, status, error) {
             alert('Error: Could not update cart. Please try again.');
             console.error(error);
           }
@@ -279,182 +279,184 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
     });
   </script>
 
-  <style>
-    .quantity-input {
-      max-width: 50px;
-      text-align: center;
+  <?php require('../includes/footer.php'); ?>
+</body>
+
+</html>
+
+
+
+<style>
+  .quantity-input {
+    max-width: 50px;
+    text-align: center;
+  }
+
+  .cart-item .img-thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+  }
+
+  @media (max-width: 767.98px) {
+    .cart-item {
+      position: relative;
     }
-    
+
+    .remove-item {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+    }
+
     .cart-item .img-thumbnail {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-    }
-    
-    @media (max-width: 767.98px) {
-      .cart-item{
-        position: relative;
-      }
-      
-      .remove-item {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-      }
-      
-      .cart-item .img-thumbnail {
-        width: 85px;
-        height: 85px;
-      }
-      
-      .flex-grow-1 {
-        text-align: left !important;
-      }
-      
-      .input-group {
-        justify-content: start;
-      }
-    }
-  </style>
-
-    <style>
-    @media screen and (max-width:992px) {
-      img.img-thumbnail.me-3 {
-        width: 85px !important;
-        height: 85px !important;
-      }
-
-      .flex-grow-1 {
-        text-align: left !important;
-      }
-
-      .input-group.w-50 {
-        justify-content: start;
-      }
-
-      .d-flex.justify-content-between.align-items-center.mb-2 {
-        display: flex !important;
-        align-items: center !important;
-      }
-
-      .ms-2.fw-bold.text-nowrap {
-        font-weight: 400;
-      }
-
-      small.text-muted.d-block {
-        display: none !important;
-      }
-
-      .col-12.col-md-3.d-flex.align-items-start.position-relative {
-        align-items: center !important;
-      }
-
-      button.btn.btn-sm.btn-outline-danger.remove-item {
-        background: black;
-        color: white;
-        border-radius: 50%;
-        top: -10px !important;
-        left: -2px;
-        /* width: 10px; */
-        /* height: 10px; */
-        /* display: block; */
-        border: navajowhite;
-      }
-    }
-  </style>
-  
-                <style>
-                @media (max-width: 767.98px) {
-                  .cart-item {
-                    position: relative;
-                  }
-
-                  .remove-item {
-                    position: absolute;
-                           top: -10px;
-        left: -5px;
-                  }
-
-                  a.btn.btn-dark.w-100.py-2 {
-    padding: 12px !important;
-}
-
-a.btn.btn-outline-dark.w-100.mt-2.py-2 {
-    padding: 12px !important;
-}
-                }
-              </style>
-                <style>
-    .color-circle {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: 1px solid #ddd;
+      width: 85px;
+      height: 85px;
     }
 
-    .quantity-input {
-      max-width: 50px;
-      text-align: center;
-    }
-
-    .product-thumbnail {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-    }
-
-    .empty-cart {
-      min-height: 300px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-    }
-
-    .size-badge {
-      font-size: 0.8rem;
-      padding: 0.25rem 0.5rem;
-    }
-
-    .color-image {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 1px solid #ddd;
-    }
-
-    button.btn.btn-outline-secondary.update-quantity {
-      border: navajowhite;
-    }
-
-    input.form-control.quantity-input {
-      border-radius: 30px !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      height: 25px;
-    }
-
-    button.btn.btn-outline-secondary.update-quantity:hover {
-      background: none !important;
-      border: none;
-      color: black;
+    .flex-grow-1 {
+      text-align: left !important;
     }
 
     .input-group {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      justify-content: start;
     }
-    input.form-control.text-center {
+  }
+</style>
+
+<style>
+  @media screen and (max-width:992px) {
+    img.img-thumbnail.me-3 {
+      width: 85px !important;
+      height: 85px !important;
+    }
+
+    .flex-grow-1 {
+      text-align: left !important;
+    }
+
+    .input-group.w-50 {
+      justify-content: start;
+    }
+
+    .d-flex.justify-content-between.align-items-center.mb-2 {
+      display: flex !important;
+      align-items: center !important;
+    }
+
+    .ms-2.fw-bold.text-nowrap {
+      font-weight: 400;
+    }
+
+    small.text-muted.d-block {
+      display: none !important;
+    }
+
+    .col-12.col-md-3.d-flex.align-items-start.position-relative {
+      align-items: center !important;
+    }
+
+    button.btn.btn-sm.btn-outline-danger.remove-item {
+      background: black;
+      color: white;
+      border-radius: 50%;
+      top: -10px !important;
+      left: -2px;
+      /* width: 10px; */
+      /* height: 10px; */
+      /* display: block; */
+      border: navajowhite;
+    }
+  }
+</style>
+
+<style>
+  @media (max-width: 767.98px) {
+    .cart-item {
+      position: relative;
+    }
+
+    .remove-item {
+      position: absolute;
+      top: -10px;
+      left: -5px;
+    }
+
+    a.btn.btn-dark.w-100.py-2 {
+      padding: 12px !important;
+    }
+
+    a.btn.btn-outline-dark.w-100.mt-2.py-2 {
+      padding: 12px !important;
+    }
+  }
+</style>
+<style>
+  .color-circle {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+  }
+
+  .quantity-input {
+    max-width: 50px;
+    text-align: center;
+  }
+
+  .product-thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+  }
+
+  .empty-cart {
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .size-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .color-image {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #ddd;
+  }
+
+  button.btn.btn-outline-secondary.update-quantity {
+    border: navajowhite;
+  }
+
+  input.form-control.quantity-input {
+    border-radius: 30px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 25px;
+  }
+
+  button.btn.btn-outline-secondary.update-quantity:hover {
+    background: none !important;
+    border: none;
+    color: black;
+  }
+
+  .input-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  input.form-control.text-center {
     height: 25px;
     border-radius: 30px !important;
-}
-
-
-
-  </style>
-  <?php require('../includes/footer.php'); ?>
-</body>
-</html>
+  }
+</style>

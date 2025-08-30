@@ -9,11 +9,9 @@ session_start([
 if (empty($_SESSION['csrf_token'])) {
   $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-
 require_once('./config/db.php');
-$imagePath = './dashboard/';
+$imagePath = './admin/';
 $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-
 if ($conn) {
   $check_stmt = $conn->prepare("SELECT id FROM site_visits WHERE ip_address = ? AND DATE(visit_time) = CURDATE()");
   $check_stmt->bind_param("s", $ip);
@@ -59,7 +57,7 @@ function sanitize_output($data)
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Open+Sans:ital,wght@0,400;0,700&display=swap"
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css">
@@ -85,7 +83,6 @@ function sanitize_output($data)
     <div class="slider owl-carousel">
       <?php
       $sliderLimit = 10;
-
       $stmtSlider = $conn->prepare("SELECT * FROM sliders ORDER BY id DESC LIMIT ?");
       $stmtSlider->bind_param("i", $sliderLimit);
       $stmtSlider->execute();
@@ -96,16 +93,15 @@ function sanitize_output($data)
           $photo = ltrim($fetchSlider['image_url'] ?? '', './');
           $photoPath = sanitize_output($imagePath . $photo);
           $link = sanitize_output($fetchSlider['link_url'] ?? '#');
-
           echo '<a class="slider-item" href="' . $link . '" target="_blank">
-                <div class="banner-content p-5 add_link main_slider" style="background-image: url(\'' . $photoPath . '\');"></div>
-              </a>';
+                        <div class="banner-content p-5 add_link main_slider" style="background-image: url(\'' . $photoPath . '\');"></div>
+                    </a>';
         }
       } else {
         $defaultPhoto = sanitize_output($imagePath . 'default-banner.jpg');
         echo '<a class="slider-item" href="#">
-            <div class="banner-content p-5 add_link" style="background-image: url(\'' . $defaultPhoto . '\');"></div>
-          </a>';
+                    <div class="banner-content p-5 add_link" style="background-image: url(\'' . $defaultPhoto . '\');"></div>
+                </a>';
       }
       $stmtSlider->close();
       ?>
@@ -118,15 +114,15 @@ function sanitize_output($data)
       $result = $sqlcat->get_result();
 
       while ($fetchcat = $result->fetch_assoc()) {
-        $image = sanitize_output($fetchcat['image'] ?? 'default.jpg');
+        $image = sanitize_output(ltrim($fetchcat['image'] ?? 'default.jpg', './'));
         $name = sanitize_output($fetchcat['name'] ?? '');
         $id = (int) $fetchcat['id'];
         echo '<div class="main_cat">
-                <a href="./pages/category.php?id=' . $id . '">
-                    <div class="_Categories_img" style="background-image: url(\'' . $imagePath . $image . '\');" onerror="this.style.backgroundImage=\'url(default.jpg)\'"></div>
-                    <h2>' . $name . '</h2>
-                </a>
-              </div>';
+                    <a href="/category.php?id=' . $id . '">
+                        <div class="_Categories_img" style="background-image: url(\'' . $imagePath . $image . '\');"></div>
+                        <h2>' . $name . '</h2>
+                    </a>
+                </div>';
       }
       $sqlcat->close();
       ?>
@@ -154,11 +150,12 @@ function sanitize_output($data)
             $photoPath = sanitize_output($imagePath . $photo);
             $link = sanitize_output($fetchad['linkaddress'] ?? '#');
             echo '<a class="slider-item" href="' . $link . '">
-                              <div class="banner-content p-5 add_link" style="background-image: url(\'' . $photoPath . '\');"></div>
-                            </a>';
+                            <div class="banner-content p-5 add_link" style="background-image: url(\'' . $photoPath . '\');"></div>
+                        </a>';
           }
           echo '</div>';
         }
+        $stmtAds->close();
 
         $productQuery = "SELECT * FROM products WHERE category_id = ? OR category_id IN (SELECT id FROM categories WHERE parent_id = ?)";
         $stmtProducts = $conn->prepare($productQuery);
@@ -168,12 +165,12 @@ function sanitize_output($data)
 
         if ($selectproduct->num_rows > 0) {
           echo '<section class="container__">
-                          <div class="row">
-                            <a href="./pages/categories.php?id=' . $catidneed . '" class="btn-link text-decoration-none">
-                              <h3 class="title">' . $namecat . '</h3>
-                            </a>
-                            <div class="slider-container">
-                              <div class="owl-carousel js-home-products">';
+                            <div class="row">
+                                <a href="./pages/categories.php?id=' . $catidneed . '" class="btn-link text-decoration-none">
+                                    <h3 class="title">' . $namecat . '</h3>
+                                </a>
+                                <div class="slider-container">
+                                    <div class="owl-carousel js-home-products">';
 
           while ($fetchproducts = $selectproduct->fetch_assoc()) {
             $productId = (int) $fetchproducts['id'];
@@ -186,7 +183,6 @@ function sanitize_output($data)
             ?>
             <div class="item">
               <a href="./pages/view.php?id=<?php echo $productId; ?>" title="<?php echo htmlspecialchars($productName); ?>">
-
                 <figure class="bg_img" style="background-image: url('<?php echo $productImage; ?>');">
                   <?php if ($discountPercent > 0): ?>
                     <span class="badge bg-success text"><?php echo $discountPercent; ?>%</span>
@@ -199,21 +195,18 @@ function sanitize_output($data)
                   <?php endif; ?>
                 </figure>
               </a>
-
               <div class="product-info">
                 <span class="text-muted small"><?php echo sanitize_output($fetchproducts['brand'] ?? ''); ?></span><br>
                 <span class="snize-title">
                   <?php echo $productName; ?>
                 </span>
               </div>
-
               <div class="flex_pric playSound" onclick="addcart(<?php echo $productId; ?>)">
                 <button class="d-flex align-items-center nav-link click">Add to Cart</button>
                 <div class="block_P">
                   <span class="price text"><?php echo number_format($finalPrice, 2); ?></span><span>EGP</span>
                 </div>
               </div>
-
               <div class="ptn_" style="display:none;">
                 <div class="input-group product-qty">
                   <span class="input-group-btn">
@@ -239,16 +232,17 @@ function sanitize_output($data)
             <?php
           }
           echo '</div>
-                        </div>
-                      </div>
-                    </section>';
+                                </div>
+                            </div>
+                        </section>';
         }
+        $stmtProducts->close();
       }
+      $mainCategoriesQuery->close();
       ?>
     </main>
     <?php require('./includes/footer.php'); ?>
   </section>
-
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -381,7 +375,5 @@ function sanitize_output($data)
   <audio id="audio" src="./audio/like.mp3"></audio>
   <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
-
 </body>
-
 </html>

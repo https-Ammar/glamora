@@ -1,6 +1,12 @@
 <?php
 session_start();
-require('./db.php');
+require('../config/db.php');
+
+if (!isset($_SESSION['userId'])) {
+    header('Location: ../auth/signin.php');
+    exit();
+}
+
 
 $userid = $_SESSION['userId'];
 $select = $conn->prepare("SELECT * FROM usersadmin WHERE id = ?");
@@ -62,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'])) {
             $imagePath = $result['image'];
             $stmt->close();
         } elseif (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-            $targetDir = 'uploads/categories/';
+            $targetDir = '../uploads/categories/';
             if (!file_exists($targetDir)) {
                 mkdir($targetDir, 0777, true);
             }

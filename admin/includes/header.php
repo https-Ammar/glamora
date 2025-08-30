@@ -56,7 +56,7 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="#" class="menu-dropdown-item group"
+                                    <a href="./pages/ads.php" class="menu-dropdown-item group"
                                         :class="page === 'stocks' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
                                         Advertisements
                                     </a>

@@ -7,6 +7,8 @@ session_start([
 ]);
 require('../config/db.php');
 
+$imagePath = '../admin/';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
     session_destroy();
     header('Location: login.php');
@@ -75,161 +77,251 @@ $stmtOrderItems = $conn->prepare("
 
 <head>
     <?php require('../includes/link.php'); ?>
+
+    <link rel="stylesheet" href="/admin/assets/css/main.css">
+
     <style>
         span.badge.bg-dark {
-    width: 25px;
-    height: 25px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    font-size: small;
-    font-weight: normal;
-}
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: small;
+            font-weight: normal;
+        }
 
-h2.text-center.mb-4 {
-    display: flex;
-    /* align-items: center; */
-    justify-content: center;
-    gap: 10px;
-}
-span.order-status.bg-secondary {
-    background: none !important;
-}
-a#ordersTab {
-    background: no-repeat;
-    color: black;
-}div#orderModal13 {
-    background: white !important;
-}
+        h2.text-center.mb-4 {
+            display: flex;
+            /* align-items: center; */
+            justify-content: center;
+            gap: 10px;
+        }
+
+        span.order-status.bg-secondary {
+            background: none !important;
+        }
+
+        a#ordersTab {
+            background: no-repeat;
+            color: black;
+        }
+
+        div#orderModal13 {
+            background: white !important;
+        }
 
 
-.modal.fade.show {
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999999999999999;
-}
-.modal-header {
-    border: navajowhite;
-}
+        .modal.fade.show {
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999999999999999;
+        }
 
-.modal-content {
-    border: navajowhite;
-}
+        .modal-header {
+            border: navajowhite;
+        }
 
-span.product-qty {
-    background: red;
-    width: 20px !important;
-    height: 20px !important;
-    /* padding: 0px 10px; */
-    border-radius: 50%;
-    position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    top: -10px;
-    left: -10px;
-    background: black;
-    color: white;
-    font-size: x-small;
-}
+        .modal-content {
+            border: navajowhite;
+        }
 
-.modal-dialog.modal-lg {
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+        span.product-qty {
+            background: red;
+            width: 20px !important;
+            height: 20px !important;
+            /* padding: 0px 10px; */
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            top: -10px;
+            left: -10px;
+            background: black;
+            color: white;
+            font-size: x-small;
+        }
 
-.card-body {
-    border-bottom: 1px solid #e9e9e9;
-}
+        .modal-dialog.modal-lg {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-.position-relative.me-3.rounded.border {
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center center;
-}
+        .card-body {
+            border-bottom: 1px solid #e9e9e9;
+        }
+
+        .position-relative.me-3.rounded.border {
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
+        }
     </style>
+    <style>
+        body {
+            background-color: #0d1b2a;
+            color: white;
+            font-family: 'Arial', sans-serif;
+        }
 
+        .profile-card {
+            background: url('https://via.placeholder.com/1000x250') no-repeat center center/cover;
+            border-radius: 20px;
+            padding: 40px 0;
+            position: relative;
+            color: white;
+            overflow: hidden;
+        }
+
+        .profile-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid white;
+            object-fit: cover;
+        }
+
+        .social-icons .btn {
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .modal-header {
+            border-bottom: none;
+        }
+
+        .modal-footer {
+            border-top: none;
+        }
+    </style>
 </head>
 
 <body>
     <?php require('../includes/header.php'); ?>
 
-    <nav class="d-flex justify-content-center py-3 border-bottom">
-        <ul class="nav nav-pills">
-            <li class="nav-item">
-                <a class="nav-link " href="#" id="ordersTab">Orders</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#" id="addressesTab">Addresses</a>
-            </li>
-            <li class="nav-item">
-                <form method="POST" class="d-grid">
-                    <button type="submit" name="logout" class="nav-link text-dark bg-transparent border-0">Logout</button>
-                </form>
-            </li>
-        </ul>
-    </nav>
+    <!DOCTYPE html>
+    <html lang="en">
 
-    <div class="container py-5 mt-5">
-        <div id="addressesSection" class="d-none">
-            <div class="row justify-content-center mb-4">
-                <div class="col-md-8 text-center">
-                    <h2 class="mb-4">Addresses</h2>
-                    <?php if (!empty($user['profile_image'])): ?>
-                            <img src="<?= htmlspecialchars($user['profile_image']) ?>" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
-                    <?php else: ?>
-                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 100px; height: 100px;">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Profile</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+        <style>
+            .profile-card {
+                background: url('https://via.placeholder.com/1000x250') no-repeat center center/cover;
+                border-radius: 20px;
+                padding: 40px 0;
+                position: relative;
+                color: white;
+                overflow: hidden;
+            }
+
+            .profile-content.d-flex.align-items-center.justify-content-between {
+                color: black !important;
+            }
+
+            a.btn.btn-outline-light.btn-sm {
+                color: black;
+            }
+
+            .profile-content {
+                position: relative;
+                z-index: 2;
+            }
+
+            .profile-img {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                border: 3px solid black;
+                object-fit: cover;
+            }
+
+            .social-icons .btn {
+                border-radius: 50%;
+                margin-right: 8px;
+            }
+
+            .modal-header {
+                border-bottom: none;
+            }
+
+            .modal-footer {
+                border-top: none;
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <div class="container py-5">
+            <h4 class="mb-4">Profile</h4>
+
+                                <h2 class="text-center mb-4">Orders <span class="badge bg-dark"><?= $orders->num_rows ?></span></h2>
+
+
+            <div class="profile-card">
+                <div class="profile-overlay"></div>
+                <div class="profile-content d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+
+
+
+                        <?php if (!empty($user['profile_image'])): ?>
+                            <img src="<?= htmlspecialchars($user['profile_image']) ?>" alt="" class="profile-img me-3">
+                        <?php else: ?>
+                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                                style="width: 100px; height: 100px;">
                                 <i class="bi bi-person text-white fs-1"></i>
                             </div>
-                    <?php endif; ?>
-                    
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <tbody>
-                                        <tr>
-                                            <th scope="row">Name</th>
-                                            <td><?= htmlspecialchars($user['name'] ?? $user['email']) ?></td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row">Email</th>
-                                            <td><?= htmlspecialchars($user['email']) ?></td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row">Phone</th>
-                                            <td><?= htmlspecialchars($user['phone'] ?? 'Not available') ?></td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row">Address</th>
-                                            <td><?= htmlspecialchars($user['address'] ?? 'Not available') ?></td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row">City</th>
-                                            <td><?= htmlspecialchars($user['city'] ?? 'Not available') ?></td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row">Country</th>
-                                            <td><?= htmlspecialchars($user['country'] ?? 'Not available') ?></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                        <?php endif; ?>
+
+
+                        <div>
+                            <h4 class="mb-1"><?= htmlspecialchars($user['name'] ?? $user['email']) ?> </h4>
+                            <p class="mb-0"><?= htmlspecialchars($user['country'] ?? 'Not available') ?> |
+                                <?= htmlspecialchars($user['city'] ?? 'Not available') ?>
+                            </p>
                         </div>
+                    </div>
+
+                    <div class="d-flex align-items-center">
+                        <div class="social-icons">
+                            <a href="tel:<?= htmlspecialchars($user['phone'] ?? 'Not available') ?>"
+                                class="btn btn-outline-light btn-sm"><i class="bi bi-phone"></i></a>
+                            <a href="mailto:<?= htmlspecialchars($user['email']) ?>"
+                                class="btn btn-outline-light btn-sm">
+                                <i class="bi bi-envelope"></i>
+                            </a>
+
+
+                        </div>
+
+                        <form method="POST" class="d-flex align-items-center">
+                            <button type="submit" name="logout" class="btn btn-outline-danger btn-sm">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </button>
+
+                        </form>
+
+
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div id="ordersSection">
-            <div class="row justify-content-center">
-                <div class="col-md-10">
-                    <h2 class="text-center mb-4">Orders <span class="badge bg-dark"><?= $orders->num_rows ?></span></h2>
+                <div class="">
                     
                     <?php if ($orders->num_rows > 0): ?>
                             <div class="table-responsive">
@@ -281,7 +373,7 @@ span.product-qty {
                                                                                 <div class="card">
                                                                                     <div class="card-body">
                                                                                         <div class="d-flex align-items-center">
-                                                                                            <div class="position-relative me-3 rounded border" style="width: 80px; height: 80px; background-image: url('http://localhost:8888/glamora/admin/<?= htmlspecialchars($item['product_image']) ?>');" >
+                                                                                            <div class="position-relative me-3 rounded border" style="width: 80px; height: 80px; background-image: url('<?= htmlspecialchars($item['product_image']) ?>');" >
                                                                                                 <span class="product-qty"><?= $item['qty'] ?></span>
 
                                                                                     
@@ -393,58 +485,58 @@ span.product-qty {
                             </div>
                     <?php endif; ?>
                 </div>
-            </div>
         </div>
-    </div>
 
-    <?php require('../includes/footer.php'); ?>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const activeTab = localStorage.getItem('activeTab') || 'orders';
-            
-            showTab(activeTab);
-            
-            document.getElementById('ordersTab').addEventListener('click', function(e) {
-                e.preventDefault();
-                showTab('orders');
-            });
-            
-            document.getElementById('addressesTab').addEventListener('click', function(e) {
-                e.preventDefault();
-                showTab('addresses');
-            });
-            
-            <?php if ($orderId > 0): ?>
+
+        <?php require('../includes/footer.php'); ?>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const activeTab = localStorage.getItem('activeTab') || 'orders';
+
+                showTab(activeTab);
+
+                document.getElementById('ordersTab').addEventListener('click', function (e) {
+                    e.preventDefault();
+                    showTab('orders');
+                });
+
+                document.getElementById('addressesTab').addEventListener('click', function (e) {
+                    e.preventDefault();
+                    showTab('addresses');
+                });
+
+                <?php if ($orderId > 0): ?>
                     const orderElement = document.querySelector('.highlight-order');
                     if (orderElement) {
                         orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
+
                         const modalId = '#orderModal<?= $orderId ?>';
                         const modal = new bootstrap.Modal(document.querySelector(modalId));
                         modal.show();
                     }
-            <?php endif; ?>
-        });
-        
-        function showTab(tabName) {
-            if (tabName === 'orders') {
-                document.getElementById('ordersSection').classList.remove('d-none');
-                document.getElementById('addressesSection').classList.add('d-none');
-                document.getElementById('ordersTab').classList.add('active');
-                document.getElementById('addressesTab').classList.remove('active');
-            } else {
-                document.getElementById('ordersSection').classList.add('d-none');
-                document.getElementById('addressesSection').classList.remove('d-none');
-                document.getElementById('ordersTab').classList.remove('active');
-                document.getElementById('addressesTab').classList.add('active');
-            }
-            
-            localStorage.setItem('activeTab', tabName);
-        }
-    </script>
-    <?php $stmtOrderItems->close(); ?>
-</body>
+                <?php endif; ?>
+            });
 
-</html>
+            function showTab(tabName) {
+                if (tabName === 'orders') {
+                    document.getElementById('ordersSection').classList.remove('d-none');
+                    document.getElementById('addressesSection').classList.add('d-none');
+                    document.getElementById('ordersTab').classList.add('active');
+                    document.getElementById('addressesTab').classList.remove('active');
+                } else {
+                    document.getElementById('ordersSection').classList.add('d-none');
+                    document.getElementById('addressesSection').classList.remove('d-none');
+                    document.getElementById('ordersTab').classList.remove('active');
+                    document.getElementById('addressesTab').classList.add('active');
+                }
+
+                localStorage.setItem('activeTab', tabName);
+            }
+        </script>
+        <?php $stmtOrderItems->close(); ?>
+    </body>
+
+    </html>

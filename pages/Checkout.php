@@ -1,8 +1,8 @@
 <?php
 session_start([
-    'cookie_httponly' => true,
-    'cookie_secure' => true,
-    'use_strict_mode' => true
+  'cookie_httponly' => true,
+  'cookie_secure' => true,
+  'use_strict_mode' => true
 ]);
 
 ini_set('display_errors', 1);
@@ -10,298 +10,298 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 require('../config/db.php');
 
 if (empty($_SESSION['cart'])) {
-    header('Location: ./profile.php');
-    exit();
+  header('Location: ./profile.php');
+  exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_coupon'])) {
-    header('Content-Type: application/json');
-    $coupon_code = trim($_POST['coupon_code']);
-    
-    $stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ? AND is_active = 1 AND (expires_at > NOW() OR expires_at IS NULL)");
-    $stmt->bind_param("s", $coupon_code);
-    $stmt->execute();
-    $result = $stmt->get_result();
+  header('Content-Type: application/json');
+  $coupon_code = trim($_POST['coupon_code']);
 
-    if ($result->num_rows > 0) {
-        $coupon = $result->fetch_assoc();
+  $stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ? AND is_active = 1 AND (expires_at > NOW() OR expires_at IS NULL)");
+  $stmt->bind_param("s", $coupon_code);
+  $stmt->execute();
+  $result = $stmt->get_result();
 
-        if ($coupon['used_count'] >= $coupon['max_uses']) {
-            echo json_encode(['error' => "This coupon has reached its maximum usage limit"]);
-            exit();
-        }
+  if ($result->num_rows > 0) {
+    $coupon = $result->fetch_assoc();
 
-        if (isset($_SESSION['user_id'])) {
-            $user_id = $_SESSION['user_id'];
-            $user_usage_stmt = $conn->prepare("SELECT COUNT(*) as user_usage FROM coupon_usage WHERE coupon_id = ? AND user_id = ?");
-            $user_usage_stmt->bind_param("ii", $coupon['id'], $user_id);
-            $user_usage_stmt->execute();
-            $user_usage_result = $user_usage_stmt->get_result();
-            $user_usage_data = $user_usage_result->fetch_assoc();
-            
-            if ($user_usage_data['user_usage'] >= $coupon['max_uses_per_user']) {
-                echo json_encode(['error' => "You have already used this coupon the maximum number of times."]);
-                exit();
-            }
-        }
-
-        $_SESSION['applied_coupon'] = $coupon['code'];
-        echo json_encode(['success' => true, 'coupon_code' => $coupon['code']]);
-        exit();
-
-    } else {
-        echo json_encode(['error' => "Invalid or expired coupon code"]);
-        exit();
+    if ($coupon['used_count'] >= $coupon['max_uses']) {
+      echo json_encode(['error' => "This coupon has reached its maximum usage limit"]);
+      exit();
     }
+
+    if (isset($_SESSION['user_id'])) {
+      $user_id = $_SESSION['user_id'];
+      $user_usage_stmt = $conn->prepare("SELECT COUNT(*) as user_usage FROM coupon_usage WHERE coupon_id = ? AND user_id = ?");
+      $user_usage_stmt->bind_param("ii", $coupon['id'], $user_id);
+      $user_usage_stmt->execute();
+      $user_usage_result = $user_usage_stmt->get_result();
+      $user_usage_data = $user_usage_result->fetch_assoc();
+
+      if ($user_usage_data['user_usage'] >= $coupon['max_uses_per_user']) {
+        echo json_encode(['error' => "You have already used this coupon the maximum number of times."]);
+        exit();
+      }
+    }
+
+    $_SESSION['applied_coupon'] = $coupon['code'];
+    echo json_encode(['success' => true, 'coupon_code' => $coupon['code']]);
+    exit();
+
+  } else {
+    echo json_encode(['error' => "Invalid or expired coupon code"]);
+    exit();
+  }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_coupon'])) {
-    header('Content-Type: application/json');
-    unset($_SESSION['applied_coupon']);
-    echo json_encode(['success' => true]);
-    exit();
+  header('Content-Type: application/json');
+  unset($_SESSION['applied_coupon']);
+  echo json_encode(['success' => true]);
+  exit();
 }
 
 $coupon = null;
 if (isset($_SESSION['applied_coupon'])) {
-    $stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ? AND is_active = 1 AND (expires_at > NOW() OR expires_at IS NULL)");
-    $stmt->bind_param("s", $_SESSION['applied_coupon']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        $coupon = $result->fetch_assoc();
-    } else {
-        unset($_SESSION['applied_coupon']);
-    }
-    $stmt->close();
+  $stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ? AND is_active = 1 AND (expires_at > NOW() OR expires_at IS NULL)");
+  $stmt->bind_param("s", $_SESSION['applied_coupon']);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  if ($result->num_rows > 0) {
+    $coupon = $result->fetch_assoc();
+  } else {
+    unset($_SESSION['applied_coupon']);
+  }
+  $stmt->close();
 }
 
 $userData = [];
 if (isset($_SESSION['user_id'])) {
-    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        $userData = $result->fetch_assoc();
-    }
-    $stmt->close();
+  $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+  $stmt->bind_param("i", $_SESSION['user_id']);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  if ($result->num_rows > 0) {
+    $userData = $result->fetch_assoc();
+  }
+  $stmt->close();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        die('Invalid CSRF token');
-    }
+  if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    die('Invalid CSRF token');
+  }
 
-    $required = ['full_name', 'email', 'phone', 'address', 'city'];
-    foreach ($required as $field) {
-        if (empty($_POST[$field])) {
-            die('Please fill all required fields');
+  $required = ['full_name', 'email', 'phone', 'address', 'city'];
+  foreach ($required as $field) {
+    if (empty($_POST[$field])) {
+      die('Please fill all required fields');
+    }
+  }
+
+  if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+    die('Invalid email address');
+  }
+
+  $total = 0;
+  foreach ($_SESSION['cart'] as $item) {
+    $price = $item['sale_price'] ?? $item['price'];
+    $total += $price * $item['quantity'];
+  }
+
+  $discount_amount = 0;
+  $coupon_id = null;
+  $coupon_code = null;
+
+  if (isset($_SESSION['applied_coupon'])) {
+    $coupon_code = $_SESSION['applied_coupon'];
+    $stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ? AND is_active = 1 AND (expires_at > NOW() OR expires_at IS NULL)");
+    $stmt->bind_param("s", $coupon_code);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $coupon = $result->fetch_assoc();
+    $stmt->close();
+
+    if ($coupon) {
+      if ($coupon['used_count'] >= $coupon['max_uses']) {
+        unset($_SESSION['applied_coupon']);
+        header("Location: checkout.php?error=coupon_limit");
+        exit();
+      }
+
+      if (isset($_SESSION['user_id'])) {
+        $user_id = $_SESSION['user_id'];
+        $user_usage_stmt = $conn->prepare("SELECT COUNT(*) as user_usage FROM coupon_usage WHERE coupon_id = ? AND user_id = ?");
+        $user_usage_stmt->bind_param("ii", $coupon['id'], $user_id);
+        $user_usage_stmt->execute();
+        $user_usage_result = $user_usage_stmt->get_result();
+        $user_usage_data = $user_usage_result->fetch_assoc();
+
+        if ($user_usage_data['user_usage'] >= $coupon['max_uses_per_user']) {
+          unset($_SESSION['applied_coupon']);
+          header("Location: checkout.php?error=coupon_user_limit");
+          exit();
         }
-    }
+      }
 
-    if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
-        die('Invalid email address');
-    }
-
-    $total = 0;
-    foreach ($_SESSION['cart'] as $item) {
-        $price = $item['sale_price'] ?? $item['price'];
-        $total += $price * $item['quantity'];
-    }
-
-    $discount_amount = 0;
-    $coupon_id = null;
-    $coupon_code = null;
-
-    if (isset($_SESSION['applied_coupon'])) {
-        $coupon_code = $_SESSION['applied_coupon'];
-        $stmt = $conn->prepare("SELECT * FROM coupons WHERE code = ? AND is_active = 1 AND (expires_at > NOW() OR expires_at IS NULL)");
-        $stmt->bind_param("s", $coupon_code);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $coupon = $result->fetch_assoc();
-        $stmt->close();
-
-        if ($coupon) {
-            if ($coupon['used_count'] >= $coupon['max_uses']) {
-                unset($_SESSION['applied_coupon']);
-                header("Location: checkout.php?error=coupon_limit");
-                exit();
-            }
-
-            if (isset($_SESSION['user_id'])) {
-                $user_id = $_SESSION['user_id'];
-                $user_usage_stmt = $conn->prepare("SELECT COUNT(*) as user_usage FROM coupon_usage WHERE coupon_id = ? AND user_id = ?");
-                $user_usage_stmt->bind_param("ii", $coupon['id'], $user_id);
-                $user_usage_stmt->execute();
-                $user_usage_result = $user_usage_stmt->get_result();
-                $user_usage_data = $user_usage_result->fetch_assoc();
-                
-                if ($user_usage_data['user_usage'] >= $coupon['max_uses_per_user']) {
-                    unset($_SESSION['applied_coupon']);
-                    header("Location: checkout.php?error=coupon_user_limit");
-                    exit();
-                }
-            }
-            
-            $coupon_id = $coupon['id'];
-            if ($coupon['discount_type'] === 'percentage') {
-                $discount_amount = $total * ($coupon['discount_value'] / 100);
-                if (isset($coupon['maximum_discount']) && $coupon['maximum_discount'] > 0) {
-                    $discount_amount = min($discount_amount, $coupon['maximum_discount']);
-                }
-            } else {
-                $discount_amount = min($coupon['discount_value'], $total);
-            }
-        } else {
-            unset($_SESSION['applied_coupon']);
+      $coupon_id = $coupon['id'];
+      if ($coupon['discount_type'] === 'percentage') {
+        $discount_amount = $total * ($coupon['discount_value'] / 100);
+        if (isset($coupon['maximum_discount']) && $coupon['maximum_discount'] > 0) {
+          $discount_amount = min($discount_amount, $coupon['maximum_discount']);
         }
+      } else {
+        $discount_amount = min($coupon['discount_value'], $total);
+      }
+    } else {
+      unset($_SESSION['applied_coupon']);
     }
+  }
 
-    $final_total = $total - $discount_amount;
-    $conn->begin_transaction();
+  $final_total = $total - $discount_amount;
+  $conn->begin_transaction();
 
-    try {
-        $stmt = $conn->prepare("INSERT INTO orders (
+  try {
+    $stmt = $conn->prepare("INSERT INTO orders (
             user_id, customer_name, customer_email, phone, city,
             address, orderstate, numberofproducts, finaltotalprice, discount_value,
             coupon_id, coupon_code
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-        $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
-        $numberOfProducts = count($_SESSION['cart']);
-        $orderstate = 'pending';
+    $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+    $numberOfProducts = count($_SESSION['cart']);
+    $orderstate = 'pending';
 
-        $stmt->bind_param(
-            "issssssidiss",
-            $userId,
-            $_POST['full_name'],
-            $_POST['email'],
-            $_POST['phone'],
-            $_POST['city'],
-            $_POST['address'],
-            $orderstate,
-            $numberOfProducts,
-            $final_total,
-            $discount_amount,
-            $coupon_id,
-            $coupon_code
-        );
+    $stmt->bind_param(
+      "issssssidiss",
+      $userId,
+      $_POST['full_name'],
+      $_POST['email'],
+      $_POST['phone'],
+      $_POST['city'],
+      $_POST['address'],
+      $orderstate,
+      $numberOfProducts,
+      $final_total,
+      $discount_amount,
+      $coupon_id,
+      $coupon_code
+    );
 
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to create order: " . $stmt->error);
-        }
+    if (!$stmt->execute()) {
+      throw new Exception("Failed to create order: " . $stmt->error);
+    }
 
-        $orderId = $conn->insert_id;
+    $orderId = $conn->insert_id;
 
-        $itemStmt = $conn->prepare("INSERT INTO order_items (
+    $itemStmt = $conn->prepare("INSERT INTO order_items (
             order_id, product_id, qty, price, total_price, color, size
         ) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
-        foreach ($_SESSION['cart'] as $item) {
-            $price = $item['sale_price'] ?? $item['price'];
-            $totalPrice = $price * $item['quantity'];
-            $color = $item['color_name'] ?? 'Not specified';
-            $size = $item['size_name'] ?? 'Not specified';
+    foreach ($_SESSION['cart'] as $item) {
+      $price = $item['sale_price'] ?? $item['price'];
+      $totalPrice = $price * $item['quantity'];
+      $color = $item['color_name'] ?? 'Not specified';
+      $size = $item['size_name'] ?? 'Not specified';
 
-            $itemStmt->bind_param(
-                "iiiddss",
-                $orderId,
-                $item['id'],
-                $item['quantity'],
-                $price,
-                $totalPrice,
-                $color,
-                $size
-            );
+      $itemStmt->bind_param(
+        "iiiddss",
+        $orderId,
+        $item['id'],
+        $item['quantity'],
+        $price,
+        $totalPrice,
+        $color,
+        $size
+      );
 
-            if (!$itemStmt->execute()) {
-                throw new Exception("Failed to add order items: " . $itemStmt->error);
-            }
-        }
-        
-        if ($coupon) {
-            $coupon_usage_stmt = $conn->prepare("INSERT INTO coupon_usage (coupon_id, user_id, order_id) VALUES (?, ?, ?)");
-            $coupon_usage_stmt->bind_param("iii", $coupon_id, $userId, $orderId);
-            if (!$coupon_usage_stmt->execute()) {
-                throw new Exception("Failed to log coupon usage: " . $coupon_usage_stmt->error);
-            }
-            $coupon_usage_stmt->close();
-            
-            $update_coupon_stmt = $conn->prepare("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?");
-            $update_coupon_stmt->bind_param("i", $coupon_id);
-            if (!$update_coupon_stmt->execute()) {
-                throw new Exception("Failed to update coupon usage count: " . $update_coupon_stmt->error);
-            }
-            $update_coupon_stmt->close();
-        }
+      if (!$itemStmt->execute()) {
+        throw new Exception("Failed to add order items: " . $itemStmt->error);
+      }
+    }
 
-        if (isset($_SESSION['user_id'])) {
-            $updateStmt = $conn->prepare("UPDATE users SET 
+    if ($coupon) {
+      $coupon_usage_stmt = $conn->prepare("INSERT INTO coupon_usage (coupon_id, user_id, order_id) VALUES (?, ?, ?)");
+      $coupon_usage_stmt->bind_param("iii", $coupon_id, $userId, $orderId);
+      if (!$coupon_usage_stmt->execute()) {
+        throw new Exception("Failed to log coupon usage: " . $coupon_usage_stmt->error);
+      }
+      $coupon_usage_stmt->close();
+
+      $update_coupon_stmt = $conn->prepare("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?");
+      $update_coupon_stmt->bind_param("i", $coupon_id);
+      if (!$update_coupon_stmt->execute()) {
+        throw new Exception("Failed to update coupon usage count: " . $update_coupon_stmt->error);
+      }
+      $update_coupon_stmt->close();
+    }
+
+    if (isset($_SESSION['user_id'])) {
+      $updateStmt = $conn->prepare("UPDATE users SET 
                 phone = ?, 
                 address = ?, 
                 city = ?
                 WHERE id = ?");
 
-            $updateStmt->bind_param(
-                "sssi",
-                $_POST['phone'],
-                $_POST['address'],
-                $_POST['city'],
-                $_SESSION['user_id']
-            );
+      $updateStmt->bind_param(
+        "sssi",
+        $_POST['phone'],
+        $_POST['address'],
+        $_POST['city'],
+        $_SESSION['user_id']
+      );
 
-            if (!$updateStmt->execute()) {
-                throw new Exception("Failed to update user info: " . $updateStmt->error);
-            }
-            $updateStmt->close();
-        }
-
-        $conn->commit();
-
-        unset($_SESSION['cart']);
-        unset($_SESSION['applied_coupon']);
-
-        header("Location: ../orders/order_confirmation.php?id=$orderId");
-        exit();
-
-    } catch (Exception $e) {
-        $conn->rollback();
-        die("Order failed: " . $e->getMessage());
+      if (!$updateStmt->execute()) {
+        throw new Exception("Failed to update user info: " . $updateStmt->error);
+      }
+      $updateStmt->close();
     }
+
+    $conn->commit();
+
+    unset($_SESSION['cart']);
+    unset($_SESSION['applied_coupon']);
+
+    header("Location: ../orders/order_confirmation.php?id=$orderId");
+    exit();
+
+  } catch (Exception $e) {
+    $conn->rollback();
+    die("Order failed: " . $e->getMessage());
+  }
 }
 
 function formatPrice($price)
 {
-    return number_format((float) $price, 2, '.', '');
+  return number_format((float) $price, 2, '.', '');
 }
 
 $total = 0;
 foreach ($_SESSION['cart'] as $item) {
-    $price = $item['sale_price'] ?? $item['price'];
-    $total += $price * $item['quantity'];
+  $price = $item['sale_price'] ?? $item['price'];
+  $total += $price * $item['quantity'];
 }
 
 $discount_amount = 0;
 $final_total = $total;
 
 if ($coupon) {
-    if ($coupon['discount_type'] === 'percentage') {
-        $discount_amount = $total * ($coupon['discount_value'] / 100);
-        if (isset($coupon['maximum_discount']) && $coupon['maximum_discount'] > 0) {
-            $discount_amount = min($discount_amount, $coupon['maximum_discount']);
-        }
-    } else {
-        $discount_amount = min($coupon['discount_value'], $total);
+  if ($coupon['discount_type'] === 'percentage') {
+    $discount_amount = $total * ($coupon['discount_value'] / 100);
+    if (isset($coupon['maximum_discount']) && $coupon['maximum_discount'] > 0) {
+      $discount_amount = min($discount_amount, $coupon['maximum_discount']);
     }
-    $final_total = $total - $discount_amount;
+  } else {
+    $discount_amount = min($coupon['discount_value'], $total);
+  }
+  $final_total = $total - $discount_amount;
 }
 ?>
 
@@ -343,46 +343,46 @@ if ($coupon) {
                         <div class="accordion-body px-0">
                             <div class="card-body">
                                 <?php foreach ($_SESSION['cart'] as $item): ?>
-                                    <div class="product-box">
-                                        <div class="product-image-wrapper">
-                                            <span class="product-qty"><?= $item['quantity'] ?></span>
-                                            <div class="product-image"
-                                                style="background-image: url('<?= htmlspecialchars($item['image']) ?>');">
-                                            </div>
-                                        </div>
-                                        <div class="product-info">
-                                            <p class="m-0"><?= htmlspecialchars($item['name']) ?></p>
-                                            <span>
-                                                <?php if (!empty($item['color_name'])): ?>
-                                                    <?= htmlspecialchars($item['color_name']) ?>
-                                                <?php endif; ?>
-                                                <?php if (!empty($item['size_name'])): ?>
-                                                    / <?= htmlspecialchars($item['size_name']) ?>
-                                                <?php endif; ?>
-                                            </span>
-                                        </div>
-                                        <div class="ms-auto fw-bold">
-                                            <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?>
-                                            <sub>EGP</sub>
-                                        </div>
-                                    </div>
+                                      <div class="product-box">
+                                          <div class="product-image-wrapper">
+                                              <span class="product-qty"><?= $item['quantity'] ?></span>
+                                              <div class="product-image"
+                                                  style="background-image: url('<?= htmlspecialchars($item['image']) ?>');">
+                                              </div>
+                                          </div>
+                                          <div class="product-info">
+                                              <p class="m-0"><?= htmlspecialchars($item['name']) ?></p>
+                                              <span>
+                                                  <?php if (!empty($item['color_name'])): ?>
+                                                        <?= htmlspecialchars($item['color_name']) ?>
+                                                  <?php endif; ?>
+                                                  <?php if (!empty($item['size_name'])): ?>
+                                                        / <?= htmlspecialchars($item['size_name']) ?>
+                                                  <?php endif; ?>
+                                              </span>
+                                          </div>
+                                          <div class="ms-auto fw-bold">
+                                              <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?>
+                                              <sub>EGP</sub>
+                                          </div>
+                                      </div>
                                 <?php endforeach; ?>
 
                                 <div class="mt-3 mb-3">
                                     <?php if (isset($coupon) && $coupon): ?>
-                                        <div class="coupon-success">
-                                            <span>Coupon Code: <?= htmlspecialchars($coupon['code']) ?></span>
-                                            <button type="button" id="remove-coupon-mobile"
-                                                class="btn btn-sm btn-outline-danger">Remove</button>
-                                        </div>
+                                          <div class="coupon-success">
+                                              <span>Coupon Code: <?= htmlspecialchars($coupon['code']) ?></span>
+                                              <button type="button" id="remove-coupon-mobile"
+                                                  class="btn btn-sm btn-outline-danger">Remove</button>
+                                          </div>
                                     <?php else: ?>
-                                        <form id="coupon-form-mobile" class="coupon-form input-group mb-3">
-                                            <input type="text" id="coupon_code_mobile" name="coupon_code" class="form-control"
-                                                placeholder="Coupon Code" required>
-                                            <button type="submit" id="apply-coupon-mobile"
-                                                class="btn btn-outline-secondary">Apply</button>
-                                        </form>
-                                        <div id="coupon-message-mobile" class="coupon-error"></div>
+                                          <form id="coupon-form-mobile" class="coupon-form input-group mb-3">
+                                              <input type="text" id="coupon_code_mobile" name="coupon_code" class="form-control"
+                                                  placeholder="Coupon Code" required>
+                                              <button type="submit" id="apply-coupon-mobile"
+                                                  class="btn btn-outline-secondary">Apply</button>
+                                          </form>
+                                          <div id="coupon-message-mobile" class="coupon-error"></div>
                                     <?php endif; ?>
                                 </div>
 
@@ -407,7 +407,7 @@ if ($coupon) {
         </div>
 
         <div class="row min-vh-100 d-flex">
-            <div class="col-md-7 form-section">
+            <div class="col-md-6 form-section">
                 <form id="checkout-form" method="POST">
                     <h5>Contact</h5>
                     <input type="email" class="form-control mb-3" id="email" name="email"
@@ -473,46 +473,46 @@ if ($coupon) {
                 <div class="order-summary h-100 pt-5">
                     <div class="card-body">
                         <?php foreach ($_SESSION['cart'] as $item): ?>
-                            <div class="product-box">
-                                <div class="product-image-wrapper">
-                                    <span class="product-qty"><?= $item['quantity'] ?></span>
-                                    <div class="product-image"
-                                        style="background-image: url('<?= htmlspecialchars($item['image']) ?>');">
-                                    </div>
-                                </div>
-                                <div class="product-info">
-                                    <p class="m-0"><?= htmlspecialchars($item['name']) ?></p>
-                                    <span>
-                                        <?php if (!empty($item['color_name'])): ?>
-                                            <?= htmlspecialchars($item['color_name']) ?>
-                                        <?php endif; ?>
-                                        <?php if (!empty($item['size_name'])): ?>
-                                            / <?= htmlspecialchars($item['size_name']) ?>
-                                        <?php endif; ?>
-                                    </span>
-                                </div>
-                                <div class="ms-auto fw-bold">
-                                    <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?>
-                                    <sub>EGP</sub>
-                                </div>
-                            </div>
+                              <div class="product-box">
+                                  <div class="product-image-wrapper">
+                                      <span class="product-qty"><?= $item['quantity'] ?></span>
+                                      <div class="product-image"
+                                          style="background-image: url('<?= htmlspecialchars($item['image']) ?>');">
+                                      </div>
+                                  </div>
+                                  <div class="product-info">
+                                      <p class="m-0"><?= htmlspecialchars($item['name']) ?></p>
+                                      <span>
+                                          <?php if (!empty($item['color_name'])): ?>
+                                                <?= htmlspecialchars($item['color_name']) ?>
+                                          <?php endif; ?>
+                                          <?php if (!empty($item['size_name'])): ?>
+                                                / <?= htmlspecialchars($item['size_name']) ?>
+                                          <?php endif; ?>
+                                      </span>
+                                  </div>
+                                  <div class="ms-auto fw-bold">
+                                      <?= formatPrice(($item['sale_price'] ?? $item['price']) * $item['quantity']) ?>
+                                      <sub>EGP</sub>
+                                  </div>
+                              </div>
                         <?php endforeach; ?>
 
                         <div class="mt-3 mb-3">
                             <?php if (isset($coupon) && $coupon): ?>
-                                <div class="coupon-success">
-                                    <span>Coupon Code: <?= htmlspecialchars($coupon['code']) ?></span>
-                                    <button type="button" id="remove-coupon"
-                                        class="btn btn-sm btn-outline-danger">Remove</button>
-                                </div>
+                                  <div class="coupon-success">
+                                      <span>Coupon Code: <?= htmlspecialchars($coupon['code']) ?></span>
+                                      <button type="button" id="remove-coupon"
+                                          class="btn btn-sm btn-outline-danger">Remove</button>
+                                  </div>
                             <?php else: ?>
-                                <form id="coupon-form" class="coupon-form input-group mb-3">
-                                    <input type="text" id="coupon_code" name="coupon_code" class="form-control"
-                                        placeholder="Coupon Code" required>
-                                    <button type="submit" id="apply-coupon"
-                                        class="btn btn-outline-secondary">Apply</button>
-                                </form>
-                                <div id="coupon-message" class="coupon-error"></div>
+                                  <form id="coupon-form" class="coupon-form input-group mb-3">
+                                      <input type="text" id="coupon_code" name="coupon_code" class="form-control"
+                                          placeholder="Coupon Code" required>
+                                      <button type="submit" id="apply-coupon"
+                                          class="btn btn-outline-secondary">Apply</button>
+                                  </form>
+                                  <div id="coupon-message" class="coupon-error"></div>
                             <?php endif; ?>
                         </div>
 

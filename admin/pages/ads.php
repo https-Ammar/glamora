@@ -110,7 +110,6 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
 
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -119,6 +118,7 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ads & Sliders Management</title>
     </head>
+
 <body>
     <h1>Content Management</h1>
 
@@ -136,7 +136,7 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
                     $categories = $conn->query("SELECT id, name FROM categories WHERE parent_id IS NULL ORDER BY name ASC");
                     while ($category = $categories->fetch_assoc()):
                         ?>
-                                <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
+                            <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
                     <?php endwhile; ?>
                 </select>
                 <label>Image*</label>
@@ -174,21 +174,24 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
             ");
             while ($ad = $ads->fetch_assoc()):
                 ?>
-                        <tr>
-                            <td><?= $ad['id'] ?></td>
-                            <td><?= htmlspecialchars($ad['category_name']) ?></td>
-                            <td><img src="<?= htmlspecialchars($ad['photo']) ?>" style="width:100px;height:60px;"></td>
-                            <td><a href="<?= htmlspecialchars($ad['linkaddress']) ?>" target="_blank"><?= htmlspecialchars($ad['linkaddress']) ?></a></td>
-                            <td>
-                                <button onclick="editAd(<?= $ad['id'] ?>, '<?= htmlspecialchars($ad['category_name']) ?>', '<?= htmlspecialchars($ad['photo']) ?>', '<?= htmlspecialchars($ad['linkaddress']) ?>')">Edit</button>
-                                <a href="?delete=<?= $ad['id'] ?>" onclick="return confirm('Are you sure you want to delete this ad?')">Delete</a>
-                            </td>
-                        </tr>
+                    <tr>
+                        <td><?= $ad['id'] ?></td>
+                        <td><?= htmlspecialchars($ad['category_name']) ?></td>
+                        <td><img src="<?= htmlspecialchars($ad['photo']) ?>" style="width:100px;height:60px;"></td>
+                        <td><a href="<?= htmlspecialchars($ad['linkaddress']) ?>"
+                                target="_blank"><?= htmlspecialchars($ad['linkaddress']) ?></a></td>
+                        <td>
+                            <button
+                                onclick="editAd(<?= $ad['id'] ?>, '<?= htmlspecialchars($ad['category_name']) ?>', '<?= htmlspecialchars($ad['photo']) ?>', '<?= htmlspecialchars($ad['linkaddress']) ?>')">Edit</button>
+                            <a href="?delete=<?= $ad['id'] ?>"
+                                onclick="return confirm('Are you sure you want to delete this ad?')">Delete</a>
+                        </td>
+                    </tr>
             <?php endwhile; ?>
             <?php if ($ads->num_rows === 0): ?>
-                        <tr>
-                            <td colspan="5">No ads available.</td>
-                        </tr>
+                    <tr>
+                        <td colspan="5">No ads available.</td>
+                    </tr>
             <?php endif; ?>
         </tbody>
     </table>
@@ -223,21 +226,24 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
             $sliders = $conn->query("SELECT * FROM sliders ORDER BY id DESC");
             while ($slider = $sliders->fetch_assoc()):
                 ?>
-                        <tr>
-                            <td><?= $slider['id'] ?></td>
-                            <td><img src="<?= htmlspecialchars($slider['image_url']) ?>" style="width:100px;height:60px;"></td>
-                            <td><a href="<?= htmlspecialchars($slider['link_url']) ?>" target="_blank"><?= htmlspecialchars($slider['link_url']) ?></a></td>
-                            <td><?= $slider['created_at'] ?></td>
-                            <td>
-                                <button onclick="editSlider(<?= $slider['id'] ?>, '<?= htmlspecialchars($slider['image_url']) ?>', '<?= htmlspecialchars($slider['link_url']) ?>')">Edit</button>
-                                <a href="?delete_slider=<?= $slider['id'] ?>" onclick="return confirm('Are you sure you want to delete this slider?')">Delete</a>
-                            </td>
-                        </tr>
+                    <tr>
+                        <td><?= $slider['id'] ?></td>
+                        <td><img src="<?= htmlspecialchars($slider['image_url']) ?>" style="width:100px;height:60px;"></td>
+                        <td><a href="<?= htmlspecialchars($slider['link_url']) ?>"
+                                target="_blank"><?= htmlspecialchars($slider['link_url']) ?></a></td>
+                        <td><?= $slider['created_at'] ?></td>
+                        <td>
+                            <button
+                                onclick="editSlider(<?= $slider['id'] ?>, '<?= htmlspecialchars($slider['image_url']) ?>', '<?= htmlspecialchars($slider['link_url']) ?>')">Edit</button>
+                            <a href="?delete_slider=<?= $slider['id'] ?>"
+                                onclick="return confirm('Are you sure you want to delete this slider?')">Delete</a>
+                        </td>
+                    </tr>
             <?php endwhile; ?>
             <?php if ($sliders->num_rows === 0): ?>
-                        <tr>
-                            <td colspan="5">No sliders available.</td>
-                        </tr>
+                    <tr>
+                        <td colspan="5">No sliders available.</td>
+                    </tr>
             <?php endif; ?>
         </tbody>
     </table>
@@ -253,7 +259,7 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
                 $categories->data_seek(0); // Reset pointer
                 while ($category = $categories->fetch_assoc()):
                     ?>
-                            <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
+                        <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
                 <?php endwhile; ?>
             </select>
             <br>
@@ -285,7 +291,8 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
             <input type="url" name="edit_slider_link" id="edit_slider_link" placeholder="https://example.com" required>
             <br>
             <button type="submit" name="update_slider">Save Changes</button>
-            <button type="button" onclick="document.getElementById('editSliderForm').style.display='none';">Cancel</button>
+            <button type="button"
+                onclick="document.getElementById('editSliderForm').style.display='none';">Cancel</button>
         </form>
     </div>
 
@@ -346,4 +353,5 @@ $slider_count = $conn->query("SELECT COUNT(*) as count FROM sliders")->fetch_ass
         }
     </script>
 </body>
+
 </html>

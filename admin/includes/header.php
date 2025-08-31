@@ -63,7 +63,7 @@
                                 </li>
 
                                 <li>
-                                    <a href="#" class="menu-dropdown-item group"
+                                    <a href="./pages/categories.php" class="menu-dropdown-item group"
                                         :class="page === 'stocks' ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
                                         Categories
                                     </a>

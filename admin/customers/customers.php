@@ -47,8 +47,13 @@ foreach ($customers as $customer) {
         $deletedCustomers++;
     }
 }
-?>
 
+$totalActivePercentage = ($totalCustomers > 0) ? round(($activeCustomers / $totalCustomers) * 100, 1) : 0;
+$suspendedPercentage = ($totalCustomers > 0) ? round(($suspendedCustomers / $totalCustomers) * 100, 1) : 0;
+$totalWithDeleted = $totalCustomers + $deletedCustomers;
+$totalPercentage = ($totalWithDeleted > 0) ? round(($totalCustomers / $totalWithDeleted) * 100, 1) : 0;
+$deletedPercentage = ($totalWithDeleted > 0) ? round(($deletedCustomers / $totalWithDeleted) * 100, 1) : 0;
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -61,13 +66,10 @@ foreach ($customers as $customer) {
 
 <body
     x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
-    x-init="
-         darkMode = JSON.parse(localStorage.getItem('darkMode'));
-         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
     :class="{'dark bg-gray-900': darkMode === true}">
 
     <main>
-
         <div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
             <div x-data="{ pageName: `Customers` }">
                 <div class="flex flex-wrap items-center justify-between gap-3 pb-6">
@@ -94,28 +96,20 @@ foreach ($customers as $customer) {
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                            Overview
-                        </h3>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Overview</h3>
                     </div>
                     <div class="flex gap-x-3.5">
                         <div x-data="{selected: 'weekly'}"
                             class="inline-flex w-full items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900">
                             <button @click="selected = 'weekly'"
                                 :class="selected === 'weekly' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'"
-                                class="text-theme-sm w-full rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800">
-                                Weekly
-                            </button>
+                                class="text-theme-sm w-full rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800">Weekly</button>
                             <button @click="selected = 'monthly'"
                                 :class="selected === 'monthly' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'"
-                                class="text-theme-sm w-full rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white text-gray-500 dark:text-gray-400">
-                                Monthly
-                            </button>
+                                class="text-theme-sm w-full rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white text-gray-500 dark:text-gray-400">Monthly</button>
                             <button @click="selected = 'yearly'"
                                 :class="selected === 'yearly' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'"
-                                class="text-theme-sm w-full rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white text-gray-500 dark:text-gray-400">
-                                Yearly
-                            </button>
+                                class="text-theme-sm w-full rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white text-gray-500 dark:text-gray-400">Yearly</button>
                         </div>
                         <div>
                             <button
@@ -133,7 +127,6 @@ foreach ($customers as $customer) {
                                         d="M7.91745 11.525C6.49762 11.525 5.34662 12.676 5.34662 14.0959C5.34661 15.5157 6.49762 16.6667 7.91745 16.6667C9.33728 16.6667 10.4883 15.5157 10.4883 14.0959C10.4883 12.676 9.33728 11.525 7.91745 11.525Z"
                                         fill="" stroke="" stroke-width="1.5"></path>
                                 </svg>
-
                                 <span class="hidden sm:block">Filter</span>
                             </button>
                         </div>
@@ -145,13 +138,10 @@ foreach ($customers as $customer) {
                         <span class="text-sm text-gray-500 dark:text-gray-400">Total Customers</span>
                         <div class="mt-2 flex items-end gap-3">
                             <h4 class="text-title-xs sm:text-title-sm font-bold text-gray-800 dark:text-white/90">
-                                <?php echo $totalCustomers; ?>
-                            </h4>
+                                <?php echo $totalCustomers; ?></h4>
                             <div>
                                 <span
-                                    class="bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500 flex items-center gap-1 rounded-full py-0.5 pr-2.5 pl-2 text-sm font-medium">
-                                    +<?php echo round(($totalCustomers / ($totalCustomers + $deletedCustomers)) * 100, 1); ?>%
-                                </span>
+                                    class="bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500 flex items-center gap-1 rounded-full py-0.5 pr-2.5 pl-2 text-sm font-medium">+<?php echo $totalPercentage; ?>%</span>
                             </div>
                         </div>
                     </div>
@@ -159,13 +149,10 @@ foreach ($customers as $customer) {
                         <span class="text-sm text-gray-500 dark:text-gray-400">Active Customers</span>
                         <div class="mt-2 flex items-end gap-3">
                             <h4 class="text-title-xs sm:text-title-sm font-bold text-gray-800 dark:text-white/90">
-                                <?php echo $activeCustomers; ?>
-                            </h4>
+                                <?php echo $activeCustomers; ?></h4>
                             <div>
                                 <span
-                                    class="bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500 flex items-center gap-1 rounded-full py-0.5 pr-2.5 pl-2 text-sm font-medium">
-                                    +<?php echo round(($activeCustomers / $totalCustomers) * 100, 1); ?>%
-                                </span>
+                                    class="bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500 flex items-center gap-1 rounded-full py-0.5 pr-2.5 pl-2 text-sm font-medium">+<?php echo $totalActivePercentage; ?>%</span>
                             </div>
                         </div>
                     </div>
@@ -174,13 +161,10 @@ foreach ($customers as $customer) {
                             <span class="text-sm text-gray-500 dark:text-gray-400">Suspended Customers</span>
                             <div class="mt-2 flex items-end gap-3">
                                 <h4 class="text-title-xs sm:text-title-sm font-bold text-gray-800 dark:text-white/90">
-                                    <?php echo $suspendedCustomers; ?>
-                                </h4>
+                                    <?php echo $suspendedCustomers; ?></h4>
                                 <div>
                                     <span
-                                        class="bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 flex items-center gap-1 rounded-full py-0.5 pr-2.5 pl-2 text-sm font-medium">
-                                        <?php echo round(($suspendedCustomers / $totalCustomers) * 100, 1); ?>%
-                                    </span>
+                                        class="bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 flex items-center gap-1 rounded-full py-0.5 pr-2.5 pl-2 text-sm font-medium"><?php echo $suspendedPercentage; ?>%</span>
                                 </div>
                             </div>
                         </div>
@@ -189,13 +173,10 @@ foreach ($customers as $customer) {
                         <span class="text-sm text-gray-500 dark:text-gray-400">Deleted Customers</span>
                         <div class="mt-2 flex items-end gap-3">
                             <h4 class="text-title-xs sm:text-title-sm font-bold text-gray-800 dark:text-white/90">
-                                <?php echo $deletedCustomers; ?>
-                            </h4>
+                                <?php echo $deletedCustomers; ?></h4>
                             <div>
                                 <span
-                                    class="bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 flex items-center gap-1 rounded-full py-0.5 pr-2.5 pl-2 text-sm font-medium">
-                                    <?php echo round(($deletedCustomers / ($totalCustomers + $deletedCustomers)) * 100, 1); ?>%
-                                </span>
+                                    class="bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 flex items-center gap-1 rounded-full py-0.5 pr-2.5 pl-2 text-sm font-medium"><?php echo $deletedPercentage; ?>%</span>
                             </div>
                         </div>
                     </div>
@@ -274,8 +255,7 @@ foreach ($customers as $customer) {
                                     <th class="px-6 py-3 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
-                                                Customer
-                                            </p>
+                                                Customer</p>
                                         </div>
                                     </th>
                                     <th class="px-6 py-3 whitespace-nowrap">
@@ -287,8 +267,7 @@ foreach ($customers as $customer) {
                                     <th class="px-6 py-3 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
-                                                Country
-                                            </p>
+                                                Country</p>
                                         </div>
                                     </th>
                                     <th class="px-6 py-3 whitespace-nowrap">
@@ -354,8 +333,8 @@ foreach ($customers as $customer) {
                                                         <div
                                                             class="flex items-center justify-center w-10 h-10 rounded-full bg-brand-100">
                                                             <?php if (!empty($customer['profile_image'])): ?>
-                                                                <span class="text-xs font-semibold text-brand-500"
-                                                                    style="background: url('<?php echo $customer['profile_image']; ?>');"></span>
+                                                                <img src="<?php echo $customer['profile_image']; ?>" alt="Profile"
+                                                                    class="w-10 h-10 rounded-full">
                                                             <?php else: ?>
                                                                 <span
                                                                     class="text-xs font-semibold text-brand-500"><?php echo substr($customer['name'], 0, 2); ?></span>
@@ -363,11 +342,9 @@ foreach ($customers as $customer) {
                                                         </div>
                                                         <div>
                                                             <span
-                                                                class="text-theme-sm mb-0.5 block font-medium text-gray-700 dark:text-gray-400"><?php echo htmlspecialchars($customer['name']); ?>
-                                                            </span>
+                                                                class="text-theme-sm mb-0.5 block font-medium text-gray-700 dark:text-gray-400"><?php echo htmlspecialchars($customer['name']); ?></span>
                                                             <span
-                                                                class="text-gray-500 text-theme-sm dark:text-gray-400"><?php echo htmlspecialchars($customer['email']); ?>
-                                                            </span>
+                                                                class="text-gray-500 text-theme-sm dark:text-gray-400"><?php echo htmlspecialchars($customer['email']); ?></span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -375,24 +352,20 @@ foreach ($customers as $customer) {
                                             <td class="px-6 py-3 whitespace-nowrap">
                                                 <div class="flex items-center">
                                                     <p class="text-gray-700 text-theme-sm dark:text-gray-400">
-                                                        <?php echo htmlspecialchars($customer['phone']); ?>
-                                                    </p>
+                                                        <?php echo htmlspecialchars($customer['phone']); ?></p>
                                                 </div>
                                             </td>
                                             <td class="px-6 py-3 whitespace-nowrap">
                                                 <div class="flex items-center">
                                                     <p class="text-gray-700 text-theme-sm dark:text-gray-400">
-                                                        <?php echo htmlspecialchars($customer['country']); ?>
-                                                    </p>
+                                                        <?php echo htmlspecialchars($customer['country']); ?></p>
                                                 </div>
                                             </td>
                                             <td class="px-6 py-3 whitespace-nowrap">
                                                 <div class="flex items-center">
                                                     <p class="text-gray-700 text-theme-sm dark:text-gray-400">
-                                                        <?php echo htmlspecialchars($customer['city']); ?>
-                                                        =>
-                                                        <?php echo htmlspecialchars($customer['address']); ?>
-                                                    </p>
+                                                        <?php echo htmlspecialchars($customer['city']); ?> =>
+                                                        <?php echo htmlspecialchars($customer['address']); ?></p>
                                                 </div>
                                             </td>
                                             <td class="px-6 py-3 whitespace-nowrap">
@@ -406,9 +379,8 @@ foreach ($customers as $customer) {
                                                 <div class="flex items-center">
                                                     <p class="text-gray-700 text-theme-sm dark:text-gray-400">
                                                         <a class="button orders"
-                                                            href="customer_orders.php?id=<?php echo $customer['id']; ?>">
-                                                            <?php echo $customer['orders_count']; ?> Orders
-                                                        </a>
+                                                            href="customer_orders.php?id=<?php echo $customer['id']; ?>"><?php echo $customer['orders_count']; ?>
+                                                            Orders</a>
                                                     </p>
                                                 </div>
                                             </td>
@@ -416,8 +388,7 @@ foreach ($customers as $customer) {
                                                 <div class="flex items-center">
                                                     <p
                                                         class="bg-success-50 text-theme-xs text-success-600 dark:bg-success-500/15 dark:text-success-500 rounded-full px-2 py-0.5 font-medium bg-danger">
-                                                        <?php echo ucfirst($customer['status']); ?>
-                                                    </p>
+                                                        <?php echo ucfirst($customer['status']); ?></p>
                                                 </div>
                                             </td>
                                             <td class="px-6 py-3 whitespace-nowrap">

@@ -116,109 +116,68 @@ try {
     // إنشاء محتوى الإيميل
     ob_start();
     ?>
-    <!DOCTYPE html>
-    <html dir="rtl" lang="ar">
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
 
-    <head>
-        <meta charset="UTF-8">
-        <title>تأكيد الطلب #<?php echo $order_id; ?></title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                line-height: 1.6;
-                color: #333;
-            }
+        <head>
+            <meta charset="UTF-8">
+            <title>تأكيد الطلب #<?php echo $order_id; ?></title>
 
-            .container {
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px;
-            }
+        </head>
 
-            .header {
-                background-color: #f8f9fa;
-                padding: 20px;
-                text-align: center;
-            }
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>شكراً لطلبك!</h1>
+                    <p>رقم الطلب: #<?php echo $order_id; ?></p>
+                </div>
 
-            .order-details {
-                margin: 20px 0;
-            }
-
-            .table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-
-            .table th,
-            .table td {
-                padding: 8px;
-                text-align: right;
-                border-bottom: 1px solid #ddd;
-            }
-
-            .footer {
-                margin-top: 20px;
-                text-align: center;
-                font-size: 0.9em;
-                color: #777;
-            }
-        </style>
-    </head>
-
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>شكراً لطلبك!</h1>
-                <p>رقم الطلب: #<?php echo $order_id; ?></p>
-            </div>
-
-            <div class="order-details">
-                <h2>تفاصيل الطلب</h2>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>المنتج</th>
-                            <th>الكمية</th>
-                            <th>السعر</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($order_items as $item): ?>
+                <div class="order-details">
+                    <h2>تفاصيل الطلب</h2>
+                    <table class="table">
+                        <thead>
                             <tr>
-                                <td><?php echo htmlspecialchars($item['product_name']); ?></td>
-                                <td><?php echo $item['qty']; ?></td>
-                                <td>$<?php echo number_format($item['price'], 2); ?></td>
+                                <th>المنتج</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($order_items as $item): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($item['product_name']); ?></td>
+                                        <td><?php echo $item['qty']; ?></td>
+                                        <td>$<?php echo number_format($item['price'], 2); ?></td>
+                                    </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
 
-                <h3>ملخص الطلب</h3>
-                <p>المجموع الفرعي: $<?php echo number_format($subtotal, 2); ?></p>
-                <?php if (!empty($order['coupon_code'])): ?>
-                    <p>الخصم (<?php echo htmlspecialchars($order['coupon_code']); ?>):
-                        -$<?php echo number_format($order['discount_value'] ?? 0, 2); ?></p>
-                <?php endif; ?>
-                <p>الشحن: $0.00</p>
-                <p><strong>المجموع الكلي: $<?php echo number_format($order['finaltotalprice'] ?? 0, 2); ?></strong></p>
+                    <h3>ملخص الطلب</h3>
+                    <p>المجموع الفرعي: $<?php echo number_format($subtotal, 2); ?></p>
+                    <?php if (!empty($order['coupon_code'])): ?>
+                            <p>الخصم (<?php echo htmlspecialchars($order['coupon_code']); ?>):
+                                -$<?php echo number_format($order['discount_value'] ?? 0, 2); ?></p>
+                    <?php endif; ?>
+                    <p>الشحن: $0.00</p>
+                    <p><strong>المجموع الكلي: $<?php echo number_format($order['finaltotalprice'] ?? 0, 2); ?></strong></p>
+                </div>
+
+                <div class="footer">
+                    <p>شكراً لتسوقك معنا!</p>
+                    <p>لأي استفسارات، لا تتردد في التواصل معنا على ammar132004@gmail.com</p>
+                </div>
             </div>
+        </body>
 
-            <div class="footer">
-                <p>شكراً لتسوقك معنا!</p>
-                <p>لأي استفسارات، لا تتردد في التواصل معنا على ammar132004@gmail.com</p>
-            </div>
-        </div>
-    </body>
+        </html>
+        <?php
+        $email_content = ob_get_clean();
 
-    </html>
-    <?php
-    $email_content = ob_get_clean();
+        $mail->Body = $email_content;
+        $mail->AltBody = "شكراً لطلبك! رقم الطلب: #$order_id\n\nيمكنك مراجعة تفاصيل طلبك في حسابك على موقعنا.";
 
-    $mail->Body = $email_content;
-    $mail->AltBody = "شكراً لطلبك! رقم الطلب: #$order_id\n\nيمكنك مراجعة تفاصيل طلبك في حسابك على موقعنا.";
-
-    $mail->send();
+        $mail->send();
     // يمكنك إضافة رسالة نجاح هنا إذا أردت
     // $_SESSION['email_sent'] = true;
 
@@ -239,121 +198,7 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f8f9fa;
-            color: #212529;
-        }
 
-        .order-card {
-            border-radius: 15px;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-            border: none;
-            overflow: hidden;
-        }
-
-        .header-section {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-            padding: 2rem 1rem;
-            border-radius: 15px 15px 0 0;
-        }
-
-        .success-alert {
-            background-color: #d1e7dd;
-            border-color: #badbcc;
-            color: #0f5132;
-            border-radius: 10px;
-        }
-
-        .info-card {
-            border-radius: 10px;
-            border: 1px solid #e3e6f0;
-            transition: all 0.3s;
-            height: 100%;
-        }
-
-        .info-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-        }
-
-        .info-card h3 {
-            color: #4e73df;
-            border-bottom: 2px solid #f8f9fc;
-            padding-bottom: 10px;
-        }
-
-        .product-img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-
-        .summary-card {
-            background-color: #f8f9fc;
-            border-radius: 10px;
-            border: 1px solid #e3e6f0;
-        }
-
-        .summary-item {
-            border-bottom: 1px dashed #e3e6f0;
-            padding: 12px 0;
-        }
-
-        .summary-item:last-child {
-            border-bottom: none;
-            font-weight: 600;
-            font-size: 1.1rem;
-            color: #2e59d9;
-        }
-
-        .btn-primary {
-            background-color: #4e73df;
-            border-color: #4e73df;
-            padding: 10px 25px;
-            font-weight: 500;
-        }
-
-        .btn-primary:hover {
-            background-color: #2e59d9;
-            border-color: #2653d4;
-        }
-
-        .btn-outline-primary {
-            color: #4e73df;
-            border-color: #4e73df;
-            padding: 10px 25px;
-            font-weight: 500;
-        }
-
-        .btn-outline-primary:hover {
-            background-color: #4e73df;
-            border-color: #4e73df;
-        }
-
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-
-            body {
-                background-color: white !important;
-            }
-
-            .order-card {
-                box-shadow: none !important;
-                border: none !important;
-            }
-
-            .header-section {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -437,27 +282,27 @@ try {
                         </thead>
                         <tbody>
                             <?php if (!empty($order_items)): ?>
-                                <?php foreach ($order_items as $item): ?>
-                                    <tr>
-                                        <td>
-                                            <?php if (!empty($item['product_image'])): ?>
-                                                <img src="<?php echo htmlspecialchars($item['product_image']); ?>"
-                                                    alt="<?php echo htmlspecialchars($item['product_name']); ?>"
-                                                    class="product-img">
-                                            <?php else: ?>
-                                                <img src="images/no-image.jpg" alt="No image" class="product-img">
-                                            <?php endif; ?>
-                                        </td>
-                                        <td><?php echo htmlspecialchars($item['product_name']); ?></td>
-                                        <td>$<?php echo number_format($item['price'], 2); ?></td>
-                                        <td><?php echo $item['qty']; ?></td>
-                                        <td>$<?php echo number_format($item['total_price'], 2); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
+                                    <?php foreach ($order_items as $item): ?>
+                                            <tr>
+                                                <td>
+                                                    <?php if (!empty($item['product_image'])): ?>
+                                                            <img src="<?php echo htmlspecialchars($item['product_image']); ?>"
+                                                                alt="<?php echo htmlspecialchars($item['product_name']); ?>"
+                                                                class="product-img">
+                                                    <?php else: ?>
+                                                            <img src="images/no-image.jpg" alt="No image" class="product-img">
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td><?php echo htmlspecialchars($item['product_name']); ?></td>
+                                                <td>$<?php echo number_format($item['price'], 2); ?></td>
+                                                <td><?php echo $item['qty']; ?></td>
+                                                <td>$<?php echo number_format($item['total_price'], 2); ?></td>
+                                            </tr>
+                                    <?php endforeach; ?>
                             <?php else: ?>
-                                <tr>
-                                    <td colspan="5" class="text-center">No items found in this order</td>
-                                </tr>
+                                    <tr>
+                                        <td colspan="5" class="text-center">No items found in this order</td>
+                                    </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -471,10 +316,10 @@ try {
                     </div>
 
                     <?php if (!empty($order['coupon_code'])): ?>
-                        <div class="summary-item d-flex justify-content-between">
-                            <span>Discount (<?php echo htmlspecialchars($order['coupon_code']); ?>):</span>
-                            <span>-$<?php echo number_format($order['discount_value'] ?? 0, 2); ?></span>
-                        </div>
+                            <div class="summary-item d-flex justify-content-between">
+                                <span>Discount (<?php echo htmlspecialchars($order['coupon_code']); ?>):</span>
+                                <span>-$<?php echo number_format($order['discount_value'] ?? 0, 2); ?></span>
+                            </div>
                     <?php endif; ?>
 
                     <div class="summary-item d-flex justify-content-between">
@@ -500,3 +345,7 @@ try {
 </body>
 
 </html>
+
+
+
+<!--  -->

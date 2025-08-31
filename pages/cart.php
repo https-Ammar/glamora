@@ -459,4 +459,9 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
     height: 25px;
     border-radius: 30px !important;
   }
+
+  img.img-thumbnail.me-3 {
+    border-radius: 15px;
+    padding: 3px;
+  }
 </style>

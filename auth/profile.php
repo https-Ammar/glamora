@@ -22,6 +22,55 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
+    $name = trim($_POST['name']);
+    $email = trim($_POST['email']);
+    $phone = trim($_POST['phone']);
+    $country = trim($_POST['country']);
+    $city = trim($_POST['city']);
+    $address = trim($_POST['address']);
+
+    $errors = [];
+    if (empty($name) || empty($email) || empty($phone) || empty($country) || empty($city) || empty($address)) {
+        $errors[] = 'All fields are required.';
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Invalid email format.';
+    }
+
+    if (empty($errors)) {
+        $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, phone = ?, country = ?, city = ?, address = ? WHERE id = ?");
+        $stmt->bind_param("ssssssi", $name, $email, $phone, $country, $city, $address, $userId);
+        if ($stmt->execute()) {
+            $_SESSION['message'] = 'Profile updated successfully.';
+        } else {
+            $_SESSION['error'] = 'Failed to update profile.';
+        }
+        $stmt->close();
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit();
+    } else {
+        $_SESSION['errors'] = $errors;
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit();
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_order'])) {
+    $orderIdToCancel = (int) $_POST['order_id'];
+    $stmt = $conn->prepare("UPDATE orders SET orderstate = 'rejected' WHERE id = ? AND user_id = ? AND orderstate = 'inprogress'");
+    $stmt->bind_param("ii", $orderIdToCancel, $userId);
+    if ($stmt->execute()) {
+        $_SESSION['message'] = 'Order cancelled successfully.';
+    } else {
+        $_SESSION['error'] = 'Failed to cancel the order. It might already be processed.';
+    }
+    $stmt->close();
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit();
+}
+
 $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
@@ -34,8 +83,6 @@ if (!$user) {
     header('Location: login.php');
     exit();
 }
-
-$orderId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
 $stmtOrders = $conn->prepare("
     SELECT 
@@ -70,139 +117,49 @@ $stmtOrderItems = $conn->prepare("
     WHERE 
         order_items.order_id = ?
 ");
+
+$totalSpent = 0;
+$acceptedOrdersCount = 0;
+
+$stmtTotalSpent = $conn->prepare("SELECT SUM(finaltotalprice) AS total_spent FROM orders WHERE user_id = ?");
+$stmtTotalSpent->bind_param("i", $userId);
+$stmtTotalSpent->execute();
+$resultTotalSpent = $stmtTotalSpent->get_result();
+$totalSpentRow = $resultTotalSpent->fetch_assoc();
+$totalSpent = $totalSpentRow['total_spent'] ?? 0;
+$stmtTotalSpent->close();
+
+$stmtAcceptedOrdersCount = $conn->prepare("SELECT COUNT(*) AS accepted_count FROM orders WHERE user_id = ? AND orderstate = 'accepted'");
+$stmtAcceptedOrdersCount->bind_param("i", $userId);
+$stmtAcceptedOrdersCount->execute();
+$resultAcceptedOrdersCount = $stmtAcceptedOrdersCount->get_result();
+$acceptedOrdersCountRow = $resultAcceptedOrdersCount->fetch_assoc();
+$acceptedOrdersCount = $acceptedOrdersCountRow['accepted_count'] ?? 0;
+$stmtAcceptedOrdersCount->close();
+
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Beauty Lab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <?php require('../includes/link.php'); ?>
-
-    <link rel="stylesheet" href="/admin/assets/css/main.css">
-
+    <link rel="stylesheet" href="./pro.css">
     <style>
-        span.badge.bg-dark {
-            width: 25px;
-            height: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            font-size: small;
-            font-weight: normal;
+        .input-group-text {
+            background-color: transparent;
+            border-right: 0;
         }
 
-        h2.text-center.mb-4 {
-            display: flex;
-            /* align-items: center; */
-            justify-content: center;
-            gap: 10px;
-        }
-
-        span.order-status.bg-secondary {
-            background: none !important;
-        }
-
-        a#ordersTab {
-            background: no-repeat;
-            color: black;
-        }
-
-        div#orderModal13 {
-            background: white !important;
-        }
-
-
-        .modal.fade.show {
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999999999999999;
-        }
-
-        .modal-header {
-            border: navajowhite;
-        }
-
-        .modal-content {
-            border: navajowhite;
-        }
-
-        span.product-qty {
-            background: red;
-            width: 20px !important;
-            height: 20px !important;
-            /* padding: 0px 10px; */
-            border-radius: 50%;
-            position: absolute;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            top: -10px;
-            left: -10px;
-            background: black;
-            color: white;
-            font-size: x-small;
-        }
-
-        .modal-dialog.modal-lg {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .card-body {
-            border-bottom: 1px solid #e9e9e9;
-        }
-
-        .position-relative.me-3.rounded.border {
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center center;
-        }
-    </style>
-    <style>
-        body {
-            background-color: #0d1b2a;
-            color: white;
-            font-family: 'Arial', sans-serif;
-        }
-
-        .profile-card {
-            background: url('https://via.placeholder.com/1000x250') no-repeat center center/cover;
-            border-radius: 20px;
-            padding: 40px 0;
-            position: relative;
-            color: white;
-            overflow: hidden;
-        }
-
-        .profile-content {
-            position: relative;
-            z-index: 2;
-        }
-
-        .profile-img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            border: 3px solid white;
-            object-fit: cover;
-        }
-
-        .social-icons .btn {
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .modal-header {
-            border-bottom: none;
-        }
-
-        .modal-footer {
-            border-top: none;
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #ced4da;
         }
     </style>
 </head>
@@ -210,333 +167,565 @@ $stmtOrderItems = $conn->prepare("
 <body>
     <?php require('../includes/header.php'); ?>
 
-    <!DOCTYPE html>
-    <html lang="en">
-
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Profile</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-        <style>
-            .profile-card {
-                background: url('https://via.placeholder.com/1000x250') no-repeat center center/cover;
-                border-radius: 20px;
-                padding: 40px 0;
-                position: relative;
-                color: white;
-                overflow: hidden;
-            }
-
-            .profile-content.d-flex.align-items-center.justify-content-between {
-                color: black !important;
-            }
-
-            a.btn.btn-outline-light.btn-sm {
-                color: black;
-            }
-
-            .profile-content {
-                position: relative;
-                z-index: 2;
-            }
-
-            .profile-img {
-                width: 100px;
-                height: 100px;
-                border-radius: 50%;
-                border: 3px solid black;
-                object-fit: cover;
-            }
-
-            .social-icons .btn {
-                border-radius: 50%;
-                margin-right: 8px;
-            }
-
-            .modal-header {
-                border-bottom: none;
-            }
-
-            .modal-footer {
-                border-top: none;
-            }
-        </style>
-    </head>
-
-    <body>
-
-        <div class="container py-5">
-            <h4 class="mb-4">Profile</h4>
-
-                                <h2 class="text-center mb-4">Orders <span class="badge bg-dark"><?= $orders->num_rows ?></span></h2>
-
-
-            <div class="profile-card">
-                <div class="profile-overlay"></div>
-                <div class="profile-content d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-
-
-
-                        <?php if (!empty($user['profile_image'])): ?>
-                            <img src="<?= htmlspecialchars($user['profile_image']) ?>" alt="" class="profile-img me-3">
-                        <?php else: ?>
-                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
-                                style="width: 100px; height: 100px;">
-                                <i class="bi bi-person text-white fs-1"></i>
-                            </div>
-                        <?php endif; ?>
-
-
-                        <div>
-                            <h4 class="mb-1"><?= htmlspecialchars($user['name'] ?? $user['email']) ?> </h4>
-                            <p class="mb-0"><?= htmlspecialchars($user['country'] ?? 'Not available') ?> |
-                                <?= htmlspecialchars($user['city'] ?? 'Not available') ?>
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-center">
-                        <div class="social-icons">
-                            <a href="tel:<?= htmlspecialchars($user['phone'] ?? 'Not available') ?>"
-                                class="btn btn-outline-light btn-sm"><i class="bi bi-phone"></i></a>
-                            <a href="mailto:<?= htmlspecialchars($user['email']) ?>"
-                                class="btn btn-outline-light btn-sm">
-                                <i class="bi bi-envelope"></i>
-                            </a>
-
-
-                        </div>
-
-                        <form method="POST" class="d-flex align-items-center">
-                            <button type="submit" name="logout" class="btn btn-outline-danger btn-sm">
-                                <i class="bi bi-box-arrow-right"></i> Logout
-                            </button>
-
-                        </form>
-
-
-                    </div>
+    <div class="container main-content">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="fade-in-up">
+                    <h1 class="dashboard-title">Profile</h1>
+                    <p class="welcome-subtitle">Welcome back, <?= htmlspecialchars($user['name'] ?? $user['email']) ?>
+                    </p>
                 </div>
-            </div>
-                <div class="">
-                    
+
+                <div id="dashboard-page" class="page-content active">
+                    <div class="row">
+                        <div class="col-md-4 fade-in-up-delay-1">
+                            <div class="stats-card">
+
+                                <div class="d-flex gap-3 align-items-center">
+                                    <div class="stats-icon gift">
+                                        <i class="fas fa-sack-dollar"></i>
+                                    </div>
+                                    <div class="stats-number  fs-4 "><?= number_format($totalSpent, 2) ?> </div>
+                                </div>
+
+                                <div class="stats-label">Total Spent</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 fade-in-up-delay-2">
+                            <div class="stats-card">
+
+                                <div class="d-flex gap-3 align-items-center">
+
+                                    <div class="stats-icon heart">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="stats-number  fs-4"><?= $acceptedOrdersCount ?></div>
+                                </div>
+
+
+                                <div class="stats-label">Accepted Orders</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 fade-in-up-delay-3">
+
+
+
+
+                            <div class="stats-card">
+                                <div class="d-flex gap-3 align-items-center">
+
+                                    <div class="stats-icon box">
+                                        <i class="fas fa-box"></i>
+                                    </div>
+                                    <div class="stats-number  fs-4"><?= $orders->num_rows ?></div>
+
+                                </div>
+                                <div class="stats-label">Total Orders</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <?php $orders->data_seek(0); ?>
+
                     <?php if ($orders->num_rows > 0): ?>
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle">
-                                    <thead  >
-                                        <tr>
-                                            <th>View</th>
-                                            <th>Order Number</th>
-                                            <th>Date & Time</th>
-                                            <th>Fulfillment Status</th>
-                                            <th>Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php while ($order = $orders->fetch_assoc()): ?>
-                                                <?php
-                                                $finalPrice = (float) $order['finaltotalprice'];
-                                                $discountValue = (float) $order['discount_value'];
-                                                $discountType = $order['discount_type'];
-                                                $priceBeforeDiscount = $finalPrice;
-                                                $discountAmount = 0;
+                        <div class="content-section fade-in-up">
+                            <h3 class="section-title">Recent Orders</h3>
+                            <?php while ($order = $orders->fetch_assoc()): ?>
+                                <?php
+                                $finalPrice = (float) $order['finaltotalprice'];
+                                $discountValue = (float) $order['discount_value'];
+                                $discountType = $order['discount_type'];
+                                $priceBeforeDiscount = $finalPrice;
+                                $discountAmount = 0;
+                                $orderStatus = $order['orderstate'];
 
-                                                if (!empty($order['coupon_code']) && $discountValue > 0) {
-                                                    if ($discountType === 'percentage') {
-                                                        $priceBeforeDiscount = $finalPrice / (1 - ($discountValue / 100));
-                                                        $discountAmount = $priceBeforeDiscount - $finalPrice;
-                                                    } else {
-                                                        $priceBeforeDiscount = $finalPrice + $discountValue;
-                                                        $discountAmount = $discountValue;
-                                                    }
-                                                }
+                                if (!empty($order['coupon_code']) && $discountValue > 0) {
+                                    if ($discountType === 'percentage') {
+                                        $priceBeforeDiscount = $finalPrice / (1 - ($discountValue / 100));
+                                        $discountAmount = $priceBeforeDiscount - $finalPrice;
+                                    } else {
+                                        $priceBeforeDiscount = $finalPrice + $discountValue;
+                                        $discountAmount = $discountValue;
+                                    }
+                                }
 
-                                                $stmtOrderItems->bind_param("i", $order['id']);
-                                                $stmtOrderItems->execute();
-                                                $orderItems = $stmtOrderItems->get_result();
-                                                ?>
+                                $stmtOrderItems->bind_param("i", $order['id']);
+                                $stmtOrderItems->execute();
+                                $orderItems = $stmtOrderItems->get_result();
+                                $firstItem = $orderItems->fetch_assoc();
+                                $productCount = $orderItems->num_rows + ($firstItem ? 1 : 0);
+                                ?>
+                                <div class="order-item" data-bs-toggle="modal"
+                                    data-bs-target="#orderDetailsModal<?= $order['id'] ?>" style="cursor: pointer;">
+                                    <div class="flex-grow-1">
+                                        <div class="order-status 
+                                            <?php
+                                            switch ($orderStatus) {
+                                                case 'inprogress':
+                                                    echo 'status-processing';
+                                                    break;
+                                                case 'accepted':
+                                                    echo 'status-accepted';
+                                                    break;
+                                                case 'rejected':
+                                                    echo 'status-rejected';
+                                                    break;
+                                                case 'delivered':
+                                                    echo 'status-delivered';
+                                                    break;
+                                                default:
+                                                    echo 'bg-secondary';
+                                            }
+                                            ?>">
+                                            <?php
+                                            switch ($orderStatus) {
+                                                case 'inprogress':
+                                                    echo 'Processing';
+                                                    break;
+                                                case 'accepted':
+                                                    echo 'Accepted';
+                                                    break;
+                                                case 'rejected':
+                                                    echo 'Rejected';
+                                                    break;
+                                                case 'delivered':
+                                                    echo 'Delivered';
+                                                    break;
+                                                default:
+                                                    echo htmlspecialchars($orderStatus);
+                                            }
+                                            ?>
+                                        </div>
+                                        <div class="order-number">Order - #<?= $order['id'] ?></div>
+                                        <div class="order-date"> <?= date('Y-m-d', strtotime($order['created_at'])) ?> •
+                                            <?= $productCount ?> products
+                                        </div>
+                                    </div>
+                                    <div class="order-date"><?= number_format($finalPrice, 2) ?> EGP</div>
+                                </div>
+                            <?php endwhile; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-info text-center">
+                            No orders yet. <a href="products.php" class="alert-link">Browse products</a>
+                        </div>
+                    <?php endif; ?>
+                </div>
 
-                                                <div class="modal fade" id="orderModal<?= $order['id'] ?>" tabindex="-1" aria-hidden="true">
-                                                    <div class="modal-dialog modal-lg">
-                                                        <div class="modal-content">
-                                                            <div class="modal-header">
-                                                                <h5 class="modal-title">Order Details #<?= $order['id'] ?></h5>
-                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                            </div>
-                                                            <div class="modal-body">
-                                                                <div class="row">
-                                                                    <?php while ($item = $orderItems->fetch_assoc()): ?>
-                                                                            <div class="col-12 mb-3">
-                                                                                <div class="card">
-                                                                                    <div class="card-body">
-                                                                                        <div class="d-flex align-items-center">
-                                                                                            <div class="position-relative me-3 rounded border" style="width: 80px; height: 80px; background-image: url('<?= htmlspecialchars($item['product_image']) ?>');" >
-                                                                                                <span class="product-qty"><?= $item['qty'] ?></span>
+                <div id="orders-page" class="page-content">
+                    <div class="content-section fade-in-up">
+                        <h3 class="section-title">My Orders</h3>
+                        <?php $orders->data_seek(0); ?>
+                        <?php if ($orders->num_rows > 0): ?>
+                            <?php while ($order = $orders->fetch_assoc()): ?>
+                                <?php
+                                $finalPrice = (float) $order['finaltotalprice'];
+                                $discountValue = (float) $order['discount_value'];
+                                $discountType = $order['discount_type'];
+                                $priceBeforeDiscount = $finalPrice;
+                                $discountAmount = 0;
+                                $orderStatus = $order['orderstate'];
 
-                                                                                    
-                                                                                            </div>
-                                                                                            <div class="flex-grow-1">
-                                                                                                <h6 class="mb-1"><?= htmlspecialchars($item['product_name']) ?></h6>
-                                                                                                <p class="mb-1 text-muted small">
-                                                                                                    <?php if (!empty($item['color']) && $item['color'] !== 'Not specified'): ?>
-                                                                                                            <?= htmlspecialchars($item['color']) ?>
-                                                                                                    <?php endif; ?>
-                                                                                                    <?php if (!empty($item['size']) && $item['size'] !== 'Not specified'): ?>
-                                                                                                            <?= htmlspecialchars($item['size']) ?>
-                                                                                                    <?php endif; ?>
-                                                                                                </p>
-                                                                                            </div>
-                                                                                            <div class="fw-bold">
-                                                                                                <?= number_format($item['total_price'], 2) ?> <small>EGP</small>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                    <?php endwhile; ?>
-                                                            
-                                                                    <div class="col-12 mt-3">
-                                                                        <div class="card">
-                                                                            <div class="card-body" style="border: none ;">
-                                                                                <?php if ($discountAmount > 0): ?>
-                                                                                        <div class="d-flex justify-content-between mb-2">
-                                                                                            <span>Subtotal</span>
-                                                                                            <span><?= number_format($priceBeforeDiscount, 2) ?> <small>EGP</small></span>
-                                                                                        </div>
-                                                                                        <div class="d-flex justify-content-between mb-2 text-success">
-                                                                                            <span>Discount</span>
-                                                                                            <span>- <?= number_format($discountAmount, 2) ?> <small>EGP</small></span>
-                                                                                        </div>
-                                                                                <?php endif; ?>
-                                                                                <div class="d-flex justify-content-between fw-bold fs-5">
-                                                                                    <span>Total</span>
-                                                                                    <span><?= number_format($finalPrice, 2) ?> <small>EGP</small></span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
+                                if (!empty($order['coupon_code']) && $discountValue > 0) {
+                                    if ($discountType === 'percentage') {
+                                        $priceBeforeDiscount = $finalPrice / (1 - ($discountValue / 100));
+                                        $discountAmount = $priceBeforeDiscount - $finalPrice;
+                                    } else {
+                                        $priceBeforeDiscount = $finalPrice + $discountValue;
+                                        $discountAmount = $discountValue;
+                                    }
+                                }
+
+                                $stmtOrderItems->bind_param("i", $order['id']);
+                                $stmtOrderItems->execute();
+                                $orderItems = $stmtOrderItems->get_result();
+                                $firstItem = $orderItems->fetch_assoc();
+                                $productCount = $orderItems->num_rows + ($firstItem ? 1 : 0);
+                                ?>
+                                <div class="order-item" data-bs-toggle="modal"
+                                    data-bs-target="#orderDetailsModal<?= $order['id'] ?>" style="cursor: pointer;">
+                                    <div class="flex-grow-1">
+                                        <div class="order-status 
+                                            <?php
+                                            switch ($orderStatus) {
+                                                case 'inprogress':
+                                                    echo 'status-processing';
+                                                    break;
+                                                case 'accepted':
+                                                    echo 'status-accepted';
+                                                    break;
+                                                case 'rejected':
+                                                    echo 'status-rejected';
+                                                    break;
+                                                case 'delivered':
+                                                    echo 'status-delivered';
+                                                    break;
+                                                default:
+                                                    echo 'bg-secondary';
+                                            }
+                                            ?>">
+                                            <?php
+                                            switch ($orderStatus) {
+                                                case 'inprogress':
+                                                    echo 'Processing';
+                                                    break;
+                                                case 'accepted':
+                                                    echo 'Accepted';
+                                                    break;
+                                                case 'rejected':
+                                                    echo 'Rejected';
+                                                    break;
+                                                case 'delivered':
+                                                    echo 'Delivered';
+                                                    break;
+                                                default:
+                                                    echo htmlspecialchars($orderStatus);
+                                            }
+                                            ?>
+                                        </div>
+                                        <div class="order-number">Order - #<?= $order['id'] ?></div>
+                                        <div class="order-date">
+                                            <?= date('Y-m-d', strtotime($order['created_at'])) ?> • <?= $productCount ?>
+                                            products
+                                        </div>
+                                    </div>
+                                    <div class="order-price"><?= number_format($finalPrice, 2) ?> EGP</div>
+                                </div>
+                                <div class="modal fade" id="orderDetailsModal<?= $order['id'] ?>" tabindex="-1"
+                                    aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Order Details #<?= $order['id'] ?></h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p><strong>Order Date:</strong>
+                                                    <?= date('Y-m-d H:i', strtotime($order['created_at'])) ?></p>
+                                                <p><strong>Status:</strong>
+                                                    <span class="badge 
+                                                        <?php
+                                                        switch ($orderStatus) {
+                                                            case 'inprogress':
+                                                                echo 'bg-info';
+                                                                break;
+                                                            case 'accepted':
+                                                                echo 'bg-success';
+                                                                break;
+                                                            case 'rejected':
+                                                                echo 'bg-danger';
+                                                                break;
+                                                            case 'delivered':
+                                                                echo 'bg-primary';
+                                                                break;
+                                                            default:
+                                                                echo 'bg-secondary';
+                                                        }
+                                                        ?>">
+                                                        <?= htmlspecialchars($orderStatus) ?>
+                                                    </span>
+                                                </p>
+                                                <?php if ($orderStatus === 'inprogress'): ?>
+                                                    <form method="POST" style="display:inline;">
+                                                        <input type="hidden" name="cancel_order" value="1">
+                                                        <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm my-2">
+                                                            <i class="fas fa-ban"></i> Cancel Order
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+                                                <h6>Products:</h6>
+                                                <ul class="list-group">
+                                                    <?php $orderItems->data_seek(0); ?>
+                                                    <?php while ($item = $orderItems->fetch_assoc()): ?>
+                                                        <li
+                                                            class="list-group-item d-flex justify-content-between align-items-center">
+                                                            <div class="d-flex align-items-center">
+                                                                <img src="<?= htmlspecialchars($imagePath . $item['product_image']) ?>"
+                                                                    alt="<?= htmlspecialchars($item['product_name']) ?>"
+                                                                    style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px;">
+                                                                <div>
+                                                                    <strong><?= htmlspecialchars($item['product_name']) ?></strong>
+                                                                    <br>
+                                                                    <span>Quantity:
+                                                                        <?= isset($item['quantity']) ? $item['quantity'] : 'N/A' ?></span>
+                                                                    <br>
+                                                                    <span>Price: <?= number_format($item['price'], 2) ?> EGP</span>
                                                                 </div>
                                                             </div>
-                                                 
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <tr <?= ($order['id'] == $orderId) ? 'class="highlight-order"' : '' ?>>
-                                                    <td data-label="View">
-                                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#orderModal<?= $order['id'] ?>">
-                                                            <i class="bi bi-eye"></i> View
-                                                        </button>
-                                                    </td>
-                                                    <td data-label="Order Number"><?= $order['id'] ?></td>
-                                                    <td data-label="Date"><?= date('M j, Y H:i', strtotime($order['created_at'])) ?></td>
-                                                    <td data-label="Fulfillment Status">
-                                                        <span class="order-status 
-                                                <?php
-                                                switch ($order['orderstate']) {
-                                                    case 'inprogress':
-                                                        echo 'status-inprogress';
-                                                        break;
-                                                    case 'accepted':
-                                                        echo 'status-accepted';
-                                                        break;
-                                                    case 'rejected':
-                                                        echo 'status-rejected';
-                                                        break;
-                                                    case 'delivered':
-                                                        echo 'status-delivered';
-                                                        break;
-                                                    default:
-                                                        echo 'bg-secondary';
-                                                }
-                                                ?>">
-                                                            <?php
-                                                            switch ($order['orderstate']) {
-                                                                case 'inprogress':
-                                                                    echo 'Processing';
-                                                                    break;
-                                                                case 'accepted':
-                                                                    echo 'Accepted';
-                                                                    break;
-                                                                case 'rejected':
-                                                                    echo 'Rejected';
-                                                                    break;
-                                                                case 'delivered':
-                                                                    echo 'Delivered';
-                                                                    break;
-                                                                default:
-                                                                    echo htmlspecialchars($order['orderstate']);
-                                                            }
-                                                            ?>
-                                                        </span>
-                                                    </td>
-                                                    <td data-label="Total"><?= number_format($finalPrice, 2) ?> EGP</td>
-                                                </tr>
-                                        <?php endwhile; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                    <?php else: ?>
+                                                        </li>
+                                                    <?php endwhile; ?>
+                                                </ul>
+                                                <hr>
+                                                <p><strong>Total Price:</strong>
+                                                    <?= number_format($order['totalprice'] ?? 0, 2) ?> EGP</p>
+                                                <?php if (!empty($order['coupon_code'])): ?>
+                                                    <p><strong>Coupon Code:</strong> <?= htmlspecialchars($order['coupon_code']) ?>
+                                                    </p>
+                                                    <p><strong>Discount:</strong> <?= number_format($discountAmount, 2) ?> EGP</p>
+                                                <?php endif; ?>
+                                                <p><strong>Final Price:</strong>
+                                                    <?= number_format($order['finaltotalprice'] ?? 0, 2) ?> EGP</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endwhile; ?>
+                        <?php else: ?>
                             <div class="alert alert-info text-center">
                                 No orders yet. <a href="products.php" class="alert-link">Browse products</a>
                             </div>
-                    <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
+
+                <div id="addresses-page" class="page-content">
+                    <div class="content-section fade-in-up">
+                        <h3 class="section-title">My Addresses</h3>
+                        <div class="address-card default">
+                            <div class="address-type">Default Address</div>
+                            <div class="address-details">
+                                <p><strong>Country:</strong> <?= htmlspecialchars($user['country'] ?? 'N/A') ?></p>
+                                <p><strong>City:</strong> <?= htmlspecialchars($user['city'] ?? 'N/A') ?></p>
+                                <p><strong>Street Address:</strong> <?= htmlspecialchars($user['address'] ?? 'N/A') ?>
+                                </p>
+                            </div>
+                            <button class="btn btn-edit-address" data-bs-toggle="modal"
+                                data-bs-target="#editAddressModal">
+                                <i class="fas fa-edit"></i> Edit Address
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="settings-page" class="page-content">
+                    <div class="settings-form fade-in-up">
+                        <h3 class="section-title">Settings</h3>
+                        <?php if (isset($_SESSION['message'])): ?>
+                            <div class="alert alert-success"><?= $_SESSION['message'] ?></div>
+                            <?php unset($_SESSION['message']); ?>
+                        <?php endif; ?>
+                        <?php if (isset($_SESSION['error'])): ?>
+                            <div class="alert alert-danger"><?= $_SESSION['error'] ?></div>
+                            <?php unset($_SESSION['error']); ?>
+                        <?php endif; ?>
+                        <?php if (isset($_SESSION['errors'])): ?>
+                            <div class="alert alert-danger">
+                                <ul>
+                                    <?php foreach ($_SESSION['errors'] as $error): ?>
+                                        <li><?= $error ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                            <?php unset($_SESSION['errors']); ?>
+                        <?php endif; ?>
+                        <form method="POST">
+                            <input type="hidden" name="update_profile" value="1">
+                            <div class="form-section">
+                                <h4 class="form-section-title">Personal Information</h4>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">Full Name</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                                <input type="text" class="form-control" name="name"
+                                                    value="<?= htmlspecialchars($user['name']) ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">Email Address</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                                <input type="email" class="form-control" name="email"
+                                                    value="<?= htmlspecialchars($user['email']) ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">Phone Number</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                                <input type="tel" class="form-control" name="phone"
+                                                    value="<?= htmlspecialchars($user['phone']) ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">Country</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-globe"></i></span>
+                                                <input type="text" class="form-control" name="country"
+                                                    value="<?= htmlspecialchars($user['country']) ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">City</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-city"></i></span>
+                                                <input type="text" class="form-control" name="city"
+                                                    value="<?= htmlspecialchars($user['city']) ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">Address</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i
+                                                        class="fas fa-map-marked-alt"></i></span>
+                                                <input type="text" class="form-control" name="address"
+                                                    value="<?= htmlspecialchars($user['address']) ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-save-settings">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="sidebar fade-in-up">
+                    <div class="text-center">
+                        <div class="user-avatar mx-auto">
+                            <?= htmlspecialchars(substr($user['name'] ?? $user['email'], 0, 2)) ?>
+                        </div>
+                        <div class="user-name"><?= htmlspecialchars($user['name'] ?? $user['email']) ?></div>
+                        <div class="user-status"><?= htmlspecialchars($user['country'] ?? 'Not available') ?> /
+                            <?= htmlspecialchars($user['city'] ?? 'Not available') ?>
+                        </div>
+                    </div>
+                    <ul class="sidebar-menu">
+                        <li>
+                            <a href="#" class="menu-link active" data-page="dashboard">
+                                <i class="fas fa-chart-pie"></i>
+                                Overview
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="menu-link" data-page="orders">
+                                <i class="fas fa-box"></i>
+                                My Orders
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="menu-link" data-page="addresses">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Addresses
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="menu-link" data-page="settings">
+                                <i class="fas fa-cog"></i>
+                                Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
+    </div>
 
+    <?php require('../includes/footer.php'); ?>
 
+    <?php $stmtOrderItems->close(); ?>
 
-        <?php require('../includes/footer.php'); ?>
+    <div class="modal fade" id="editAddressModal" tabindex="-1" aria-labelledby="editAddressModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editAddressModalLabel">Edit Address</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST">
+                        <input type="hidden" name="update_profile" value="1">
+                        <div class="form-group mb-3">
+                            <label for="country" class="form-label">Country</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-globe"></i></span>
+                                <input type="text" class="form-control" id="country" name="country"
+                                    value="<?= htmlspecialchars($user['country']) ?>">
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="city" class="form-label">City</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-city"></i></span>
+                                <input type="text" class="form-control" id="city" name="city"
+                                    value="<?= htmlspecialchars($user['city']) ?>">
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="address" class="form-label">Street Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-map-marked-alt"></i></span>
+                                <input type="text" class="form-control" id="address" name="address"
+                                    value="<?= htmlspecialchars($user['address']) ?>">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const activeTab = localStorage.getItem('activeTab') || 'orders';
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const menuLinks = document.querySelectorAll('.menu-link');
+            const pages = document.querySelectorAll('.page-content');
 
-                showTab(activeTab);
-
-                document.getElementById('ordersTab').addEventListener('click', function (e) {
-                    e.preventDefault();
-                    showTab('orders');
-                });
-
-                document.getElementById('addressesTab').addEventListener('click', function (e) {
-                    e.preventDefault();
-                    showTab('addresses');
-                });
-
-                <?php if ($orderId > 0): ?>
-                    const orderElement = document.querySelector('.highlight-order');
-                    if (orderElement) {
-                        orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                        const modalId = '#orderModal<?= $orderId ?>';
-                        const modal = new bootstrap.Modal(document.querySelector(modalId));
-                        modal.show();
+            function showPage(pageId) {
+                pages.forEach(page => {
+                    if (page.id === pageId + '-page') {
+                        page.classList.add('active');
+                    } else {
+                        page.classList.remove('active');
                     }
-                <?php endif; ?>
+                });
+                menuLinks.forEach(link => {
+                    if (link.dataset.page === pageId) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+            }
+
+            menuLinks.forEach(link => {
+                link.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const pageId = this.dataset.page;
+                    showPage(pageId);
+                });
             });
 
-            function showTab(tabName) {
-                if (tabName === 'orders') {
-                    document.getElementById('ordersSection').classList.remove('d-none');
-                    document.getElementById('addressesSection').classList.add('d-none');
-                    document.getElementById('ordersTab').classList.add('active');
-                    document.getElementById('addressesTab').classList.remove('active');
-                } else {
-                    document.getElementById('ordersSection').classList.add('d-none');
-                    document.getElementById('addressesSection').classList.remove('d-none');
-                    document.getElementById('ordersTab').classList.remove('active');
-                    document.getElementById('addressesTab').classList.add('active');
-                }
+            const initialPage = 'dashboard';
+            showPage(initialPage);
+        });
+    </script>
+</body>
 
-                localStorage.setItem('activeTab', tabName);
-            }
-        </script>
-        <?php $stmtOrderItems->close(); ?>
-    </body>
-
-    </html>
+</html>

@@ -12,10 +12,7 @@
                 <i :class="sidebarToggle ? 'block xl:hidden' : 'hidden'" class="bi bi-x" style="font-size:24px;"></i>
             </button>
 
-            <a href="index.html" class="xl:hidden">
-                <img class="dark:hidden" src="src/images/logo/logo.svg" alt="Logo" />
-                <img class="hidden dark:block" src="./assets/" alt="Logo" />
-            </a>
+    
 
             <button
                 class="z-99999 flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 xl:hidden dark:text-gray-400 dark:hover:bg-gray-800"

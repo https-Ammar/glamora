@@ -118,7 +118,7 @@ function sanitize_output($data)
         $name = sanitize_output($fetchcat['name'] ?? '');
         $id = (int) $fetchcat['id'];
         echo '<div class="main_cat">
-                    <a href="/category.php?id=' . $id . '">
+                    <a href="./pages/category.php?id=' . $id . '">
                         <div class="_Categories_img" style="background-image: url(\'' . $imagePath . $image . '\');"></div>
                         <h2>' . $name . '</h2>
                     </a>
